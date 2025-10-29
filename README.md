@@ -83,6 +83,8 @@ nssportal/
 │   ├── admin/             # Admin pages
 │   ├── dashboard/         # User dashboard
 │   ├── login/             # Login page
+│   ├── register/          # Registration page
+│   ├── splash/            # Splash screen
 │   └── layout.tsx         # Root layout
 ├── api/                   # PHP API backend
 │   ├── auth.php          # Authentication endpoints
