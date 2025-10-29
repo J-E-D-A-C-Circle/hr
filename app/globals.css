@@ -1,26 +1,193 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* DVLA Brand Colors */
+  --dvla-primary: #0d4f91;
+  --dvla-primary-dark: #0a3d73;
+  --dvla-primary-light: #1565c0;
+  --dvla-secondary: #00695c;
+  --dvla-accent: #f9a825;
+  --dvla-success: #2e7d32;
+  --dvla-danger: #c62828;
+  --dvla-warning: #f57c00;
+  
+  /* Neutral Colors */
+  --background: #f5f7fa;
+  --foreground: #1a1a1a;
+  --card-bg: #ffffff;
+  --border: #e0e0e0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-border: var(--border);
+  
+  /* DVLA Colors */
+  --color-dvla-primary: var(--dvla-primary);
+  --color-dvla-primary-dark: var(--dvla-primary-dark);
+  --color-dvla-primary-light: var(--dvla-primary-light);
+  --color-dvla-secondary: var(--dvla-secondary);
+  --color-dvla-accent: var(--dvla-accent);
+  --color-dvla-success: var(--dvla-success);
+  --color-dvla-danger: var(--dvla-danger);
+  --color-dvla-warning: var(--dvla-warning);
+  
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+}
+
+/* Custom utility classes for DVLA colors */
+.dvla-bg-primary {
+  background-color: var(--dvla-primary);
+}
+
+.dvla-bg-primary-dark {
+  background-color: var(--dvla-primary-dark);
+}
+
+.dvla-text-primary {
+  color: var(--dvla-primary);
+}
+
+.dvla-border-primary {
+  border-color: var(--dvla-primary);
+}
+
+/* DVLA Splash Screen Animations */
+@keyframes logoFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes logoPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes logoGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2)) drop-shadow(0 0 30px rgba(255, 215, 0, 0.1));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 40px rgba(255, 215, 0, 0.2));
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rotateSlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.dvla-splash-logo {
+  animation: logoFadeIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), 
+             logoPulse 4s ease-in-out infinite 1.2s, 
+             logoGlow 3s ease-in-out infinite 1s;
+}
+
+.dvla-splash-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 40%, #16a34a 80%, #15803d 100%);
+  background-size: 300% 300%;
+  animation: shimmer 10s ease-in-out infinite;
+  overflow: hidden;
+  z-index: 9999;
+  margin: 0;
+  padding: 0;
+}
+
+.dvla-splash-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: rotateSlow 20s linear infinite;
+}
+
+.dvla-splash-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.dvla-loading-text-container {
+  position: absolute;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
+}
+
+.dvla-loading-text {
+  animation: fadeInOut 2s ease-in-out infinite;
 }

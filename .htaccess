@@ -1,0 +1,8 @@
+# Enable rewrite engine
+RewriteEngine On
+
+# Route API requests
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api/$1 [L,QSA]
+

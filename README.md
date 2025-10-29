@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DVLA NSS Portal
 
-## Getting Started
+A portal for National Service Scheme (NSS) personnel to submit their details to DVLA for acceptance. Built with Next.js frontend and PHP/MySQL backend.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **User Registration & Login**: NSS personnel can register and log in to the portal
+- **Application Submission**: Submit detailed personal, educational, and NSS assignment information
+- **Admin Dashboard**: Administrators can review, approve, or reject applications
+- **Application Status Tracking**: View application status in real-time
+- **Responsive Design**: Works on desktop and mobile devices
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- PHP (v7.4 or higher)
+- MySQL (v5.7 or higher)
+- XAMPP/WAMP/MAMP or similar local server
+- phpMyAdmin for database management
+
+### Database Setup
+
+1. Open phpMyAdmin in your browser (usually `http://localhost/phpmyadmin`)
+2. Create a new database or use an existing MySQL server
+3. Import the schema file from `database/schema.sql`
+4. Update database credentials in `api/config.php`:
+   ```php
+   define('DB_HOST', 'localhost');
+   define('DB_USER', 'root');
+   define('DB_PASS', '');
+   define('DB_NAME', 'dvla_nss_portal');
+   ```
+
+### Backend Setup (PHP)
+
+1. The PHP API files are in the `api/` directory
+2. If using XAMPP, copy the project to `htdocs/` folder
+3. Ensure PHP is configured to handle JSON and CORS
+4. The API will be accessible at `http://localhost/api/`
+
+### Frontend Setup (Next.js)
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+3. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Default Admin Credentials
+
+- Email: `admin@dvla.gov.gh`
+- Password: `admin123`
+
+⚠️ **Important**: Change the default admin password in production!
+
+### API Endpoints
+
+#### Authentication
+- `POST /api/auth.php?action=register` - Register new user
+- `POST /api/auth.php?action=login` - Login user
+- `GET /api/auth.php?action=me` - Get current user info
+
+#### Applications
+- `POST /api/applications.php?action=submit` - Submit application
+- `GET /api/applications.php?action=my-application` - Get user's application
+- `GET /api/applications.php?action=all` - Get all applications (admin)
+- `GET /api/applications.php?action=view&id={id}` - View specific application (admin)
+- `PUT /api/applications.php?action=review` - Review application (admin)
+
+## Project Structure
+
+```
+nssportal/
+├── app/                    # Next.js app directory
+│   ├── admin/             # Admin pages
+│   ├── dashboard/         # User dashboard
+│   ├── login/             # Login page
+│   └── layout.tsx         # Root layout
+├── api/                   # PHP API backend
+│   ├── auth.php          # Authentication endpoints
+│   ├── applications.php  # Application endpoints
+│   ├── config.php        # Database config & helpers
+│   └── index.php         # API router
+├── database/
+│   └── schema.sql        # Database schema
+└── public/               # Static files
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Technologies Used
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
+- **Backend**: PHP 7.4+, MySQL
+- **Authentication**: Token-based authentication
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Development
 
-## Learn More
+- Frontend runs on: `http://localhost:3000`
+- Backend API runs on: `http://localhost/api/`
 
-To learn more about Next.js, take a look at the following resources:
+## Production Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Build the Next.js app:
+   ```bash
+   npm run build
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Deploy PHP files to your web server
+3. Configure MySQL database on production server
+4. Update API URLs in the frontend if needed
+5. Set proper CORS headers for production domain
+6. Configure environment variables and secure admin credentials
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is for educational/demonstration purposes.
