@@ -1,162 +1,108 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+"use client";
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import Link from 'next/link';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { UploadCloud, DownloadCloud, LogOut } from 'lucide-react';
 
-interface Application {
-  id: number;
-  status: string;
-  first_name: string;
-  last_name: string;
-  created_at: string;
-  reviewed_at: string | null;
-}
+const NAV = [
+  { label: 'Dashboard', active: true },
+  { label: 'Onboarding', active: false },
+  { label: 'Privacy', active: false },
+];
 
-export default function DashboardPage() {
+export default function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [application, setApplication] = useState<Application | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-
-    if (!token || !userStr) {
-      router.push('/login');
-      return;
-    }
-
-    setUser(JSON.parse(userStr));
-    fetchApplication();
-  }, [router]);
-
-  const fetchApplication = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        'http://localhost/api/applications.php?action=my-application',
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setApplication(response.data.application);
-    } catch (error) {
-      console.error('Error fetching application:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
-  };
-
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      under_review: 'bg-blue-100 text-blue-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-    };
-    return badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800';
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  // Simulate user info for now
+  const user = { name: 'Kingston Kofi Agyemang' };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">DVLA NSS Portal</h1>
+    <div className="min-h-screen flex bg-[#f7f9f9]">
+      {/* Sidebar */}
+      <div className="hidden md:flex flex-col min-h-screen w-64 bg-[#17803f]">
+        <div className="pt-7 pb-6 px-7 flex flex-col items-center">
+          <Image src="/oop.png" width={56} height={56} alt="DVLA Logo" className="mb-5 rounded-full bg-white/80 p-1 shadow" />
+        </div>
+        <nav className="flex-1 flex flex-col gap-1 px-4">
+          {NAV.map(n => (
+            <div
+              key={n.label}
+              className={`flex items-center font-medium text-base rounded-lg px-3 py-3 mb-1 cursor-pointer transition select-none 
+                ${n.active ? 'bg-[#19964e] text-white shadow-sm' : 'text-white/85 hover:bg-[#15803d]/80'}`}
+            >
+              <span className="mr-2 text-lg">
+                {n.label === 'Dashboard' && <UploadCloud className="w-5 h-5 inline" />}
+                {n.label === 'Onboarding' && <DownloadCloud className="w-5 h-5 inline" />}
+                {n.label === 'Privacy' && <span className="inline-block w-4 h-4" />} {/* Use a true icon if available */}
+              </span>
+              <span>{n.label}</span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">Welcome, {user?.full_name}</span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-              >
-                Logout
-              </button>
+          ))}
+        </nav>
+        <div className="mt-auto mb-3 px-4">
+          <button className="flex items-center gap-2 text-white/80 hover:bg-[#15803d] px-3 py-2 rounded-md w-full font-semibold transition">
+            <LogOut className="w-5 h-5" /> Sign out
+          </button>
+        </div>
+      </div>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-h-screen px-4 md:px-0 bg-[#f7f9f9]">
+        <div className="max-w-6xl w-full mx-auto py-10 px-0 md:px-6">
+          <div className="mt-4 mb-8">
+            <div className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-1">Welcome, {user.name}</div>
+            <div className="text-lg md:text-xl text-gray-700 mb-2">Your National Service application portal.</div>
+            <div className="my-7">
+              <div className="bg-[#f9f4e5] text-[#8a8352] rounded-xl px-6 py-4 text-base font-semibold text-center w-fit md:w-auto">
+                Your application is pending
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">My Application</h2>
-
-            {!application ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600 mb-4">You haven't submitted an application yet.</p>
-                <Link
-                  href="/dashboard/apply"
-                  className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Submit Application
-                </Link>
+          {/* Grid Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+            {[
+              {
+                icon: <UploadCloud className="w-8 h-8 text-emerald-400" />, title: 'Application Form',
+                desc: 'Start your application to get enrolled into the NSS Program at The Driver and Vehicle Licensing Authority.',
+                cta: 'Start Application',
+                disabled: false
+              },
+              {
+                icon: <DownloadCloud className="w-8 h-8 text-emerald-400" />, title: 'Download Appointment Letter',
+                desc: 'Download your appointment letter to get started at DVLA',
+                cta: 'Download Letter',
+                disabled: true
+              },
+              {
+                icon: <UploadCloud className="w-8 h-8 text-emerald-400" />, title: 'NSS district approved appointment form',
+                desc: 'Upload your appointment form to complete your enrollment into the NSS Program at the DVLA.',
+                cta: 'Upload Form',
+                disabled: false
+              },
+              {
+                icon: <DownloadCloud className="w-8 h-8 text-emerald-400" />, title: 'Download Reposting Letter',
+                desc: 'Download your reposting letter to send to the NSS secretariat',
+                cta: 'Download Letter',
+                disabled: true
+              },
+            ].map((card, i) => (
+              <div key={card.title} className="bg-white border border-gray-100 rounded-2xl shadow-sm px-6 py-7 flex flex-col gap-2 items-start min-h-[210px]">
+                <div className="mb-2">{card.icon}</div>
+                <div className="text-base font-bold mb-1">{card.title}</div>
+                <div className="text-[15px] text-gray-600 mb-3">{card.desc}</div>
+                <Button
+                  disabled={card.disabled}
+                  className="mt-auto px-6 py-2 rounded-full text-white font-semibold bg-[#16a34a] disabled:bg-gray-200 disabled:text-gray-400 shadow-sm"
+                >{card.cta}</Button>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="border-b pb-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {application.first_name} {application.last_name}
-                    </h3>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusBadge(
-                        application.status
-                      )}`}
-                    >
-                      {application.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Submitted:</span>
-                    <span className="ml-2 text-gray-900">
-                      {new Date(application.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {application.reviewed_at && (
-                    <div>
-                      <span className="text-gray-500">Reviewed:</span>
-                      <span className="ml-2 text-gray-900">
-                        {new Date(application.reviewed_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4">
-                  <Link
-                    href="/dashboard/view-application"
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    View Application Details →
-                  </Link>
-                </div>
-              </div>
-            )}
+            ))}
           </div>
         </div>
-      </main>
+        {/* User mini-profile desktop */}
+        <div className="hidden md:flex items-center absolute top-6 right-10">
+          <div className="rounded-full bg-emerald-700 text-white font-bold w-11 h-11 flex items-center justify-center mr-2">KA</div>
+          <span className="text-gray-800 font-semibold">Kingston Agyemang</span>
+        </div>
+      </div>
     </div>
   );
 }
