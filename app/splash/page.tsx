@@ -1,40 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 export default function SplashPage() {
   const router = useRouter();
-  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // Show splash for 3 seconds
+    // Show splash for 3 seconds, then redirect directly to register
     const timer = setTimeout(() => {
-      setShowSplash(false);
-      
-      // Check if user is logged in and redirect accordingly
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
-      
-      if (token && userStr) {
-        const user = JSON.parse(userStr);
-        if (user.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
-      } else {
-        router.push('/register');
-      }
+      router.push('/register');
     }, 3000);
 
     return () => clearTimeout(timer);
   }, [router]);
-
-  if (!showSplash) {
-    return null;
-  }
 
   return (
     <div className="dvla-splash-container">
@@ -57,4 +37,3 @@ export default function SplashPage() {
     </div>
   );
 }
-
