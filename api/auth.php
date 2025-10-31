@@ -32,12 +32,12 @@ switch ($method) {
             
             // Create new user
             $passwordHash = hashPassword($data['password']);
-            $stmt = $conn->prepare("INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, 'nss_personnel')");
+            $stmt = $conn->prepare("INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, 'applicant')");
             $stmt->bind_param("sss", $data['email'], $passwordHash, $data['full_name']);
             
             if ($stmt->execute()) {
                 $userId = $conn->insert_id;
-                $token = generateToken($userId, $data['email'], 'nss_personnel');
+                $token = generateToken($userId, $data['email'], 'applicant');
                 sendJsonResponse([
                     'message' => 'Registration successful',
                     'token' => $token,
@@ -45,7 +45,7 @@ switch ($method) {
                         'id' => $userId,
                         'email' => $data['email'],
                         'full_name' => $data['full_name'],
-                        'role' => 'nss_personnel'
+                        'role' => 'applicant'
                     ]
                 ]);
             } else {

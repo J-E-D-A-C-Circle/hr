@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, Check, Upload, FileText, Image as ImageIcon } from 'lucide-react';
+import { uploadFile } from '@/lib/file-upload';
 
 interface FormData {
   email: string;
@@ -24,8 +25,18 @@ interface FormData {
   lastName: string;
   gender: string;
   phoneNumber: string;
+  ghanaCard: string;
   school: string;
-  branch: string; // Added for branch posted to
+  branch: string;
+  dateOfBirth: string;
+  nationality: string;
+  region: string;
+  district: string;
+  address: string;
+  course: string;
+  yearOfCompletion: string;
+  serviceYear: string;
+  nssPin: string;
 }
 
 export default function RegisterPage() {
@@ -45,9 +56,42 @@ export default function RegisterPage() {
     lastName: '',
     gender: '',
     phoneNumber: '',
+    ghanaCard: '',
     school: '',
-    branch: '', // Initialize branch
+    branch: '',
+    dateOfBirth: '',
+    nationality: 'Ghanaian',
+    region: '',
+    district: '',
+    address: '',
+    course: '',
+    yearOfCompletion: '',
+    serviceYear: String(new Date().getFullYear()),
+    nssPin: '',
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            router.replace('/admin/dashboard');
+            return;
+          } else {
+            router.replace('/dashboard');
+            return;
+          }
+        } catch (e) {
+          // Invalid user data, continue to registration
+        }
+      }
+    }
+  }, [router]);
 
   // Only run on client: load from localStorage if present
   useEffect(() => {
@@ -64,6 +108,7 @@ export default function RegisterPage() {
         lastName: '',
         gender: '',
         phoneNumber: '',
+        ghanaCard: '',
         school: '',
         branch: '', // Load branch
       });
@@ -110,9 +155,14 @@ export default function RegisterPage() {
     setFormData({ ...formData, [field]: value });
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
   // Update handleContinue to support advancing from OTP step (step 3) to step 4
-  const handleContinue = (e: React.FormEvent) => {
+  const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
+    
     if (currentStep === 1) {
       if (formData.password !== formData.confirmPassword) {
         alert('Passwords do not match');
@@ -122,21 +172,226 @@ export default function RegisterPage() {
         alert('Password must be at least 8 characters');
         return;
       }
+      // Just advance to next step - registration happens in step 2
+      setCurrentStep(2);
+      return;
     }
+    
+    if (currentStep === 2) {
+      // Validate required fields
+      if (!formData.firstName || !formData.lastName) {
+        alert('First name and last name are required');
+        return;
+      }
+      
+      // Check if user is already registered (has token)
+      const existingToken = localStorage.getItem('token');
+      const existingUser = localStorage.getItem('user');
+      
+      if (existingToken && existingUser) {
+        // Already registered, just proceed to next step
+        console.log('User already registered, proceeding to next step');
+        setCurrentStep(3);
+        return;
+      }
+      
+      // Register user account after collecting personal info
+      setIsSubmitting(true);
+      try {
+        const fullName = `${formData.firstName} ${formData.middleName} ${formData.lastName}`.trim();
+        const response = await fetch('http://localhost/api/auth.php?action=register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            full_name: fullName,
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Registration failed');
+        }
+        
+        // Save token for later use
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
+        
+        // Log success to console (no popup)
+        console.log('Account created successfully!', data.user);
+        
+        setCurrentStep(3);
+      } catch (error: any) {
+        setSubmitError(error.message || 'Registration failed. Please try again.');
+        alert(error.message || 'Registration failed. Please try again.');
+        return;
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+    
     if (currentStep === 3) {
       if (otp.join('').length !== 6) return;
       setCurrentStep(4);
       return;
     }
+    
     if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
-    } else {
-      // Final submission - clear saved data and go to success page
+      return;
+    }
+    
+    // Step 4: Final submission - submit application
+    setIsSubmitting(true);
+    setSubmitError('');
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please start over.');
+      }
+      
+      // Upload files first
+      let passportPhotoPath = null;
+      let appointmentLetterPath = null;
+      let cvPath = null;
+      
+      const passportFile = passportFileRef.current?.files?.[0] || passportCameraRef.current?.files?.[0];
+      const appointmentFile = appointmentFileRef.current?.files?.[0] || appointmentCameraRef.current?.files?.[0];
+      const cvFile = cvFileRef.current?.files?.[0];
+      
+      if (passportFile) {
+        try {
+          const uploadResult = await uploadFile(passportFile, 'passport', token);
+          passportPhotoPath = uploadResult.file_path;
+        } catch (uploadError: any) {
+          console.error('Passport upload error:', uploadError);
+          throw new Error(`Passport photo upload failed: ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+      
+      if (appointmentFile) {
+        try {
+          const uploadResult = await uploadFile(appointmentFile, 'appointment', token);
+          appointmentLetterPath = uploadResult.file_path;
+        } catch (uploadError: any) {
+          console.error('Appointment letter upload error:', uploadError);
+          throw new Error(`Appointment letter upload failed: ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+      
+      if (cvFile) {
+        try {
+          const uploadResult = await uploadFile(cvFile, 'cv', token);
+          cvPath = uploadResult.file_path;
+        } catch (uploadError: any) {
+          console.error('CV upload error:', uploadError);
+          throw new Error(`CV upload failed: ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Get user ID from stored user data
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      if (!user || !user.id) {
+        throw new Error('User information not found. Please start over.');
+      }
+      
+      // Validate critical fields
+      if (!formData.course || formData.course.trim() === '') {
+        alert('Course of study is required');
+        return;
+      }
+      
+      if (!formData.district || formData.district.trim() === '') {
+        alert('District is required');
+        return;
+      }
+      
+      // Prepare application data
+      const applicationData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        middle_name: formData.middleName || null,
+        date_of_birth: formData.dateOfBirth,
+        gender: formData.gender,
+        nationality: formData.nationality || 'Ghanaian',
+        phone_number: formData.phoneNumber,
+        email: formData.email,
+        residential_address: formData.address,
+        region: formData.region,
+        district: formData.district.trim(),
+        institution_name: formData.school,
+        course_program: formData.course.trim(), // Ensure no leading/trailing spaces
+        year_of_completion: formData.yearOfCompletion,
+        service_year: formData.serviceYear || new Date().getFullYear().toString(),
+        nss_number: formData.nssPin || null,
+        posting_region: formData.region || null,
+        posting_district: formData.district.trim() || null, // Ensure it's not empty string
+        passport_photo: passportPhotoPath,
+        appointment_letter: appointmentLetterPath,
+        certificates: cvPath,
+      };
+      
+      // Log data before submission for debugging
+      console.log('Submitting application data:', applicationData);
+      console.log('Course program:', applicationData.course_program);
+      console.log('Posting district:', applicationData.posting_district);
+      
+      // Submit application
+      const response = await fetch('http://localhost/api/applications.php?action=submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(applicationData),
+      });
+      
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        console.error('Response status:', response.status);
+        console.error('Response headers:', [...response.headers.entries()]);
+        throw new Error(`Server error (${response.status}): ${text.substring(0, 200)}`);
+      }
+      
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        const text = await response.text();
+        console.error('JSON parse error. Response text:', text);
+        throw new Error('Server returned invalid JSON. Check console for details.');
+      }
+      
+      if (!response.ok) {
+        console.error('API Error:', data);
+        throw new Error(data.error || data.message || `Application submission failed (${response.status})`);
+      }
+      
+      console.log('Application submitted successfully:', data);
+      
+      // Success - clear saved data and redirect to dashboard
       if (typeof window !== 'undefined') {
         localStorage.removeItem('registerCurrentStep');
         localStorage.removeItem('registerFormData');
       }
-      router.push('/register/success');
+      // Redirect directly to dashboard (replace to prevent back navigation)
+      router.replace('/dashboard');
+    } catch (error: any) {
+      setSubmitError(error.message || 'Failed to submit application. Please try again.');
+      alert(error.message || 'Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -257,17 +512,46 @@ export default function RegisterPage() {
   const [schoolDropdown, setSchoolDropdown] = useState(false);
   const [branchInput, setBranchInput] = useState("");
   const [branchDropdown, setBranchDropdown] = useState(false);
+  const [nationalityInput, setNationalityInput] = useState("");
+  const [nationalityDropdown, setNationalityDropdown] = useState(false);
   const filteredSchools = ghanianSchools.filter(school => school.toLowerCase().includes(schoolInput.toLowerCase()));
+  
+  // Nationalities list
+  const nationalities = [
+    "Ghanaian", "Nigerian", "Kenyan", "South African", "Egyptian", "Ethiopian", "Tanzanian",
+    "Ugandan", "Algerian", "Sudanese", "Moroccan", "Angolan", "Mozambican", "Madagascan",
+    "Cameroonian", "Ivory Coast", "Malagasy", "Burkina Faso", "Malawi", "Zambian", "Senegalese",
+    "Zimbabwean", "Guinean", "Rwandan", "Beninese", "Burundian", "Tunisian", "South Sudanese",
+    "Somalian", "Togolese", "Sierra Leonean", "Libyan", "Liberian", "Central African",
+    "Mauritanian", "Eritrean", "Gambian", "Botswanan", "Namibian", "Gabonese", "Lesotho",
+    "Guinea-Bissau", "Equatorial Guinean", "Mauritian", "Eswatini", "Djiboutian", "Comorian",
+    "Cabo Verdean", "Sao Tomean", "Seychellois", "British", "American", "Canadian", "Australian",
+    "Indian", "Chinese", "Japanese", "Korean", "Pakistani", "Bangladeshi", "Filipino",
+    "Vietnamese", "Thai", "Indonesian", "Malaysian", "Singaporean", "Sri Lankan", "Nepalese",
+    "Afghan", "Iranian", "Iraqi", "Saudi Arabian", "Emirati", "Kuwaiti", "Qatari", "Omani",
+    "Bahraini", "Yemeni", "Jordanian", "Lebanese", "Syrian", "Israeli", "Palestinian", "Turkish",
+    "Greek", "Italian", "Spanish", "French", "German", "Dutch", "Belgian", "Swiss", "Austrian",
+    "Portuguese", "Polish", "Russian", "Ukrainian", "Romanian", "Hungarian", "Czech", "Swedish",
+    "Norwegian", "Danish", "Finnish", "Irish", "Scottish", "Welsh", "Brazilian", "Argentine",
+    "Mexican", "Colombian", "Peruvian", "Venezuelan", "Chilean", "Ecuadorian", "Guatemalan",
+    "Cuban", "Haitian", "Dominican", "Jamaican", "Trinidadian", "Barbadian", "Bahamian", "Other"
+  ].sort();
+  
+  const filteredNationalities = nationalities.filter(nat => nat.toLowerCase().includes(nationalityInput.toLowerCase()));
   const filteredBranches = dvlaBranches.filter(branch => branch.toLowerCase().includes(branchInput.toLowerCase()));
 
   useEffect(() => {
     function closeDropdowns(e: MouseEvent) {
-      // Only close if user clicked outside both fields
-      if (!(e.target instanceof HTMLElement && e.target.closest('#school'))) {
+      // Close all dropdowns when clicking outside
+      const target = e.target as HTMLElement;
+      if (!target.closest('#school') && !target.closest('.school-dropdown')) {
         setSchoolDropdown(false);
       }
-      if (!(e.target instanceof HTMLElement && e.target.closest('#branch'))) {
+      if (!target.closest('#branch') && !target.closest('.branch-dropdown')) {
         setBranchDropdown(false);
+      }
+      if (!target.closest('#nationality') && !target.closest('.nationality-dropdown')) {
+        setNationalityDropdown(false);
       }
     }
     document.addEventListener('click', closeDropdowns);
@@ -548,15 +832,14 @@ export default function RegisterPage() {
                   </div>
 
                   {/* Phone Number */}
-                  <div className="col-span-2">
+                  <div>
                     <Label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-900 mb-2">
                       Your Phone Number
                     </Label>
                     <div className="relative w-full">
-                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2 z-10">
-                        {/* Replace emoji flag with SVG image */}
-                        <Image src="/file.svg" alt="Ghana Flag" width={24} height={16} className="rounded-sm border border-gray-300" />
-                        <span className="text-gray-500">|</span>
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2 z-10 pointer-events-none">
+                        <span className="text-sm font-semibold text-gray-700">GH</span>
+                        <span className="text-gray-400">|</span>
                       </div>
                       <Input
                         type="tel"
@@ -564,10 +847,26 @@ export default function RegisterPage() {
                         required
                         value={formData.phoneNumber}
                         onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                        className="pl-16 w-full"
+                        className="pl-12 w-full"
                         placeholder="Enter phone number"
                       />
                     </div>
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div>
+                    <Label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-900 mb-2">
+                      Date of Birth
+                    </Label>
+                    <Input
+                      type="date"
+                      id="dateOfBirth"
+                      required
+                      value={formData.dateOfBirth}
+                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                      className="w-full"
+                      max={new Date().toISOString().split('T')[0]}
+                    />
                   </div>
                 </div>
 
@@ -592,19 +891,111 @@ export default function RegisterPage() {
                     <Label htmlFor="gender" className="block text-sm font-medium text-gray-900 mb-2">
                       Select Your Gender
                     </Label>
-                    <Select
-                      value={formData.gender}
-                      onValueChange={(value) => handleInputChange('gender', value)}
+                    <div className="relative">
+                      <Select
+                        value={formData.gender || undefined}
+                        onValueChange={(value) => {
+                          if (value === "__clear__") {
+                            handleInputChange('gender', "");
+                            // Force close the select
+                            const trigger = document.getElementById('gender');
+                            if (trigger) {
+                              trigger.click();
+                            }
+                          } else {
+                            handleInputChange('gender', value);
+                          }
+                        }}
+                      >
+                        <SelectTrigger id="gender" className="w-full h-14 text-base">
+                          <SelectValue placeholder="Select Gender" />
+                        </SelectTrigger>
+                        <SelectContent position="popper" sideOffset={4}>
+                          {formData.gender && (
+                            <>
+                              <SelectItem value="__clear__" className="text-sm cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-50 border-b border-gray-200">
+                                Clear selection
+                              </SelectItem>
+                            </>
+                          )}
+                          <SelectItem value="Male" className="text-base cursor-pointer">Male</SelectItem>
+                          <SelectItem value="Female" className="text-base cursor-pointer">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {formData.gender && (
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('gender', "")}
+                          className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          aria-label="Clear gender selection"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ghana Card */}
+                  <div>
+                    <Label htmlFor="ghanaCard" className="block text-sm font-medium text-gray-900 mb-2">
+                      Ghana Card Number
+                    </Label>
+                    <Input
+                      type="text"
+                      id="ghanaCard"
+                      value={formData.ghanaCard}
+                      onChange={(e) => handleInputChange('ghanaCard', e.target.value)}
+                      placeholder="GHA-XXXXXXXX-X"
+                      pattern="[GHA]{3}-[0-9]{9}-[0-9]{1}"
+                      maxLength={15}
+                    />
+                  </div>
+
+                  {/* Nationality */}
+                  <div className="relative">
+                    <Label htmlFor="nationality" className="block text-sm font-medium text-gray-900 mb-2">
+                      Nationality
+                    </Label>
+                    <Input
+                      id="nationality"
+                      name="nationality"
+                      autoComplete="off"
                       required
-                    >
-                      <SelectTrigger id="gender">
-                        <SelectValue placeholder="Select Gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      value={nationalityInput || formData.nationality || ''}
+                      onFocus={() => {
+                        setNationalityDropdown(true);
+                        setNationalityInput(formData.nationality || '');
+                      }}
+                      onChange={e => {
+                        setNationalityInput(e.target.value);
+                        setNationalityDropdown(true);
+                        handleInputChange('nationality', e.target.value);
+                      }}
+                      placeholder="Start typing nationality..."
+                      className="w-full"
+                    />
+                    {nationalityDropdown && (
+                      <ul className="absolute left-0 z-50 max-h-60 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto">
+                        {filteredNationalities.length === 0 && (
+                          <li className="px-4 py-2 text-gray-400">No results</li>
+                        )}
+                        {filteredNationalities.map((nationality) => (
+                          <li
+                            key={nationality}
+                            className="px-4 py-2 hover:bg-emerald-100 cursor-pointer text-sm"
+                            onClick={() => {
+                              handleInputChange('nationality', nationality);
+                              setNationalityDropdown(false);
+                              setNationalityInput(nationality);
+                            }}
+                          >
+                            {nationality}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </div>
@@ -677,7 +1068,13 @@ export default function RegisterPage() {
                 {/* NSS PIN */}
                 <div>
                   <Label htmlFor="nssPin" className="block text-sm font-medium text-gray-900 mb-2">Your National Service PIN</Label>
-                  <Input id="nssPin" name="nssPin" placeholder="Eg. NSS 0345 067 856" />
+                  <Input 
+                    id="nssPin" 
+                    name="nssPin" 
+                    value={formData.nssPin}
+                    onChange={(e) => handleInputChange('nssPin', e.target.value)}
+                    placeholder="Eg. NSS 0345 067 856" 
+                  />
                 </div>
                 {/* School Select */}
                 <div className="relative">
@@ -723,12 +1120,84 @@ export default function RegisterPage() {
                 {/* Course */}
                 <div>
                   <Label htmlFor="course" className="block text-sm font-medium text-gray-900 mb-2">Your course of study</Label>
-                  <Input id="course" name="course" placeholder="Eg. BA Information Studies and Psychology" />
+                  <Input 
+                    id="course" 
+                    name="course" 
+                    required
+                    value={formData.course}
+                    onChange={(e) => handleInputChange('course', e.target.value)}
+                    placeholder="Eg. BA Information Studies and Psychology" 
+                  />
+                </div>
+
+                {/* Year of Completion */}
+                <div>
+                  <Label htmlFor="yearOfCompletion" className="block text-sm font-medium text-gray-900 mb-2">Year of Completion (University)</Label>
+                  <Input 
+                    id="yearOfCompletion" 
+                    name="yearOfCompletion" 
+                    type="number"
+                    required
+                    min="2000"
+                    max={new Date().getFullYear() + 1}
+                    value={formData.yearOfCompletion}
+                    onChange={(e) => handleInputChange('yearOfCompletion', e.target.value)}
+                    placeholder="e.g. 2024" 
+                  />
+                </div>
+
+                {/* Service Year */}
+                <div>
+                  <Label htmlFor="serviceYear" className="block text-sm font-medium text-gray-900 mb-2">Service Year</Label>
+                  <Input 
+                    id="serviceYear" 
+                    name="serviceYear" 
+                    type="number"
+                    required
+                    min="2020"
+                    max={new Date().getFullYear() + 2}
+                    value={formData.serviceYear || new Date().getFullYear().toString()}
+                    onChange={(e) => handleInputChange('serviceYear', e.target.value)}
+                    placeholder={`e.g. ${new Date().getFullYear()}`}
+                  />
                 </div>
                 {/* Address */}
                 <div>
-                  <Label htmlFor="address" className="block text-sm font-medium text-gray-900 mb-2">Your address</Label>
-                  <Input id="address" name="address" placeholder="Enter the address of where you will stay during your service" />
+                  <Label htmlFor="address" className="block text-sm font-medium text-gray-900 mb-2">Your Residential Address</Label>
+                  <Input 
+                    id="address" 
+                    name="address" 
+                    required
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="Enter the address of where you will stay during your service" 
+                  />
+                </div>
+
+                {/* Region */}
+                <div>
+                  <Label htmlFor="region" className="block text-sm font-medium text-gray-900 mb-2">Region</Label>
+                  <Input 
+                    id="region" 
+                    name="region" 
+                    required
+                    value={formData.region}
+                    onChange={(e) => handleInputChange('region', e.target.value)}
+                    placeholder="e.g. Greater Accra, Ashanti, Western" 
+                  />
+                </div>
+
+                {/* District */}
+                <div>
+                  <Label htmlFor="district" className="block text-sm font-medium text-gray-900 mb-2">District</Label>
+                  <Input 
+                    id="district" 
+                    name="district" 
+                    required
+                    value={formData.district}
+                    onChange={(e) => handleInputChange('district', e.target.value)}
+                    placeholder="e.g. Accra Metro, Kumasi Metro" 
+                  />
                 </div>
                 {/* Branch posted to (DVLA branches select) */}
                 <div className="relative">
@@ -817,8 +1286,15 @@ export default function RegisterPage() {
                 </div>
               </div>
               <div className="flex justify-end mt-8">
-                <Button type="submit" className="px-10">Continue</Button>
+                <Button type="submit" className="px-10" disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting Application...' : 'Submit Application'}
+                </Button>
               </div>
+              {submitError && (
+                <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                  {submitError}
+                </div>
+              )}
             </form>
           )}
           </div>

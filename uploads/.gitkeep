@@ -1,0 +1,6 @@
+# This file ensures the uploads directory is tracked by git
+# Uploaded files will be stored in subdirectories:
+# - uploads/passport/
+# - uploads/appointment/
+# - uploads/cv/
+

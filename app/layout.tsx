@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DVLA NSS Portal",
+  title: "Dvla Nss Portal",
   description: "National Service Scheme Personnel Registration Portal",
 };
 

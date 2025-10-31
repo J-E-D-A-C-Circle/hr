@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('nss_personnel', 'admin') DEFAULT 'nss_personnel',
+    role ENUM('applicant', 'admin') DEFAULT 'applicant',
     full_name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS nss_applications (
     -- NSS Assignment details
     posting_region VARCHAR(100),
     posting_district VARCHAR(100),
+    posting_station VARCHAR(255),
+    posting_department VARCHAR(255),
     service_year YEAR NOT NULL,
     service_period_start DATE,
     service_period_end DATE,
@@ -46,7 +48,8 @@ CREATE TABLE IF NOT EXISTS nss_applications (
     -- Documents (file paths)
     passport_photo VARCHAR(255),
     id_card_copy VARCHAR(255),
-    certificates VARCHAR(500),
+    appointment_letter VARCHAR(255),
+    certificates VARCHAR(500), -- Used for CV
     
     -- Additional information
     additional_info TEXT,

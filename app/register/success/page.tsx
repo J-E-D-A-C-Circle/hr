@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,29 @@ import { Check } from 'lucide-react';
 
 export default function RegisterSuccess() {
   const router = useRouter();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            router.replace('/admin/dashboard');
+            return;
+          } else {
+            router.replace('/dashboard');
+            return;
+          }
+        } catch (e) {
+          // Invalid user data, continue to success page
+        }
+      }
+    }
+  }, [router]);
   return (
     <div className="min-h-screen flex bg-white">
       {/* Side panel (desktop only, 30% width) */}
@@ -22,7 +46,7 @@ export default function RegisterSuccess() {
           <Button
             variant="ghost"
             className="bg-[#16a34a] text-white font-bold rounded-full px-6 py-3 text-base shadow-md hover:bg-[#15803d] flex items-center"
-            onClick={() => router.push('/login')}
+            onClick={() => router.replace('/login')}
           >
             Already have an account? Login <span className='text-xl ml-1'>→</span>
           </Button>
@@ -38,7 +62,7 @@ export default function RegisterSuccess() {
           <p className="text-base text-gray-700 mb-6 text-center max-w-sm">You’ve successfully submitted your application.</p>
           <Button
             className="bg-[#16a34a] hover:bg-[#15803d] px-9 py-3 w-full font-semibold text-base rounded-full shadow"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.replace('/dashboard')}
           >
             Go to Dashboard
           </Button>

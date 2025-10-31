@@ -1,8 +1,12 @@
 <?php
+// Suppress warnings/notices that could output HTML before JSON
+error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
+ini_set('display_errors', 0);
+
 // Database configuration
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_PASS', '@Kuw_35567');
 define('DB_NAME', 'dvla_nss_portal');
 
 // Create database connection
