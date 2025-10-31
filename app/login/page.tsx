@@ -19,12 +19,26 @@ export default function LoginPage() {
     password: '',
   });
 
-  // Redirect if already authenticated
+  // Set active session on login page load
   useEffect(() => {
+    // Mark this as an active session if not already set
+    if (!sessionStorage.getItem('active_session')) {
+      sessionStorage.setItem('active_session', 'true');
+    }
+
+    // Clear session when tab is closed
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('active_session');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Only redirect if we have an active session AND auth data
+    const hasActiveSession = sessionStorage.getItem('active_session');
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
-    if (token && userStr) {
+    if (hasActiveSession && token && userStr) {
       try {
         const user = JSON.parse(userStr);
         if (user.role === 'admin') {
@@ -36,6 +50,10 @@ export default function LoginPage() {
         // Invalid user data, continue to login
       }
     }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +69,9 @@ export default function LoginPage() {
         }
       );
       if (response.data.token) {
+        // Set active session on successful login
+        sessionStorage.setItem('active_session', 'true');
+        
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         if (response.data.user.role === 'admin') {

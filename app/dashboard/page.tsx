@@ -3,13 +3,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, DownloadCloud, LogOut, FileText, Home, Shield } from 'lucide-react';
+import { DownloadCloud, LogOut, FileText, Home } from 'lucide-react';
 import axios from 'axios';
 
 const NAV = [
   { label: 'Dashboard', active: true },
-  { label: 'Onboarding', active: false },
-  { label: 'Privacy', active: false },
 ];
 
 interface Application {
@@ -32,6 +30,24 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check if we have an active session
+    // If not, this is a new tab - clear auth and redirect to login
+    const hasActiveSession = sessionStorage.getItem('active_session');
+    
+    if (!hasActiveSession) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.replace('/login');
+      return;
+    }
+
+    // Clear session when tab is closed
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('active_session');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
@@ -48,6 +64,10 @@ export default function Dashboard() {
 
     setUser(parsedUser);
     fetchApplication();
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [router]);
 
   const fetchApplication = async () => {
@@ -98,8 +118,12 @@ export default function Dashboard() {
           <style>
             @media print {
               @page { 
-                margin: 1.5cm 2cm;
+                margin: 1cm 1.5cm;
                 size: A4;
+              }
+              body {
+                margin: 0;
+                padding: 0;
               }
             }
             * {
@@ -109,178 +133,181 @@ export default function Dashboard() {
             }
             body { 
               font-family: 'Georgia', 'Times New Roman', serif;
-              line-height: 1.8;
+              line-height: 1.5;
               color: #1a1a1a;
               background: #ffffff;
               padding: 0;
+              margin: 0;
             }
             .document-container {
-              max-width: 800px;
+              max-width: 100%;
+              width: 100%;
               margin: 0 auto;
               background: white;
+              padding: 0;
             }
             .header {
               text-align: center;
-              margin-bottom: 40px;
-              padding-bottom: 25px;
-              border-bottom: 4px solid #16a34a;
+              margin-bottom: 12px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #16a34a;
               position: relative;
             }
             .logo-container {
-              margin-bottom: 20px;
+              margin-bottom: 8px;
               display: flex;
               justify-content: center;
               align-items: center;
             }
             .logo-container img {
-              max-width: 120px;
+              max-width: 60px;
               height: auto;
-              margin-bottom: 15px;
+              margin-bottom: 5px;
             }
             .organization-name {
-              font-size: 22px;
+              font-size: 14px;
               font-weight: bold;
               color: #16a34a;
-              letter-spacing: 1px;
-              margin-bottom: 8px;
+              letter-spacing: 0.3px;
+              margin-bottom: 3px;
               text-transform: uppercase;
             }
             .document-title {
-              font-size: 18px;
+              font-size: 13px;
               color: #2d5016;
               font-weight: 600;
-              margin-top: 10px;
-              letter-spacing: 0.5px;
+              margin-top: 3px;
+              letter-spacing: 0.2px;
             }
             .document-subtitle {
-              font-size: 14px;
+              font-size: 11px;
               color: #666;
-              margin-top: 5px;
+              margin-top: 2px;
               font-style: italic;
             }
             .content {
-              margin-top: 35px;
+              margin-top: 12px;
             }
             .date-section {
               text-align: right;
-              margin-bottom: 30px;
-              font-size: 14px;
+              margin-bottom: 10px;
+              font-size: 11px;
               color: #555;
             }
             .greeting {
-              font-size: 16px;
-              margin-bottom: 20px;
-              line-height: 2;
+              font-size: 12px;
+              margin-bottom: 8px;
+              line-height: 1.5;
             }
             .main-text {
-              font-size: 15px;
+              font-size: 11px;
               text-align: justify;
-              margin-bottom: 25px;
-              line-height: 1.9;
+              margin-bottom: 12px;
+              line-height: 1.5;
             }
             .highlight {
               color: #16a34a;
               font-weight: bold;
-              font-size: 16px;
+              font-size: 11px;
             }
             .details-box {
-              background: linear-gradient(to right, #f0fdf4, #ffffff);
-              border-left: 5px solid #16a34a;
-              padding: 20px 25px;
-              margin: 30px 0;
-              border-radius: 8px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+              background: #f9fafb;
+              border-left: 3px solid #16a34a;
+              padding: 10px 12px;
+              margin: 12px 0;
+              border-radius: 3px;
             }
             .details-title {
-              font-size: 16px;
+              font-size: 11px;
               font-weight: bold;
               color: #16a34a;
-              margin-bottom: 15px;
+              margin-bottom: 8px;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 0.3px;
             }
             .detail-item {
-              margin-bottom: 12px;
-              font-size: 14px;
+              margin-bottom: 5px;
+              font-size: 11px;
             }
             .detail-label {
               font-weight: bold;
               color: #2d5016;
               display: inline-block;
-              min-width: 140px;
+              min-width: 100px;
             }
             .detail-value {
               color: #1a1a1a;
             }
             .posting-box {
-              background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-              border: 2px solid #16a34a;
-              border-radius: 10px;
-              padding: 25px;
-              margin: 30px 0;
-              box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+              background: #f0fdf4;
+              border: 1px solid #16a34a;
+              border-radius: 4px;
+              padding: 12px;
+              margin: 12px 0;
             }
             .posting-title {
-              font-size: 17px;
+              font-size: 12px;
               font-weight: bold;
               color: #16a34a;
-              margin-bottom: 18px;
+              margin-bottom: 8px;
               text-align: center;
               text-transform: uppercase;
-              letter-spacing: 1.5px;
-              padding-bottom: 10px;
-              border-bottom: 2px solid #86efac;
+              letter-spacing: 0.5px;
+              padding-bottom: 6px;
+              border-bottom: 1px solid #86efac;
             }
             .posting-item {
               display: flex;
-              margin-bottom: 14px;
-              padding: 10px;
+              margin-bottom: 6px;
+              padding: 5px;
               background: white;
-              border-radius: 6px;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+              border-radius: 3px;
             }
             .posting-label {
               font-weight: bold;
               color: #2d5016;
-              min-width: 120px;
-              font-size: 14px;
+              min-width: 90px;
+              font-size: 11px;
             }
             .posting-value {
               color: #1a1a1a;
-              font-size: 14px;
+              font-size: 11px;
               font-weight: 500;
             }
             .closing {
-              margin-top: 35px;
-              font-size: 15px;
-              line-height: 2;
+              margin-top: 12px;
+              font-size: 11px;
+              line-height: 1.5;
+            }
+            .closing p {
+              margin-bottom: 8px;
             }
             .signature-section {
-              margin-top: 60px;
-              margin-bottom: 40px;
+              margin-top: 20px;
+              margin-bottom: 15px;
             }
             .signature-line {
-              border-top: 2px solid #16a34a;
-              width: 300px;
-              margin: 50px 0 10px 0;
+              border-top: 1.5px solid #16a34a;
+              width: 200px;
+              margin: 20px 0 5px 0;
             }
             .signature-label {
-              font-size: 13px;
+              font-size: 11px;
               color: #555;
               font-weight: bold;
             }
             .footer {
-              margin-top: 50px;
-              padding-top: 20px;
-              border-top: 2px solid #e5e7eb;
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #e5e7eb;
               text-align: center;
-              font-size: 11px;
+              font-size: 9px;
               color: #888;
               font-style: italic;
             }
             .footer-id {
-              margin-top: 8px;
-              font-size: 10px;
+              margin-top: 4px;
+              font-size: 8px;
               color: #aaa;
             }
           </style>
@@ -308,7 +335,7 @@ export default function Dashboard() {
               <div class="main-text">
                 We are pleased to inform you that your application for National Service posting at the 
                 <span class="highlight">Driver and Vehicle Licensing Authority (DVLA)</span> has been 
-                <strong style="color: #16a34a; font-size: 16px;">APPROVED</strong>.
+                <strong style="color: #16a34a; font-size: 11px;">APPROVED</strong>.
               </div>
               
               <div class="details-box">
@@ -324,7 +351,7 @@ export default function Dashboard() {
               </div>
               
               <div class="posting-box">
-                <div class="posting-title">📋 Posting Assignment Details</div>
+                <div class="posting-title">Posting Assignment Details</div>
                 ${app.posting_region ? `
                 <div class="posting-item">
                   <span class="posting-label">Region:</span>
@@ -357,16 +384,15 @@ export default function Dashboard() {
               </div>
               
               <div class="closing">
-                <p>Please report to the above-mentioned station and department on your assigned date to begin your National Service. 
-                This appointment is subject to the terms and conditions of the National Service Scheme.</p>
-                <p style="margin-top: 15px;">If you have any questions or require further clarification, please do not hesitate to contact the DVLA NSS Portal administration.</p>
-                <p style="margin-top: 20px;">We congratulate you on your appointment and look forward to your valuable contribution to the Driver and Vehicle Licensing Authority.</p>
+                <p>Please report to the above-mentioned station and department on your assigned date to begin your National Service. This appointment is subject to the terms and conditions of the National Service Scheme.</p>
+                <p>If you have any questions or require further clarification, please do not hesitate to contact the DVLA NSS Portal administration.</p>
+                <p>We congratulate you on your appointment and look forward to your valuable contribution to the Driver and Vehicle Licensing Authority.</p>
               </div>
               
               <div class="signature-section">
                 <div class="signature-line"></div>
                 <div class="signature-label">Authorized Signatory</div>
-                <div style="margin-top: 5px; font-size: 12px; color: #666;">DVLA Administration</div>
+                <div style="margin-top: 3px; font-size: 10px; color: #666;">DVLA Administration</div>
               </div>
             </div>
             
@@ -479,8 +505,6 @@ export default function Dashboard() {
             >
               <span className="mr-3">
                 {n.label === 'Dashboard' && <Home className="w-5 h-5" />}
-                {n.label === 'Onboarding' && <UploadCloud className="w-5 h-5" />}
-                {n.label === 'Privacy' && <Shield className="w-5 h-5" />}
               </span>
               <span>{n.label}</span>
             </div>
@@ -531,7 +555,7 @@ export default function Dashboard() {
               /* No Application - Show full width Application Form */
               <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-6 py-7 flex flex-col gap-2 items-start min-h-[210px] col-span-2">
                 <div className="mb-2 p-2 bg-emerald-100 rounded-lg">
-                  <UploadCloud className="w-8 h-8 text-emerald-600" />
+                  <FileText className="w-8 h-8 text-emerald-600" />
                 </div>
                 <div className="text-base font-bold mb-1">Application Form</div>
                 <div className="text-[15px] text-gray-600 mb-3">
@@ -549,7 +573,7 @@ export default function Dashboard() {
                 {/* Card 1: Application Form (Top Left) */}
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-6 py-7 flex flex-col gap-2 items-start min-h-[210px]">
                   <div className="mb-2 p-2 bg-emerald-100 rounded-lg">
-                    <UploadCloud className="w-8 h-8 text-emerald-600" />
+                    <FileText className="w-8 h-8 text-emerald-600" />
                   </div>
                   <div className="text-base font-bold mb-1">Application Form</div>
                   <div className="text-[15px] text-gray-600 mb-3">
@@ -601,7 +625,7 @@ export default function Dashboard() {
                 {/* Card 3: NSS district approved appointment form (Bottom Left) */}
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-6 py-7 flex flex-col gap-2 items-start min-h-[210px]">
                   <div className="mb-2 p-2 bg-emerald-100 rounded-lg">
-                    <UploadCloud className="w-8 h-8 text-emerald-600" />
+                    <FileText className="w-8 h-8 text-emerald-600" />
                   </div>
                   <div className="text-base font-bold mb-1">NSS district approved appointment form</div>
                   <div className="text-[15px] text-gray-600 mb-3">
