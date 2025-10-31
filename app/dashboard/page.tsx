@@ -426,17 +426,17 @@ export default function Dashboard() {
   };
 
   const getStatusMessage = () => {
-    if (!application) return { text: 'Your application is pending', color: 'bg-yellow-50 text-yellow-900' };
+    if (!application) return { text: 'Your application is pending', color: 'bg-yellow-50 text-yellow-800', border: 'border-yellow-300' };
     
     switch (application.status) {
       case 'approved':
-        return { text: 'Your application is successful', color: 'bg-green-50 text-green-900' };
+        return { text: 'Your application is successful', color: 'bg-green-50 text-green-900', border: 'border-green-500' };
       case 'rejected':
-        return { text: 'Your application is rejected', color: 'bg-red-50 text-red-900' };
+        return { text: 'Your application is rejected', color: 'bg-red-50 text-red-800', border: 'border-red-300' };
       case 'under_review':
-        return { text: 'Your application is under review', color: 'bg-blue-50 text-blue-900' };
+        return { text: 'Your application is under review', color: 'bg-blue-50 text-blue-800', border: 'border-blue-300' };
       default:
-        return { text: 'Your application is pending', color: 'bg-yellow-50 text-yellow-900' };
+        return { text: 'Your application is pending', color: 'bg-yellow-50 text-yellow-800', border: 'border-yellow-300' };
     }
   };
 
@@ -542,8 +542,8 @@ export default function Dashboard() {
             </div>
             
             {/* Status Banner */}
-            <div className="my-6 flex justify-center">
-              <div className={`${statusInfo.color} rounded-lg px-6 py-3 text-base font-semibold text-center border border-yellow-200`}>
+            <div className="my-6 w-full">
+              <div className={`${statusInfo.color} rounded-lg px-6 py-3 text-base font-bold text-center border ${statusInfo.border} w-full`}>
                 {statusInfo.text}
               </div>
             </div>
