@@ -1,0 +1,313 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  DEPT_ADMIN
+  HR
+}
+
+enum PositionType {
+  INTERNSHIP
+  ATTACHMENT
+  TEMPORARY
+  PERMANENT
+}
+
+enum PositionStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum ApplicationStage {
+  SUBMITTED
+  UNDER_REVIEW
+  SHORTLISTED
+  PANEL_SCORING
+  APPROVED
+  REJECTED
+}
+
+enum ApplicationDocumentType {
+  CV
+  APPLICATION_LETTER
+  CERTIFICATE
+  COVER_LETTER
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                         String                    @id @default(cuid())
+  email                      String                    @unique
+  passwordHash               String
+  name                       String
+  role                       UserRole                  @default(DEPT_ADMIN)
+  departmentId               String?
+  department                 Department?               @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+  stageChanges               ApplicationStageHistory[]
+  uploadedAppointmentLetters AppointmentLetter[]
+
+  @@map("users")
+}
+
+model Department {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  code         String        @unique
+  description  String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  users        User[]
+  positions    Position[]
+  applications Application[]
+  applicants   Applicant[]
+
+  @@map("departments")
+}
+
+model Station {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  code         String?
+  location     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applicants   Applicant[]
+  applications Application[]
+
+  @@map("stations")
+}
+
+model Position {
+  id             String           @id @default(cuid())
+  title          String
+  type           PositionType
+  departmentId   String
+  department     Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  description    String           @db.Text
+  requirements   String?          @db.Text
+  status         PositionStatus   @default(OPEN)
+  maxMarks       Float            @default(100)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  applications   Application[]
+  rubricCriteria RubricCriteria[]
+
+  @@map("positions")
+}
+
+model Applicant {
+  id                 String        @id @default(cuid())
+  fullName           String
+  email              String        @unique
+  phone              String
+  nationalIdNumber   String?
+  isCurrentDvlaStaff Boolean       @default(false)
+  stationId          String?
+  station            Station?      @relation(fields: [stationId], references: [id], onDelete: SetNull)
+  departmentId       String?
+  department         Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  application        Application?
+
+  @@map("applicants")
+}
+
+model Application {
+  id                      String                       @id @default(cuid())
+  referenceNumber         String                       @unique
+  applicantId             String                       @unique
+  applicant               Applicant                    @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  positionId              String
+  position                Position                     @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  departmentId            String
+  department              Department                   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  isCurrentDvlaStaff      Boolean                      @default(false)
+  stationId               String?
+  station                 Station?                     @relation(fields: [stationId], references: [id], onDelete: SetNull)
+  currentStage            ApplicationStage             @default(SUBMITTED)
+  notes                   String?                      @db.Text
+  isFlaggedForDiscussion  Boolean                      @default(false)
+  discussionNotes         String?                      @db.Text
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  documents               Document[]
+  stageHistory            ApplicationStageHistory[]
+  panelScores             PanelScore[]
+  submittedDocuments      ApplicantSubmittedDocument[]
+  appointmentLetter       AppointmentLetter?
+  fraudAlerts             FraudAlert[]
+
+  @@map("applications")
+}
+
+model Document {
+  id            String                  @id @default(cuid())
+  applicationId String
+  application   Application             @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          ApplicationDocumentType
+  fileUrl       String
+  fileName      String
+  fileSize      Int?
+  mimeType      String?
+  fileHash      String?
+  createdAt     DateTime                @default(now())
+
+  @@map("documents")
+}
+
+model ApplicationStageHistory {
+  id              String           @id @default(cuid())
+  applicationId   String
+  application     Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStage       ApplicationStage?
+  toStage         ApplicationStage
+  changedByUserId String?
+  changedByUser   User?            @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+  notes           String?          @db.Text
+  createdAt       DateTime         @default(now())
+
+  @@map("application_stage_history")
+}
+
+model RubricCriteria {
+  id          String              @id @default(cuid())
+  positionId  String
+  position    Position            @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  title       String
+  description String?             @db.Text
+  maxMark     Float
+  order       Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  subcriteria RubricSubcriteria[]
+
+  @@map("rubric_criteria")
+}
+
+model RubricSubcriteria {
+  id               String             @id @default(cuid())
+  rubricCriteriaId String
+  rubricCriteria   RubricCriteria     @relation(fields: [rubricCriteriaId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?            @db.Text
+  maxMark          Float
+  order            Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  scoreDetails     PanelScoreDetail[]
+
+  @@map("rubric_subcriteria")
+}
+
+model PanelScore {
+  id               String             @id @default(cuid())
+  applicationId    String
+  application      Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  judgeName        String
+  judgeDepartment  String
+  judgeDesignation String
+  totalScore       Float
+  notes            String?            @db.Text
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  scoreDetails     PanelScoreDetail[]
+
+  @@map("panel_scores")
+}
+
+model PanelScoreDetail {
+  id                  String            @id @default(cuid())
+  panelScoreId        String
+  panelScore          PanelScore        @relation(fields: [panelScoreId], references: [id], onDelete: Cascade)
+  rubricSubcriteriaId String
+  rubricSubcriteria   RubricSubcriteria @relation(fields: [rubricSubcriteriaId], references: [id], onDelete: Cascade)
+  score               Float
+  comments            String?           @db.Text
+  createdAt           DateTime          @default(now())
+
+  @@map("panel_score_details")
+}
+
+model RequiredDocument {
+  id                 String                       @id @default(cuid())
+  title              String
+  description        String?                      @db.Text
+  isFillableTemplate Boolean                      @default(false)
+  templateFileUrl    String?
+  isMandatory        Boolean                      @default(true)
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  submittedDocuments ApplicantSubmittedDocument[]
+
+  @@map("required_documents")
+}
+
+model ApplicantSubmittedDocument {
+  id                 String             @id @default(cuid())
+  applicationId      String
+  application        Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  requiredDocumentId String
+  requiredDocument   RequiredDocument   @relation(fields: [requiredDocumentId], references: [id], onDelete: Cascade)
+  fileUrl            String
+  fileName           String
+  status             VerificationStatus @default(PENDING)
+  notes              String?            @db.Text
+  submittedAt        DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@map("applicant_submitted_documents")
+}
+
+model AppointmentLetter {
+  id               String      @id @default(cuid())
+  applicationId    String      @unique
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  verificationCode String      @unique @default(cuid())
+  fileUrl          String
+  fileName         String
+  status           String      @default("VERIFIED")
+  customRefNumber  String?
+  customSubject    String?
+  customBodyText   String?     @db.Text
+  signatoryName    String?     @default("EPHRAIM NII TAN SACKEY")
+  signatoryTitle   String?     @default("AG. DIRECTOR HR")
+  effectiveDate    String?
+  uploadedByUserId String?
+  uploadedByUser   User?       @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  issuedAt         DateTime    @default(now())
+  uploadedAt       DateTime    @default(now())
+
+  @@map("appointment_letters")
+}
+
+model FraudAlert {
+  id             String      @id @default(cuid())
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  alertType      String      // DUPLICATE_NATIONAL_ID, DUPLICATE_CV_HASH, MULTI_EMAIL_SAME_NAME, SUSPICIOUS_CONTACT
+  severity       String      // LOW, MEDIUM, HIGH, CRITICAL
+  reason         String      @db.Text
+  matchedAppId   String?
+  matchedDetails String?     @db.Text
+  status         String      @default("PENDING") // PENDING, INVESTIGATING, DISMISSED, CONFIRMED_FRAUD
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@map("fraud_alerts")
+}

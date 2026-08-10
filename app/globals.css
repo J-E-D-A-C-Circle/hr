@@ -1,26 +1,87 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-cream: #FDF6E3;
+  --bg-surface: #FAF0D7;
+  --text-primary: #1F2937;
+  --text-muted: #4B5563;
+  --dvla-green: #15803D;
+  --dvla-green-hover: #166534;
+  --dvla-green-light: #F0FDF4;
+  --dvla-amber: #D97706;
+  --dvla-amber-light: #FEF3C7;
+  --dvla-red: #DC2626;
+  --dvla-red-light: #FEE2E2;
+  --border-color: #E5E7EB;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+body, input, select, textarea {
+  background-color: var(--bg-cream);
+  color: var(--text-primary);
+  font-family: var(--font-public-sans), system-ui, -apple-system, sans-serif !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* GLOBAL FONT WEIGHT RESET — no bold text across the site */
+*, *::before, *::after {
+  font-weight: 400 !important;
+  font-family: var(--font-public-sans), system-ui, -apple-system, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Allow headings a modest weight bump for readability */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500 !important;
+}
+
+/* GLOBAL RESET TO PREVENT BUTTON & FLEX STRETCH BUGS */
+button {
+  font-family: var(--font-public-sans), system-ui, -apple-system, sans-serif !important;
+  max-height: fit-content !important;
+  height: fit-content !important;
+  align-self: center !important;
+  flex-shrink: 0 !important;
+}
+
+aside button {
+  align-self: stretch !important;
+  max-height: 44px !important;
+}
+
+td {
+  vertical-align: middle !important;
+}
+
+table {
+  border-collapse: collapse !important;
+}
+
+.bg-drap-cream {
+  background-color: #FDF6E3;
+}
+
+.bg-card-warm {
+  background-color: #FAF0D7;
+}
+
+.border-card-warm {
+  border-color: #E8D7A6;
+}
+
+.bg-dvla-green {
+  background-color: #15803D;
+}
+
+.text-dvla-green {
+  color: #15803D;
+}
+
+.border-dvla-green {
+  border-color: #15803D;
+}
+
+.bg-dvla-amber {
+  background-color: #D97706;
+}
+
+.text-dvla-amber {
+  color: #D97706;
 }
