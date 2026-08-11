@@ -1,0 +1,73 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+model Staff {
+  id                  Int        @id @default(autoincrement())
+  staff_code          String?    @unique
+  full_name           String
+  role                String?
+  department          String?
+  phone               String?
+  bank_name           String?
+  bank_account        String?
+  salary              Float?
+  insurance_provider  String?    @default("Petra")
+  insurance_policy_no String?
+  insurance_premium   Float?
+  payment_status      String?    @default("paid")
+  unpaid_reason       String?
+  ssnit_no            String?
+  nia_number          String?
+  created_at          DateTime   @default(now())
+
+  contracts           Contract[]
+
+  @@map("staff")
+}
+
+model Contract {
+  id                 Int       @id @default(autoincrement())
+  staff_id           Int
+  start_date         DateTime
+  end_date           DateTime
+  renewal_number     Int       @default(1)
+  is_terminated      Boolean   @default(false)
+  termination_date   DateTime?
+  termination_reason String?   @db.Text
+  is_current         Boolean   @default(true)
+  created_at         DateTime  @default(now())
+
+  staff              Staff     @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+
+  @@map("contracts")
+}
+
+model DeductionSetting {
+  id                    Int      @id @default(1)
+  ssnit_employee_rate   Float    @default(5.5)  // 5.5% SSNIT Employee Tier 1
+  ssnit_employer_rate   Float    @default(13.0) // 13.0% SSNIT Employer Tier 1
+  petra_employee_rate   Float    @default(5.0)  // 5.0% Petra Tier 3 Employee
+  petra_employer_rate   Float    @default(5.0)  // 5.0% Petra Tier 3 Employer
+  updated_at            DateTime @updatedAt
+
+  @@map("deduction_settings")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  user_name  String   @default("HR Admin")
+  user_role  String   @default("HR Manager")
+  action     String   // e.g. "CREATE", "RENEW", "BULK_RENEW", "TERMINATE", "REINSTATE", "PAYMENT_STATUS_CHANGE"
+  details    String   @db.Text
+  staff_id   Int?
+  created_at DateTime @default(now())
+
+  @@map("audit_logs")
+}
