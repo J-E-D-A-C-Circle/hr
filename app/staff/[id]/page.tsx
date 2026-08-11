@@ -27,9 +27,9 @@ import {
 } from "lucide-react";
 import { formatDateReadable, formatDateToISO } from "@/lib/status";
 
-export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const router = useRouter();
+  const [id, setId] = useState<string>("");
 
   const [staff, setStaff] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,11 +44,20 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [showTerminateModal, setShowTerminateModal] = useState(false);
 
-  const fetchStaffDetails = async () => {
+  useEffect(() => {
+    Promise.resolve(params).then((unwrapped: any) => {
+      if (unwrapped?.id) {
+        setId(String(unwrapped.id));
+      }
+    });
+  }, [params]);
+
+  const fetchStaffDetails = async (targetId: string) => {
+    if (!targetId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/staff/${id}`);
+      const res = await fetch(`/api/staff/${targetId}`);
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.error || "Failed to load staff member profile");
@@ -63,7 +72,9 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   useEffect(() => {
-    fetchStaffDetails();
+    if (id) {
+      fetchStaffDetails(id);
+    }
   }, [id]);
 
   const handleSaveProfile = async () => {
@@ -76,6 +87,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
           staff_code: editForm.staff_code,
           full_name: editForm.full_name,
           ssnit_no: editForm.ssnit_no,
+          nia_number: editForm.nia_number,
           role: editForm.role,
           department: editForm.department,
           phone: editForm.phone,
@@ -94,7 +106,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
       }
 
       setIsEditing(false);
-      fetchStaffDetails();
+      fetchStaffDetails(id);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -216,6 +228,11 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                     SSNIT: {staff.ssnit_no}
                   </span>
                 )}
+                {staff.nia_number && (
+                  <span className="font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                    NIA: {staff.nia_number}
+                  </span>
+                )}
                 <span>•</span>
                 <span className="font-medium text-slate-700 dark:text-slate-300">
                   {staff.department || "Unassigned Station"}
@@ -301,6 +318,24 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                   />
                 ) : (
                   <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{staff.ssnit_no || "N/A (Not Provided)"}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                  <span>NIA Number (Ghana Card No)</span>
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editForm.nia_number || ""}
+                    onChange={(e) => setEditForm({ ...editForm, nia_number: e.target.value })}
+                    placeholder="e.g. GHA-712345678-9"
+                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-mono font-bold text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{staff.nia_number || "N/A (Not Provided)"}</span>
                 )}
               </div>
 

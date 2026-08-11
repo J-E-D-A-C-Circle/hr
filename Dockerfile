@@ -19,6 +19,9 @@ RUN npx prisma generate
 # Build Next.js application
 RUN npm run build
 
+# Copy static assets into standalone folder for Next.js standalone server
+RUN mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static && (cp -r public .next/standalone/public || true)
+
 EXPOSE 3002
 
 ENV PORT=3002

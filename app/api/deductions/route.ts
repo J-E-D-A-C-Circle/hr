@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
           "HAZARDOUS (Y/N)": "N",
           "BASIC SALARY": basicSalary.toFixed(2),
           "SSNIT - TIER 1 (13.5%)": ssnitTier1.toFixed(2),
-          "PETRA - TIER 2 (5%)": petraTier2.toFixed(2),
+          "TIER 2 (5%)": petraTier2.toFixed(2),
           "GRA - PAYE DED.": payeTax.toFixed(2),
         };
       });
