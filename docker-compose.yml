@@ -1,9 +1,22 @@
-version: '3.8'
-
 services:
+  recruitment-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: drap_recruitment_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=mysql://root:drap_password@db:3306/drap_db
+    depends_on:
+      - db
+
   db:
     image: mysql:8.0
-    container_name: drap_mysql
+    container_name: drap_recruitment_db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: drap_password
@@ -11,11 +24,11 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - recruitment_mysql_data:/var/lib/mysql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
-    container_name: drap_phpmyadmin
+    container_name: drap_recruitment_phpmyadmin
     restart: always
     environment:
       PMA_HOST: db
@@ -28,11 +41,11 @@ services:
 
   mailhog:
     image: mailhog/mailhog:latest
-    container_name: drap_mailhog
+    container_name: drap_recruitment_mailhog
     restart: always
     ports:
       - "1025:1025" # SMTP server
       - "8025:8025" # Web UI
 
 volumes:
-  mysql_data:
+  recruitment_mysql_data:

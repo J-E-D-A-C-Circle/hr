@@ -1,9 +1,9 @@
-'use me';
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateApplicationStage, uploadAppointmentLetter, generateOrUpdateAppointmentLetter } from '@/app/actions/admin';
+import AppointmentLetterModal from '@/components/AppointmentLetterModal';
 import { ApplicationStage } from '@prisma/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -61,6 +61,7 @@ export default function AdminDashboardClient({
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isUploadingLetter, setIsUploadingLetter] = useState(false);
+  const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string; fileName?: string; rawUrl?: string } | null>(null);
   const [docHtmlContent, setDocHtmlContent] = useState<string | null>(null);
   const [isLoadingDocHtml, setIsLoadingDocHtml] = useState<boolean>(false);
@@ -875,74 +876,64 @@ export default function AdminDashboardClient({
               </div>
             </div>
 
-            {/* Appointment Letter Upload / Generate */}
+            {/* Appointment Letter Upload / Custom Generator */}
             <div className="bg-[#FDF8EB] p-5 rounded-2xl border border-[#E6D7A8] space-y-3">
-              <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <Upload className="w-4 h-4 text-[#15803D]" />
-                <span>Official HR Appointment Letter & QR Verification</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Upload className="w-4 h-4 text-[#15803D]" />
+                  <span>Official HR Appointment Letter & QR Verification</span>
+                </h3>
+              </div>
 
-              {selectedApp.appointmentLetter ? (
-                <div className="flex items-center justify-between bg-emerald-50 p-3 rounded-xl border border-emerald-300">
-                  <span className="text-xs font-bold text-emerald-900">✓ Official Appointment Letter Dispatched</span>
-                  <div className="flex items-center gap-2">
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsLetterModalOpen(true)}
+                    className="w-full sm:w-auto bg-[#0F5132] hover:bg-[#0B3D26] text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-4 h-4 text-amber-400" />
+                    <span>⚡ Create & Edit Custom Appointment Letter</span>
+                  </button>
+
+                  {selectedApp.appointmentLetter && (
                     <a
                       href={selectedApp.appointmentLetter}
                       target="_blank"
                       rel="noreferrer"
-                      className="bg-[#15803D] text-white px-3 py-1 rounded-lg text-xs font-bold shadow hover:bg-[#166534] transition"
+                      className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-gray-950 px-4 py-2.5 rounded-xl text-xs font-bold shadow transition flex items-center justify-center gap-1.5"
                     >
-                      View / Print Official Letter ↗
+                      <span>View / Print Letter ↗</span>
                     </a>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
-                    <button
-                      type="button"
-                      disabled={isUploadingLetter}
-                      onClick={async () => {
-                        setIsUploadingLetter(true);
-                        const res = await generateOrUpdateAppointmentLetter({
-                          applicationId: selectedApp.id,
-                        });
-                        setIsUploadingLetter(false);
-                        if (res.success) {
-                          setActionSuccess('Official DVLA QR Verification Appointment Letter generated successfully!');
-                          router.refresh();
-                        } else {
-                          setActionError(res.error || 'Failed to generate letter.');
-                        }
-                      }}
-                      className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-gray-950 font-black text-xs px-4 py-2 rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1.5"
-                      style={{ height: '36px', maxHeight: '36px' }}
-                    >
-                      <span>⚡ Generate Official DVLA QR Letterhead</span>
-                    </button>
-                    <span className="text-xs text-gray-400 font-bold uppercase">or upload manual PDF</span>
-                  </div>
 
-                  <form onSubmit={handleUploadAppointmentLetter} className="flex flex-col sm:flex-row items-center gap-3 border-t border-[#E6D7A8] pt-3">
-                    <input
-                      type="file"
-                      name="appointmentLetter"
-                      accept=".pdf,.doc,.docx"
-                      required
-                      className="text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#15803D] file:text-white hover:file:bg-[#166534] transition cursor-pointer flex-1"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isUploadingLetter}
-                      className="bg-[#15803D] hover:bg-[#166534] text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition shrink-0 cursor-pointer inline-flex items-center space-x-1"
-                      style={{ height: '36px', maxHeight: '36px' }}
-                    >
-                      <Send className="w-3.5 h-3.5 shrink-0" />
-                      <span>{isUploadingLetter ? 'Uploading...' : 'Upload & Issue Letter'}</span>
-                    </button>
-                  </form>
+                <div className="text-[11px] text-gray-500 flex items-center gap-1">
+                  <span>Supports:</span>
+                  <span className="font-bold text-emerald-900 bg-emerald-100 px-1.5 py-0.5 rounded">Temporary Placement</span>
+                  <span className="font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded">Contract Staff</span>
+                  <span className="font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded">Permanent Staff</span>
                 </div>
-              )}
+
+                <form onSubmit={handleUploadAppointmentLetter} className="flex flex-col sm:flex-row items-center gap-3 border-t border-[#E6D7A8] pt-3">
+                  <input
+                    type="file"
+                    name="appointmentLetter"
+                    accept=".pdf,.doc,.docx"
+                    required
+                    className="text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#15803D] file:text-white hover:file:bg-[#166534] transition cursor-pointer flex-1"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isUploadingLetter}
+                    className="bg-[#15803D] hover:bg-[#166534] text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition shrink-0 cursor-pointer inline-flex items-center space-x-1"
+                    style={{ height: '36px', maxHeight: '36px' }}
+                  >
+                    <Send className="w-3.5 h-3.5 shrink-0" />
+                    <span>{isUploadingLetter ? 'Uploading...' : 'Upload Manual PDF'}</span>
+                  </button>
+                </form>
+              </div>
             </div>
 
             <div className="flex justify-end pt-2">
@@ -1067,6 +1058,17 @@ export default function AdminDashboardClient({
           </div>
         </div>
       )}
+
+      {/* Appointment Letter Generator Modal */}
+      <AppointmentLetterModal
+        isOpen={isLetterModalOpen}
+        onClose={() => setIsLetterModalOpen(false)}
+        application={selectedApp}
+        onSuccess={() => {
+          setActionSuccess('Official Appointment Letter generated and dispatched successfully!');
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

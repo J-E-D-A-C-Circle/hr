@@ -11,12 +11,16 @@ export interface OfficialAppointmentLetterProps {
   positionTitle: string;
   departmentName: string;
   postingStationName?: string;
+  appointmentType?: string; // TEMPORARY, CONTRACT, PERMANENT
   effectiveDate?: string;
   issueDate?: string;
   salutation?: string;
   customRefNumber?: string;
   customSubject?: string;
   customBodyText?: string;
+  salaryGrade?: string;
+  probationPeriod?: string;
+  contractDuration?: string;
   signatoryName?: string;
   signatoryTitle?: string;
   status?: string;
@@ -31,18 +35,27 @@ export default function OfficialAppointmentLetter({
   positionTitle,
   departmentName,
   postingStationName = 'Head Office',
+  appointmentType = 'TEMPORARY',
   effectiveDate = 'Monday, August 3, 2026',
   issueDate = 'JULY 30, 2026',
-  salutation = 'Dear Madam,',
+  salutation = 'Dear Sir/Madam,',
   customRefNumber,
-  customSubject = 'TEMPORARY PLACEMENT',
+  customSubject,
   customBodyText,
+  salaryGrade = 'DVLA Salary Scale',
+  probationPeriod = 'six (6) months',
+  contractDuration = 'two (2) years',
   signatoryName = 'EPHRAIM NII TAN SACKEY',
   signatoryTitle = 'AG. DIRECTOR HR',
   status = 'VERIFIED',
   isPrintView = false,
 }: OfficialAppointmentLetterProps) {
-  const displayRef = customRefNumber || `DVLA/HR./07/26/ PLACMT/0127`;
+  const displayRef = customRefNumber || `DVLA/HR/07/26/PLACMT/${referenceNumber?.slice(-4) || '0127'}`;
+  const displaySubject = customSubject || (
+    appointmentType === 'CONTRACT' ? 'OFFER OF CONTRACT APPOINTMENT' :
+    appointmentType === 'PERMANENT' ? 'OFFER OF PERMANENT APPOINTMENT' :
+    'TEMPORARY PLACEMENT'
+  );
   const verificationUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/verify/${verificationCode}` 
     : `/verify/${verificationCode}`;
@@ -143,7 +156,7 @@ export default function OfficialAppointmentLetter({
       {/* SUBJECT TITLE */}
       <div className="mb-6 relative z-10">
         <h2 className="inline-block text-xs md:text-sm font-serif font-black uppercase text-gray-950 border-b border-gray-950 pb-0.5 tracking-wider">
-          {customSubject}
+          {displaySubject}
         </h2>
       </div>
 
@@ -151,6 +164,36 @@ export default function OfficialAppointmentLetter({
       <div className="space-y-4 text-xs md:text-sm text-gray-900 leading-relaxed font-serif relative z-10 text-justify">
         {customBodyText ? (
           <div className="whitespace-pre-line">{customBodyText}</div>
+        ) : appointmentType === 'CONTRACT' ? (
+          <>
+            <p>
+              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> on a Contract basis, effective <strong>{effectiveDate}</strong>.
+            </p>
+            <p>
+              This appointment is for an initial period of <strong>{contractDuration}</strong>, subject to satisfactory performance and renewal. Your remuneration and terms of engagement will be in accordance with <strong>{salaryGrade}</strong>.
+            </p>
+            <p>
+              You are requested to report to the Ag. Director Human Resource for formal documentation and assumption of duty.
+            </p>
+            <p className="pt-2">
+              Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
+            </p>
+          </>
+        ) : appointmentType === 'PERMANENT' ? (
+          <>
+            <p>
+              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>.
+            </p>
+            <p>
+              Your appointment is subject to a probation period of <strong>{probationPeriod}</strong>, during which your performance and conduct will be evaluated for confirmation. Your salary and benefits will be attached to <strong>{salaryGrade}</strong> of the Authority&apos;s Approved Salary Structure.
+            </p>
+            <p>
+              You are required to report to the Ag. Director Human Resource on <strong>{effectiveDate}</strong> for formal onboarding and IPPD payroll documentation.
+            </p>
+            <p className="pt-2">
+              Kindly sign and return the duplicate copy of this letter to signify your formal acceptance of this offer.
+            </p>
+          </>
         ) : (
           <>
             <p>
@@ -159,7 +202,7 @@ export default function OfficialAppointmentLetter({
               the <strong>{departmentName} Department</strong>, effective <strong>{effectiveDate}</strong>.
             </p>
             <p>
-              You are to report to the Ag, Director Human Resource and Ag. Director Administration, for necessary instructions and directives concerning your official duties.
+              You are to report to the Ag. Director Human Resource and Ag. Director Administration, for necessary instructions and directives concerning your official duties.
             </p>
             <p className="pt-2">Thank you.</p>
           </>

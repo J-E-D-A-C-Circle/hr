@@ -79,11 +79,16 @@ export default async function VerifyCodePage({ params }: { params: Promise<{ cod
           positionTitle={app.position.title}
           departmentName={app.department.name}
           postingStationName={app.station?.name || 'Head Office (Accra 37)'}
+          appointmentType={letter.appointmentType || 'TEMPORARY'}
           effectiveDate={letter.effectiveDate || 'Monday, August 3, 2026'}
-          issueDate={new Date(letter.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
+          issueDate={letter.letterDate || new Date(letter.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
+          salutation={letter.salutation || undefined}
           customRefNumber={letter.customRefNumber || undefined}
           customSubject={letter.customSubject || undefined}
           customBodyText={letter.customBodyText || undefined}
+          salaryGrade={letter.salaryGrade || undefined}
+          probationPeriod={letter.probationPeriod || undefined}
+          contractDuration={letter.contractDuration || undefined}
           signatoryName={letter.signatoryName || undefined}
           signatoryTitle={letter.signatoryTitle || undefined}
           status={letter.status}

@@ -181,12 +181,18 @@ export async function uploadAppointmentLetter(applicationId: string, formData: F
 
 export async function generateOrUpdateAppointmentLetter(data: {
   applicationId: string;
+  appointmentType?: string;
+  letterDate?: string;
+  salutation?: string;
   customRefNumber?: string;
   customSubject?: string;
   customBodyText?: string;
+  effectiveDate?: string;
+  salaryGrade?: string;
+  probationPeriod?: string;
+  contractDuration?: string;
   signatoryName?: string;
   signatoryTitle?: string;
-  effectiveDate?: string;
 }) {
   try {
     const currentUser = await getAdminSession();
@@ -196,7 +202,7 @@ export async function generateOrUpdateAppointmentLetter(data: {
 
     const application = await prisma.application.findUnique({
       where: { id: data.applicationId },
-      include: { applicant: true, position: true, department: true },
+      include: { applicant: true, position: true, department: true, station: true },
     });
 
     if (!application) {
@@ -205,14 +211,37 @@ export async function generateOrUpdateAppointmentLetter(data: {
 
     const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
     const verCode = `DVLA-VER-${new Date().getFullYear()}-${randomHex}`;
-    const defaultRef = `DVLA/HR/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear()).slice(-2)}/ PLACMT/${application.referenceNumber.slice(-4)}`;
+
+    const appType = data.appointmentType || 'TEMPORARY';
+    const monthStr = String(new Date().getMonth() + 1).padStart(2, '0');
+    const yearSuffix = String(new Date().getFullYear()).slice(-2);
+    const refSuffix = application.referenceNumber.slice(-4);
+
+    let typeCode = 'PLACMT';
+    let defaultSub = 'TEMPORARY PLACEMENT';
+    if (appType === 'CONTRACT') {
+      typeCode = 'CONTR';
+      defaultSub = 'OFFER OF CONTRACT APPOINTMENT';
+    } else if (appType === 'PERMANENT') {
+      typeCode = 'PERM';
+      defaultSub = 'OFFER OF PERMANENT APPOINTMENT';
+    }
+
+    const defaultRef = `DVLA/HR/${monthStr}/${yearSuffix}/${typeCode}/${refSuffix}`;
+    const formattedLetterDate = data.letterDate?.trim() || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
 
     const letter = await prisma.appointmentLetter.upsert({
       where: { applicationId: data.applicationId },
       update: {
+        appointmentType: appType,
+        letterDate: formattedLetterDate,
+        salutation: data.salutation?.trim() || 'Dear Sir/Madam,',
         customRefNumber: data.customRefNumber?.trim() || defaultRef,
-        customSubject: data.customSubject?.trim() || 'TEMPORARY PLACEMENT',
+        customSubject: data.customSubject?.trim() || defaultSub,
         customBodyText: data.customBodyText?.trim(),
+        salaryGrade: data.salaryGrade?.trim() || null,
+        probationPeriod: data.probationPeriod?.trim() || null,
+        contractDuration: data.contractDuration?.trim() || null,
         signatoryName: data.signatoryName?.trim() || 'EPHRAIM NII TAN SACKEY',
         signatoryTitle: data.signatoryTitle?.trim() || 'AG. DIRECTOR HR',
         effectiveDate: data.effectiveDate?.trim() || 'Monday, August 3, 2026',
@@ -223,9 +252,15 @@ export async function generateOrUpdateAppointmentLetter(data: {
         verificationCode: verCode,
         fileUrl: `/verify/${verCode}`,
         fileName: `DVLA_Appointment_Letter_${application.referenceNumber}.pdf`,
+        appointmentType: appType,
+        letterDate: formattedLetterDate,
+        salutation: data.salutation?.trim() || 'Dear Sir/Madam,',
         customRefNumber: data.customRefNumber?.trim() || defaultRef,
-        customSubject: data.customSubject?.trim() || 'TEMPORARY PLACEMENT',
+        customSubject: data.customSubject?.trim() || defaultSub,
         customBodyText: data.customBodyText?.trim(),
+        salaryGrade: data.salaryGrade?.trim() || null,
+        probationPeriod: data.probationPeriod?.trim() || null,
+        contractDuration: data.contractDuration?.trim() || null,
         signatoryName: data.signatoryName?.trim() || 'EPHRAIM NII TAN SACKEY',
         signatoryTitle: data.signatoryTitle?.trim() || 'AG. DIRECTOR HR',
         effectiveDate: data.effectiveDate?.trim() || 'Monday, August 3, 2026',
