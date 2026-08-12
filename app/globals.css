@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-public-sans), 'Public Sans', sans-serif;
+  --font-mono: var(--font-public-sans), 'Public Sans', sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --font-sans: var(--font-public-sans), 'Public Sans', sans-serif;
+  --font-mono: var(--font-public-sans), 'Public Sans', sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Enforce thin/normal Public Sans font globally with NO bold fonts */
+html, body, *, button, input, select, textarea, .font-mono, .font-sans, .font-bold, .font-black, .font-extrabold, .font-semibold {
+  font-family: var(--font-public-sans), 'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 300 !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Titles and major headings use clean regular 400 weight for crisp contrast */
+h1, h2, h3, h4, h5, h6, .font-title {
+  font-weight: 400 !important;
+  letter-spacing: -0.01em;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-image: 
+    radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(5, 150, 105, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a7f3d0;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}
+
+/* Green sidebar scrollbar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: #064e3b;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #047857;
+  border-radius: 9999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
 }

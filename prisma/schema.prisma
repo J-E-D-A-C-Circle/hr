@@ -1,0 +1,115 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Region {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches  Branch[]
+  users     User[]
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  headName  String
+  headEmail String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       User[]
+  submissions Submission[]
+
+  @@index([regionId])
+  @@index([active])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("STATION_MANAGER") // STATION_MANAGER | HR_ADMIN
+  branchId     String?
+  branch       Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  regionId     String?
+  region       Region?  @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submissionsUploaded Submission[] @relation("UploadedBy")
+  submissionsReviewed Submission[] @relation("ReviewedBy")
+  auditLogs           AuditLog[]
+
+  @@index([branchId])
+  @@index([regionId])
+  @@index([role])
+}
+
+model Submission {
+  id               String    @id @default(uuid())
+  branchId         String
+  branch           Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  month            Int       // 1 - 12
+  year             Int       // e.g. 2026
+  filePath         String
+  fileName         String
+  fileSize         Int       // bytes
+  note             String?
+  uploadedById     String
+  uploadedBy       User      @relation("UploadedBy", fields: [uploadedById], references: [id])
+  uploadedAt       DateTime  @default(now())
+  status           String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewerId       String?
+  reviewer         User?     @relation("ReviewedBy", fields: [reviewerId], references: [id])
+  reviewerNotes    String?
+  reviewedAt       DateTime?
+  resubmissionOfId String?
+  resubmissionOf   Submission? @relation("Resubmissions", fields: [resubmissionOfId], references: [id])
+  priorSubmissions Submission[] @relation("Resubmissions")
+  ocrPassed        Boolean   @default(true)
+  ocrText          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branchId, year, month])
+  @@index([status])
+  @@index([year, month])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String   // UPLOAD, APPROVE, REJECT, REMINDER_SENT, RESUBMIT, LOGIN, BULK_IMPORT, DEADLINE_UPDATE
+  targetType String   // SUBMISSION, BRANCH, USER, SYSTEM
+  targetId   String?
+  timestamp  DateTime @default(now())
+  metadata   String?  // JSON string metadata
+
+  @@index([actorId])
+  @@index([action])
+  @@index([timestamp])
+}
+
+model DeadlineConfig {
+  id                 String   @id @default("default")
+  cutoffDayOfMonth   Int      @default(21)
+  reminderDaysBefore Int      @default(3)
+  updatedAt          DateTime @updatedAt
+}

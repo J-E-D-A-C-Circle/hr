@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=mysql://pvcuser:pvcpassword@db:3306/pvc
+      - NEXTAUTH_SECRET=pvc-super-secret-jwt-key-2026
+      - NEXTAUTH_URL=http://localhost:3000
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mysql:8.0
+    container_name: pvc_mysql_db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: pvc
+      MYSQL_ROOT_PASSWORD: pvcpassword
+      MYSQL_USER: pvcuser
+      MYSQL_PASSWORD: pvcpassword
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: pvc_phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    depends_on:
+      - db
+    restart: always
+
+volumes:
+  db_data:

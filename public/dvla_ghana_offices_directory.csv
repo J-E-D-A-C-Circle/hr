@@ -1,0 +1,56 @@
+branch_code,branch_name,region_name,head_name,head_email,initial_password
+DVLA-ACC-01,DVLA Head Office (Cantonments 37),Greater Accra Region,Emmanuel Arhin,head.acc01@pvc.local,password123
+DVLA-ACC-02,DVLA Tema Regional Office,Greater Accra Region,Grace Ansah,head.acc02@pvc.local,password123
+DVLA-ACC-03,DVLA Weija District Office,Greater Accra Region,Kofi Osei,head.acc03@pvc.local,password123
+DVLA-ACC-04,DVLA Adentan District Office,Greater Accra Region,Abena Frimpong,head.acc04@pvc.local,password123
+DVLA-ACC-05,DVLA Dansoman Office,Greater Accra Region,Kwaku Addo,head.acc05@pvc.local,password123
+DVLA-ACC-06,DVLA Dome Ultra Centre,Greater Accra Region,Yaw Boateng,head.acc06@pvc.local,password123
+DVLA-ACC-07,DVLA Prestige & Express Centre (Haatso),Greater Accra Region,Esi Koomson,head.acc07@pvc.local,password123
+DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,head.ash01@pvc.local,password123
+DVLA-ASH-02,DVLA Obuasi District Office,Ashanti Region,Akua Asante,head.ash02@pvc.local,password123
+DVLA-ASH-03,DVLA Offinso District Office,Ashanti Region,Kwadwo Appiah,head.ash03@pvc.local,password123
+DVLA-ASH-04,DVLA Bekwai District Office,Ashanti Region,Yaa Konadu,head.ash04@pvc.local,password123
+DVLA-ASH-05,DVLA Mampong District Office,Ashanti Region,Kofi Owusu,head.ash05@pvc.local,password123
+DVLA-ASH-06,DVLA Effiduase District Office,Ashanti Region,Ama Serwaa,head.ash06@pvc.local,password123
+DVLA-ASH-07,DVLA Kumawu District Office,Ashanti Region,Kwabena Agyemang,head.ash07@pvc.local,password123
+DVLA-ASH-08,DVLA Ejisu Bonwire Office,Ashanti Region,Afia Pokuaa,head.ash08@pvc.local,password123
+DVLA-WST-01,DVLA Takoradi Regional Office,Western Region,Joseph Baidoo,head.wst01@pvc.local,password123
+DVLA-WST-02,DVLA Tarkwa District Office,Western Region,Samuel Yankey,head.wst02@pvc.local,password123
+DVLA-WST-03,DVLA Axim District Office,Western Region,Francis Cudjoe,head.wst03@pvc.local,password123
+DVLA-EST-01,DVLA Koforidua Regional Office,Eastern Region,Daniel Asare,head.est01@pvc.local,password123
+DVLA-EST-02,DVLA Nkawkaw District Office,Eastern Region,Peter Ofori,head.est02@pvc.local,password123
+DVLA-EST-03,DVLA Akim Oda District Office,Eastern Region,Comfort Ampofo,head.est03@pvc.local,password123
+DVLA-EST-04,DVLA Akwatia District Office,Eastern Region,Charles Darko,head.est04@pvc.local,password123
+DVLA-EST-05,DVLA Asamankese District Office,Eastern Region,Mercy Botwe,head.est05@pvc.local,password123
+DVLA-EST-06,DVLA Abuakwa District Office,Eastern Region,Isaac Gyasi,head.est06@pvc.local,password123
+DVLA-CEN-01,DVLA Cape Coast Regional Office,Central Region,Kweku Arthur,head.cen01@pvc.local,password123
+DVLA-CEN-02,DVLA Winneba District Office,Central Region,Kojo Pratt,head.cen02@pvc.local,password123
+DVLA-CEN-03,DVLA Agona Swedru District Office,Central Region,Araba Ghartey,head.cen03@pvc.local,password123
+DVLA-CEN-04,DVLA Mankessim Satellite Office,Central Region,Ato Hammond,head.cen04@pvc.local,password123
+DVLA-CEN-05,DVLA Assin Fosu Satellite Office,Central Region,Ekow Barnes,head.cen05@pvc.local,password123
+DVLA-CEN-06,DVLA Kasoa Ultra Station,Central Region,Efua Mensah,head.cen06@pvc.local,password123
+DVLA-NTH-01,DVLA Tamale Regional Office,Northern Region,Mohammed Alhassan,head.nth01@pvc.local,password123
+DVLA-NTH-02,DVLA Yendi District Office,Northern Region,Ibrahim Fuseini,head.nth02@pvc.local,password123
+DVLA-VLT-01,DVLA Ho Regional Office,Volta Region,Selorm Gbesemete,head.vlt01@pvc.local,password123
+DVLA-VLT-02,DVLA Hohoe District Office,Volta Region,Mawuli Agbefe,head.vlt02@pvc.local,password123
+DVLA-VLT-03,DVLA Denu District Office,Volta Region,Fafa Tsikata,head.vlt03@pvc.local,password123
+DVLA-VLT-04,DVLA Akatsi District Office,Volta Region,Kofi Dogbe,head.vlt04@pvc.local,password123
+DVLA-UEA-01,DVLA Bolgatanga Regional Office,Upper East Region,Atanga Ayine,head.uea01@pvc.local,password123
+DVLA-UEA-02,DVLA Navrongo District Office,Upper East Region,Akwasi Addai,head.uea02@pvc.local,password123
+DVLA-UWE-01,DVLA Wa Regional Office,Upper West Region,Naa Deri,head.uwe01@pvc.local,password123
+DVLA-UWE-02,DVLA Jirapa District Office,Upper West Region,Bawa Saaka,head.uwe02@pvc.local,password123
+DVLA-BNO-01,DVLA Sunyani Regional Office,Bono Region,Nana Kyeremeh,head.bno01@pvc.local,password123
+DVLA-BNO-02,DVLA Dormaa Ahenkro District Office,Bono Region,Kwasi Oppong,head.bno02@pvc.local,password123
+DVLA-BNO-03,DVLA Berekum District Office,Bono Region,Akosua Yeboah,head.bno03@pvc.local,password123
+DVLA-BNE-01,DVLA Techiman Regional Office,Bono East Region,Adjei Baah,head.bne01@pvc.local,password123
+DVLA-BNE-02,DVLA Nkoranza District Office,Bono East Region,Abena Takyiwaa,head.bne02@pvc.local,password123
+DVLA-AHF-01,DVLA Goaso Regional Office,Ahafo Region,Yaw Acheampong,head.ahf01@pvc.local,password123
+DVLA-AHF-02,DVLA Bechem District Office,Ahafo Region,Kwaku Duah,head.ahf02@pvc.local,password123
+DVLA-WNO-01,DVLA Sefwi Wiawso Regional Office,Western North Region,Kofi Nsubuga,head.wno01@pvc.local,password123
+DVLA-WNO-02,DVLA Enchi District Office,Western North Region,Kwame Gyimah,head.wno02@pvc.local,password123
+DVLA-OTI-01,DVLA Dambai Regional Office,Oti Region,Komi Akakpo,head.oti01@pvc.local,password123
+DVLA-OTI-02,DVLA Nkwanta District Office,Oti Region,Ablavi Mensah,head.oti02@pvc.local,password123
+DVLA-SAV-01,DVLA Damongo Regional Office,Savannah Region,Yakubu Seidu,head.sav01@pvc.local,password123
+DVLA-SAV-02,DVLA Bole District Office,Savannah Region,Haruna Mahama,head.sav02@pvc.local,password123
+DVLA-NER-01,DVLA Nalerigu Regional Office,North East Region,Sulemana Tanko,head.ner01@pvc.local,password123
+DVLA-NER-02,DVLA Walewale District Office,North East Region,Issahaku Zakaria,head.ner02@pvc.local,password123
