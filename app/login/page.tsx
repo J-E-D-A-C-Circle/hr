@@ -50,7 +50,7 @@ export default function LoginPage() {
             TempStaff Pro Admin Portal
           </h1>
           <p className="text-xs text-slate-400">
-            Temporary Staff Contract & Petra Insurance Management
+            Temporary Staff Contract & Payroll Management
           </p>
         </div>
 

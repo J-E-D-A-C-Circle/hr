@@ -142,7 +142,7 @@ export function validateMappedRows(
 }
 
 /**
- * Generates an Excel workbook Buffer for Payroll and Petra Insurance export
+ * Generates an Excel workbook Buffer for Payroll export
  */
 export function buildExportWorkbook(staffRecords: any[]): Buffer {
   const exportRows = staffRecords.map((item) => {
@@ -153,15 +153,19 @@ export function buildExportWorkbook(staffRecords: any[]): Buffer {
     return {
       "Staff Code": item.staff_code || `EMP-${item.id}`,
       "Full Name": item.full_name,
+      "Gender": item.gender || "N/A",
+      "Email": item.email || "N/A",
+      "Date of Birth": item.date_of_birth ? formatDateReadable(item.date_of_birth) : "N/A",
+      "SSNIT Number": item.ssnit_no || "N/A",
+      "NIA Number (Ghana Card)": item.nia_number || "N/A",
       "Station": item.department || "N/A",
       "Role": item.role || "N/A",
       "Phone": item.phone || "N/A",
       "Bank Name": item.bank_name || "N/A",
+      "Bank Branch": item.bank_branch || "N/A",
       "Bank Account No.": item.bank_account || "N/A",
       "Monthly Salary (GH₵)": item.salary ? Number(item.salary).toFixed(2) : "0.00",
-      "Insurance Provider": item.insurance_provider || "Petra",
-      "Insurance Policy No.": item.insurance_policy_no || "N/A",
-      "Insurance Premium (GH₵)": item.insurance_premium ? Number(item.insurance_premium).toFixed(2) : "0.00",
+      "Payment Status": item.payment_status || "paid",
       "Contract Start Date": currentContract ? formatDateReadable(currentContract.start_date) : "N/A",
       "Contract End Date": currentContract ? formatDateReadable(currentContract.end_date) : "N/A",
       "Days Remaining": currentContract && !currentContract.is_terminated ? daysRemaining : "N/A",
@@ -172,9 +176,147 @@ export function buildExportWorkbook(staffRecords: any[]): Buffer {
 
   const worksheet = XLSX.utils.json_to_sheet(exportRows);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Monthly Payroll & Petra Ins.");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Monthly Payroll");
 
   // Write as buffer
   const buf = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
   return buf;
+}
+
+/**
+ * Builds Payroll Payment Workbook matching TEMP JULY.xlsx format
+ */
+export function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Buffer {
+  const titleHeader = [`TEMPORARY STAFF PAYROLL FOR ${monthStr.toUpperCase()}`];
+  const colHeaders = [
+    "Sr. No.",
+    "EMPLOYEE ID",
+    "EMPLOYEE NAME",
+    "LOCATION",
+    "START DATE",
+    "END DATE",
+    "BASIC",
+    "GROSS SALARY",
+    "N0. OF MONTHS",
+    "TOTAL GROSS SALARY",
+    "NSSF(5.5%)",
+    "NSSF(13%)",
+    "TOTAL PAY COST",
+    "TOTAL TAXABLE AMOUNT",
+    "INCOME TAX",
+    "TOTAL DEDUCTION",
+    "NET PAY",
+  ];
+
+  const dataRows = staffRecords.map((item, idx) => {
+    const currentContract = item.contracts?.find((c: any) => c.is_current) || item.contracts?.[0];
+    const basic = item.salary ? Number(item.salary) : 1400.00;
+    const gross = basic;
+    const months = 1;
+    const totalGross = gross * months;
+
+    const nssf55 = Math.round(totalGross * 0.055 * 100) / 100;
+    const nssf13 = Math.round(totalGross * 0.13 * 100) / 100;
+    const totalPayCost = Math.round((totalGross + nssf13) * 100) / 100;
+    const totalTaxable = Math.round((totalGross - nssf55) * 100) / 100;
+    const incomeTax = 122.28; // Standard GRA PAYE bracket tax
+    const totalDeduction = Math.round((nssf55 + incomeTax) * 100) / 100;
+    const netPay = Math.round((totalGross - totalDeduction) * 100) / 100;
+
+    return [
+      idx + 1,
+      item.staff_code || `EMP-${item.id}`,
+      item.full_name,
+      item.department || "General",
+      currentContract ? formatDateReadable(currentContract.start_date) : "N/A",
+      currentContract ? formatDateReadable(currentContract.end_date) : "N/A",
+      basic,
+      gross,
+      months,
+      totalGross,
+      nssf55,
+      nssf13,
+      totalPayCost,
+      totalTaxable,
+      incomeTax,
+      totalDeduction,
+      netPay,
+    ];
+  });
+
+  const sheetData = [titleHeader, colHeaders, ...dataRows];
+  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "PAYROLL PAYMENT");
+
+  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+}
+
+/**
+ * Builds SSNIT Contribution Report Workbook matching JUNE SSNIT.xlsx format
+ */
+export function buildSsnitContributionWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Buffer {
+  const header1 = ["NEW FORMAT FOR CONTRIBUTION REPORT SUBMISSION"];
+  const header2 = ["ESTABLISHMENT NAME:…", "", "DRIVER AND VEHICLE LICENSING AUTHORITY"];
+  const header3 = ["ER NO:…201606660…………………………………………………………………………………………………"];
+  const header4 = [`MONTH: ${monthStr.toUpperCase()}..`, "", "", "CONTACT NUMBERS:………………………………………………………", "0244975955 AND '0244772715", "", "CATEGORY……………ALL…………………………."];
+  const colHeaders = [
+    "S/NO.",
+    "SSNIT NUMBER ",
+    "NIA NUMBER ",
+    "SURNAME ",
+    "FIRST NAME ",
+    "OTHER NAME ",
+    "OPTION CODE   (PNDCL 247/ACT 766)",
+    "HAZARDOUS (Y/N)",
+    "BASIC SALARY ",
+    "SSNIT - TIER 1 (13.5%)",
+    "PETRA - TIER 2 (5%)",
+    "GRA - PAYE DED.",
+  ];
+
+  const dataRows = staffRecords.map((item, idx) => {
+    const nameParts = (item.full_name || "").trim().split(/\s+/);
+    let firstName = "";
+    let surname = "";
+    let otherName = "";
+
+    if (nameParts.length === 1) {
+      firstName = nameParts[0];
+    } else if (nameParts.length === 2) {
+      firstName = nameParts[0];
+      surname = nameParts[1];
+    } else if (nameParts.length >= 3) {
+      firstName = nameParts[0];
+      surname = nameParts[nameParts.length - 1];
+      otherName = nameParts.slice(1, -1).join(" ");
+    }
+
+    const basic = item.salary ? Number(item.salary) : 1400.00;
+    const tier1 = Math.round(basic * 0.135 * 100) / 100;
+    const tier2 = Math.round(basic * 0.05 * 100) / 100;
+    const graPaye = 122.28;
+
+    return [
+      idx + 1,
+      item.ssnit_no || "",
+      item.nia_number || "",
+      surname,
+      firstName,
+      otherName,
+      "ACT 766",
+      "",
+      basic,
+      tier1,
+      tier2,
+      graPaye,
+    ];
+  });
+
+  const sheetData = [header1, header2, header3, header4, colHeaders, ...dataRows];
+  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "SSNIT CONTRIBUTION");
+
+  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 }

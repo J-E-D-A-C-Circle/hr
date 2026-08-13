@@ -3,6 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { UserPlus, Calendar, Building, CreditCard, ShieldCheck, CheckCircle2, AlertCircle, Save, X, Hash } from "lucide-react";
 import { calculateEndDate, formatDateToISO, formatDateReadable } from "@/lib/status";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 interface AddStaffModalProps {
   isOpen: boolean;
@@ -14,23 +21,49 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
   const [formData, setFormData] = useState({
     staff_code: "",
     full_name: "",
+    date_of_birth: "",
+    gender: "",
+    email: "",
     ssnit_no: "",
     nia_number: "",
     role: "",
     department: "",
     phone: "",
     bank_name: "",
+    bank_branch: "",
     bank_account: "",
     salary: "",
-    insurance_provider: "Petra",
-    insurance_policy_no: "",
-    insurance_premium: "",
     start_date: formatDateToISO(new Date()),
   });
 
   const [computedEndDate, setComputedEndDate] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateCodeError, setDuplicateCodeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        staff_code: "",
+        full_name: "",
+        date_of_birth: "",
+        gender: "",
+        email: "",
+        ssnit_no: "",
+        nia_number: "",
+        role: "",
+        department: "",
+        phone: "",
+        bank_name: "",
+        bank_branch: "",
+        bank_account: "",
+        salary: "",
+        start_date: formatDateToISO(new Date()),
+      });
+      setError(null);
+      setDuplicateCodeError(null);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (formData.start_date) {
@@ -75,12 +108,35 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         throw new Error(json.error || "Failed to create staff member record.");
       }
 
+      // Reset form fields on success
+      setFormData({
+        staff_code: "",
+        full_name: "",
+        date_of_birth: "",
+        gender: "",
+        email: "",
+        ssnit_no: "",
+        nia_number: "",
+        role: "",
+        department: "",
+        phone: "",
+        bank_name: "",
+        bank_branch: "",
+        bank_account: "",
+        salary: "",
+        start_date: formatDateToISO(new Date()),
+      });
+
       if (onSuccess) {
         onSuccess(json.data);
       }
       onClose();
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      const msg = err.message || "An unexpected error occurred.";
+      setError(msg);
+      if (msg.toLowerCase().includes("already exists") || msg.toLowerCase().includes("taken")) {
+        setDuplicateCodeError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -100,7 +156,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
                 Add Temporary Staff Member
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Enroll staff with initial 6-month rolling contract & SSNIT statutory record
+                Enroll staff with rolling contract window (capped at Dec 31 year-end) & SSNIT statutory record
               </p>
             </div>
           </div>
@@ -122,11 +178,11 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
             </div>
           )}
 
-          {/* Section 1: Initial 6-Month Contract */}
+          {/* Section 1: Initial Contract Window */}
           <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              <span>1. Rolling 6-Month Contract Window</span>
+              <span>1. Rolling Contract Window (Dec 31 Year-End Cap)</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -146,7 +202,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Calculated End Date (+6 Mo)
+                  Calculated End Date (Dec 31 Cap)
                 </label>
                 <div className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-2 h-[38px]">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -180,6 +236,53 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
               </div>
 
               <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Date of Birth (DD/MM/YYYY)</span>
+                </label>
+                <input
+                  type="text"
+                  name="date_of_birth"
+                  placeholder="DD/MM/YYYY (e.g. 25/08/1995)"
+                  value={formData.date_of_birth}
+                  onChange={handleChange}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Gender
+                </label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(val) => setFormData({ ...formData, gender: val })}
+                >
+                  <SelectTrigger className="w-full h-[42px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
+                    <SelectValue placeholder="Select Gender..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="e.g. employee@company.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Staff Code / Employee ID
                 </label>
@@ -188,9 +291,22 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
                   name="staff_code"
                   placeholder="e.g. TEMP-905"
                   value={formData.staff_code}
-                  onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono"
+                  onChange={(e) => {
+                    setDuplicateCodeError(null);
+                    handleChange(e);
+                  }}
+                  className={`w-full p-2.5 rounded-xl border ${
+                    duplicateCodeError
+                      ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/40 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100"
+                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                  } font-mono`}
                 />
+                {duplicateCodeError && (
+                  <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1 animate-in fade-in">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>{duplicateCodeError}</span>
+                  </p>
+                )}
               </div>
 
               <div>
@@ -268,108 +384,68 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
           </div>
 
           {/* Section 3: Payroll & Bank Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <CreditCard className="h-4 w-4 text-emerald-500" />
-                <span>3. Payroll & Bank</span>
-              </h4>
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <CreditCard className="h-4 w-4 text-emerald-500" />
+              <span>3. Payroll & Bank Details</span>
+            </h4>
 
-              <div className="space-y-2 text-xs">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Monthly Salary (GH₵)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="salary"
-                    placeholder="1400.00"
-                    value={formData.salary}
-                    onChange={handleChange}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Bank Name
-                  </label>
-                  <input
-                    type="text"
-                    name="bank_name"
-                    placeholder="e.g. GCB Bank / Chase"
-                    value={formData.bank_name}
-                    onChange={handleChange}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Bank Account No.
-                  </label>
-                  <input
-                    type="text"
-                    name="bank_account"
-                    placeholder="e.g. 1029384756"
-                    value={formData.bank_account}
-                    onChange={handleChange}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Monthly Salary (GH₵)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="salary"
+                  placeholder="1400.00"
+                  value={formData.salary}
+                  onChange={handleChange}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
               </div>
-            </div>
 
-            {/* Section 4: Petra Insurance */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4 text-blue-500" />
-                <span>4. Insurance Policy (Optional)</span>
-              </h4>
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Bank Name
+                </label>
+                <input
+                  type="text"
+                  name="bank_name"
+                  placeholder="e.g. GCB Bank / Stanbic"
+                  value={formData.bank_name}
+                  onChange={handleChange}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+              </div>
 
-              <div className="space-y-2 text-xs">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Insurance Provider
-                  </label>
-                  <input
-                    type="text"
-                    name="insurance_provider"
-                    value={formData.insurance_provider}
-                    onChange={handleChange}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  />
-                </div>
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Bank Branch
+                </label>
+                <input
+                  type="text"
+                  name="bank_branch"
+                  placeholder="e.g. High Street / Airport"
+                  value={formData.bank_branch}
+                  onChange={handleChange}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+              </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Policy Number
-                  </label>
-                  <input
-                    type="text"
-                    name="insurance_policy_no"
-                    placeholder="e.g. PTR-2026-108"
-                    value={formData.insurance_policy_no}
-                    onChange={handleChange}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Insurance Premium (GH₵)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="insurance_premium"
-                    placeholder="70.00"
-                    value={formData.insurance_premium}
-                    onChange={handleChange}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  />
-                </div>
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Bank Account No.
+                </label>
+                <input
+                  type="text"
+                  name="bank_account"
+                  placeholder="e.g. 1029384756"
+                  value={formData.bank_account}
+                  onChange={handleChange}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono"
+                />
               </div>
             </div>
           </div>

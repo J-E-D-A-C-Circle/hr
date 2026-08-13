@@ -126,7 +126,7 @@ export default function TerminateModal({ isOpen, onClose, staff, onSuccess }: Te
           <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Note:</strong> Staff member will be marked as <strong>Terminated</strong> and excluded from active payroll & insurance export lists. Their full historical record will be preserved for audits.
+              <strong>Note:</strong> Staff member will be marked as <strong>Terminated</strong> and excluded from active payroll export lists. Their full historical record will be preserved for audits.
             </span>
           </div>
         </div>

@@ -75,9 +75,14 @@ async function main() {
 
   console.log(`Parsed ${rows.length} total rows from TEMP JULY.xlsx.`);
 
+  const existingCount = await prisma.staff.count();
+  if (existingCount > 0) {
+    console.log(`Database already contains ${existingCount} staff records. Skipping seed re-import to preserve user-added staff.`);
+    return;
+  }
+
   // Clean existing seed data
   await prisma.contract.deleteMany();
-  await prisma.staff.deleteMany();
 
   let insertedCount = 0;
   let enrichedSsnitCount = 0;

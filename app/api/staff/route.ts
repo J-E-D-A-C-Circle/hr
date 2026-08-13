@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { calculateEndDate, computeContractStatus, computeDaysRemaining } from "@/lib/status";
+import { calculateEndDate, computeContractStatus, computeDaysRemaining, parseFlexibleDate } from "@/lib/status";
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,6 +36,11 @@ export async function GET(request: NextRequest) {
         contracts: {
           orderBy: {
             created_at: "desc",
+          },
+        },
+        validations: {
+          orderBy: {
+            validated_at: "desc",
           },
         },
       },
@@ -79,12 +84,16 @@ export async function POST(request: NextRequest) {
     const {
       staff_code,
       full_name,
+      date_of_birth,
+      gender,
+      email,
       ssnit_no,
       nia_number,
       role,
       department,
       phone,
       bank_name,
+      bank_branch,
       bank_account,
       salary,
       insurance_provider,
@@ -113,7 +122,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const startDateObj = new Date(start_date);
+    const startDateObj = parseFlexibleDate(start_date) || new Date();
     const endDateObj = calculateEndDate(startDateObj);
 
     // Create staff + initial contract
@@ -121,12 +130,16 @@ export async function POST(request: NextRequest) {
       data: {
         staff_code: staff_code || null,
         full_name,
+        date_of_birth: parseFlexibleDate(date_of_birth),
+        gender: gender || null,
+        email: email || null,
         ssnit_no: ssnit_no || null,
         nia_number: nia_number || null,
         role: role || null,
         department: department || null,
         phone: phone || null,
         bank_name: bank_name || null,
+        bank_branch: bank_branch || null,
         bank_account: bank_account || null,
         salary: salary ? parseFloat(salary) : null,
         insurance_provider: insurance_provider || "Petra",

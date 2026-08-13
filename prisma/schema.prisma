@@ -12,10 +12,14 @@ model Staff {
   id                  Int        @id @default(autoincrement())
   staff_code          String?    @unique
   full_name           String
+  date_of_birth       DateTime?
+  gender              String?
+  email               String?
   role                String?
   department          String?
   phone               String?
   bank_name           String?
+  bank_branch         String?
   bank_account        String?
   salary              Float?
   insurance_provider  String?    @default("Petra")
@@ -28,8 +32,23 @@ model Staff {
   created_at          DateTime   @default(now())
 
   contracts           Contract[]
+  validations         StaffValidation[]
 
   @@map("staff")
+}
+
+model StaffValidation {
+  id           Int      @id @default(autoincrement())
+  staff_id     Int
+  month        String
+  validated_at DateTime @default(now())
+  validated_by String?  @default("Admin")
+  notes        String?
+
+  staff        Staff    @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+
+  @@unique([staff_id, month])
+  @@map("staff_validations")
 }
 
 model Contract {

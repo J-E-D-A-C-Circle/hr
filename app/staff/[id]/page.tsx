@@ -8,6 +8,13 @@ import StatusBadge from "@/components/StatusBadge";
 import RenewModal from "@/components/RenewModal";
 import TerminateModal from "@/components/TerminateModal";
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import {
   ArrowLeft,
   User,
   CreditCard,
@@ -39,6 +46,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
   const [saveLoading, setSaveLoading] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Modals state
   const [showRenewModal, setShowRenewModal] = useState(false);
@@ -62,8 +70,13 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
       if (!res.ok || !json.success) {
         throw new Error(json.error || "Failed to load staff member profile");
       }
+      const currentContract = json.data.contracts?.find((c: any) => c.is_current) || json.data.contracts?.[0];
       setStaff(json.data);
-      setEditForm(json.data);
+      setEditForm({
+        ...json.data,
+        date_of_birth: json.data.date_of_birth ? formatDateToISO(new Date(json.data.date_of_birth)) : "",
+        start_date: currentContract ? formatDateToISO(new Date(currentContract.start_date)) : "",
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -86,17 +99,19 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         body: JSON.stringify({
           staff_code: editForm.staff_code,
           full_name: editForm.full_name,
+          date_of_birth: editForm.date_of_birth,
+          gender: editForm.gender,
+          email: editForm.email,
           ssnit_no: editForm.ssnit_no,
           nia_number: editForm.nia_number,
           role: editForm.role,
           department: editForm.department,
           phone: editForm.phone,
           bank_name: editForm.bank_name,
+          bank_branch: editForm.bank_branch,
           bank_account: editForm.bank_account,
           salary: editForm.salary,
-          insurance_provider: editForm.insurance_provider,
-          insurance_policy_no: editForm.insurance_policy_no,
-          insurance_premium: editForm.insurance_premium,
+          start_date: editForm.start_date,
         }),
       });
 
@@ -106,9 +121,10 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
       }
 
       setIsEditing(false);
+      setSaveError(null);
       fetchStaffDetails(id);
     } catch (err: any) {
-      alert(err.message);
+      setSaveError(err.message || "Failed to update profile");
     } finally {
       setSaveLoading(false);
     }
@@ -266,7 +282,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Detailed Information Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Card 1: Staff Details */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -290,14 +306,82 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-0.5">Staff Code / Employee ID</label>
+                <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
+                  <Calendar className="h-3 w-3 text-indigo-500" />
+                  <span>Date of Birth (DD/MM/YYYY)</span>
+                </label>
                 {isEditing ? (
                   <input
                     type="text"
-                    value={editForm.staff_code || ""}
-                    onChange={(e) => setEditForm({ ...editForm, staff_code: e.target.value })}
-                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-mono text-slate-900 dark:text-white"
+                    placeholder="DD/MM/YYYY (e.g. 25/08/1995)"
+                    value={editForm.date_of_birth || ""}
+                    onChange={(e) => setEditForm({ ...editForm, date_of_birth: e.target.value })}
+                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
+                ) : (
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {staff.date_of_birth ? formatDateReadable(staff.date_of_birth) : "N/A"}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-0.5">Gender</label>
+                {isEditing ? (
+                  <Select
+                    value={editForm.gender || ""}
+                    onValueChange={(val) => setEditForm({ ...editForm, gender: val })}
+                  >
+                    <SelectTrigger className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+                      <SelectValue placeholder="Select Gender..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{staff.gender || "N/A"}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-0.5">Email Address</label>
+                {isEditing ? (
+                  <input
+                    type="email"
+                    value={editForm.email || ""}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{staff.email || "N/A"}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-0.5">Staff Code / Employee ID</label>
+                {isEditing ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editForm.staff_code || ""}
+                      onChange={(e) => {
+                        setSaveError(null);
+                        setEditForm({ ...editForm, staff_code: e.target.value });
+                      }}
+                      className={`w-full p-2 border rounded-lg font-mono ${
+                        saveError
+                          ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/40 text-rose-900"
+                          : "bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                      }`}
+                    />
+                    {saveError && (
+                      <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1">
+                        ⚠️ {saveError}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{staff.staff_code || "N/A"}</span>
                 )}
@@ -380,6 +464,25 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                   <span className="font-medium text-slate-800 dark:text-slate-200">{staff.phone || "N/A"}</span>
                 )}
               </div>
+
+              <div>
+                <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
+                  <Calendar className="h-3 w-3 text-indigo-500" />
+                  <span>Contract Start Date</span>
+                </label>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    value={editForm.start_date || ""}
+                    onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {currentContract ? formatDateReadable(currentContract.start_date) : "N/A"}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -423,6 +526,20 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
+                <label className="text-slate-400 block mb-0.5">Bank Branch</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editForm.bank_branch || ""}
+                    onChange={(e) => setEditForm({ ...editForm, bank_branch: e.target.value })}
+                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{staff.bank_branch || "N/A"}</span>
+                )}
+              </div>
+
+              <div>
                 <label className="text-slate-400 block mb-0.5">Bank Account No.</label>
                 {isEditing ? (
                   <input
@@ -433,61 +550,6 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                   />
                 ) : (
                   <span className="font-mono text-slate-800 dark:text-slate-200">{staff.bank_account || "N/A"}</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Petra Insurance Details */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-blue-500" />
-              <span>Insurance Policy (Optional)</span>
-            </h2>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="text-slate-400 block mb-0.5">Insurance Provider</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editForm.insurance_provider || "Petra"}
-                    onChange={(e) => setEditForm({ ...editForm, insurance_provider: e.target.value })}
-                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-                  />
-                ) : (
-                  <span className="font-bold text-blue-600 dark:text-blue-400">{staff.insurance_provider || "Petra"}</span>
-                )}
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-0.5">Policy Number</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editForm.insurance_policy_no || ""}
-                    onChange={(e) => setEditForm({ ...editForm, insurance_policy_no: e.target.value })}
-                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-mono text-slate-900 dark:text-white"
-                  />
-                ) : (
-                  <span className="font-mono text-slate-800 dark:text-slate-200">{staff.insurance_policy_no || "N/A"}</span>
-                )}
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-0.5">Insurance Premium (GH₵)</label>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editForm.insurance_premium || ""}
-                    onChange={(e) => setEditForm({ ...editForm, insurance_premium: e.target.value })}
-                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-                  />
-                ) : (
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {staff.insurance_premium ? `GH₵${Number(staff.insurance_premium).toFixed(2)}` : "N/A"}
-                  </span>
                 )}
               </div>
             </div>
@@ -577,14 +639,14 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         isOpen={showRenewModal}
         onClose={() => setShowRenewModal(false)}
         staff={staff}
-        onSuccess={fetchStaffDetails}
+        onSuccess={() => fetchStaffDetails(id as string)}
       />
 
       <TerminateModal
         isOpen={showTerminateModal}
         onClose={() => setShowTerminateModal(false)}
         staff={staff}
-        onSuccess={fetchStaffDetails}
+        onSuccess={() => fetchStaffDetails(id as string)}
       />
     </SidebarLayout>
   );

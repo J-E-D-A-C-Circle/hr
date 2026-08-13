@@ -8,6 +8,8 @@ import StatusBadge from "@/components/StatusBadge";
 import RenewModal from "@/components/RenewModal";
 import TerminateModal from "@/components/TerminateModal";
 import ReinstateModal from "@/components/ReinstateModal";
+import ValidateStaffModal from "@/components/ValidateStaffModal";
+import MergeDuplicateModal from "@/components/MergeDuplicateModal";
 import {
   Select,
   SelectTrigger,
@@ -33,6 +35,10 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  CheckCircle2,
+  AlertCircle,
+  GitMerge,
+  Trash2,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 
@@ -52,6 +58,8 @@ export default function StaffListPage() {
   const [renewTarget, setRenewTarget] = useState<any | null>(null);
   const [terminateTarget, setTerminateTarget] = useState<any | null>(null);
   const [reinstateTarget, setReinstateTarget] = useState<any | null>(null);
+  const [validateTarget, setValidateTarget] = useState<any | null>(null);
+  const [mergeTarget, setMergeTarget] = useState<any | null>(null);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
 
   // Bulk Renew selection state
@@ -95,13 +103,73 @@ export default function StaffListPage() {
     return Array.from(set).sort();
   }, [staffList]);
 
+  // Duplicate employee detection logic
+  const duplicateStaffIds = useMemo(() => {
+    const set = new Set<number>();
+    const seenCodes = new Map<string, number>();
+    const seenNames = new Map<string, number>();
+    const seenSsnit = new Map<string, number>();
+
+    staffList.forEach((s) => {
+      if (s.staff_code) {
+        const code = s.staff_code.trim().toLowerCase();
+        if (seenCodes.has(code)) {
+          set.add(s.id);
+          set.add(seenCodes.get(code)!);
+        } else {
+          seenCodes.set(code, s.id);
+        }
+      }
+
+      if (s.full_name) {
+        const name = s.full_name.trim().toLowerCase();
+        if (seenNames.has(name)) {
+          set.add(s.id);
+          set.add(seenNames.get(name)!);
+        } else {
+          seenNames.set(name, s.id);
+        }
+      }
+
+      if (s.ssnit_no) {
+        const ssnit = s.ssnit_no.trim().toLowerCase();
+        if (seenSsnit.has(ssnit)) {
+          set.add(s.id);
+          set.add(seenSsnit.get(ssnit)!);
+        } else {
+          seenSsnit.set(ssnit, s.id);
+        }
+      }
+    });
+
+    return set;
+  }, [staffList]);
+
+  const isValidatedForMonth = (staffItem: any, month: string) => {
+    if (!staffItem.validations) return false;
+    return staffItem.validations.some((v: any) => v.month.toLowerCase() === month.toLowerCase());
+  };
+
   // Filtered & Sorted staff
   const processedStaff = useMemo(() => {
     return staffList
       .filter((item) => {
         // Status filter
-        if (statusFilter !== "all") {
-          if (item.computedStatus.toLowerCase() !== statusFilter.toLowerCase()) {
+        if (statusFilter === "all") {
+          // Exclude Terminated staff from Active Staff Directory
+          if (item.computedStatus?.toLowerCase() === "terminated") {
+            return false;
+          }
+        } else if (statusFilter === "terminated") {
+          if (item.computedStatus?.toLowerCase() !== "terminated") {
+            return false;
+          }
+        } else if (statusFilter === "duplicates") {
+          if (!duplicateStaffIds.has(item.id)) {
+            return false;
+          }
+        } else {
+          if (item.computedStatus?.toLowerCase() !== statusFilter.toLowerCase()) {
             return false;
           }
         }
@@ -118,7 +186,11 @@ export default function StaffListPage() {
           const matchCode = item.staff_code?.toLowerCase().includes(q);
           const matchRole = item.role?.toLowerCase().includes(q);
           const matchDept = item.department?.toLowerCase().includes(q);
-          if (!matchName && !matchCode && !matchRole && !matchDept) return false;
+          const matchSsnit = item.ssnit_no?.toLowerCase().includes(q);
+          const matchNia = item.nia_number?.toLowerCase().includes(q);
+          const matchGender = item.gender?.toLowerCase().includes(q);
+          const matchEmail = item.email?.toLowerCase().includes(q);
+          if (!matchName && !matchCode && !matchRole && !matchDept && !matchSsnit && !matchNia && !matchGender && !matchEmail) return false;
         }
         return true;
       })
@@ -218,7 +290,7 @@ export default function StaffListPage() {
               Temporary Staff Directory
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Manage rolling 6-month contracts, renewals, terminations & Petra policy records
+              Manage rolling 6-month contracts, renewals, and terminations
             </p>
           </div>
 
@@ -233,12 +305,12 @@ export default function StaffListPage() {
 
         {/* Filter & Search Toolbar */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-          {/* Tab Switcher: Active Staff vs Archived Staff */}
-          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+          {/* Tab Switcher: Active Staff vs Duplicate Staff vs Archived Staff */}
+          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap">
             <button
               onClick={() => setStatusFilter("all")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                statusFilter !== "terminated"
+                statusFilter === "all"
                   ? "bg-indigo-600 text-white shadow-xs"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
@@ -246,6 +318,19 @@ export default function StaffListPage() {
               <UserPlus className="h-3.5 w-3.5" />
               <span>Active Staff Directory</span>
             </button>
+
+            <button
+              onClick={() => setStatusFilter("duplicates")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                statusFilter === "duplicates"
+                  ? "bg-amber-600 text-white shadow-xs"
+                  : "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800"
+              }`}
+            >
+              <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+              <span>Duplicate Records ({duplicateStaffIds.size})</span>
+            </button>
+
             <button
               onClick={() => setStatusFilter("terminated")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
@@ -278,11 +363,14 @@ export default function StaffListPage() {
                 <SelectValue placeholder="All Contract Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Contract Statuses</SelectItem>
+                <SelectItem value="all">Active Staff Directory (Excludes Terminated)</SelectItem>
+                <SelectItem value="duplicates">
+                  Duplicate Records List ({duplicateStaffIds.size})
+                </SelectItem>
                 <SelectItem value="active">Active Only</SelectItem>
                 <SelectItem value="expiring soon">Expiring Soon (≤30d)</SelectItem>
                 <SelectItem value="expired">Expired Only</SelectItem>
-                <SelectItem value="terminated">Terminated Only</SelectItem>
+                <SelectItem value="terminated">Archived Staff List (Terminated)</SelectItem>
               </SelectContent>
             </Select>
 
@@ -445,17 +533,35 @@ export default function StaffListPage() {
                             >
                               {staff.full_name}
                             </Link>
-                            <div className="font-mono text-[11px] text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-                              <span>{staff.staff_code || `EMP-${staff.id}`}</span>
-                              {staff.ssnit_no && (
-                                <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800 text-[10px]">
-                                  SSNIT: {staff.ssnit_no}
-                                </span>
-                              )}
-                              {staff.nia_number && (
-                                <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 text-[10px]">
-                                  NIA: {staff.nia_number}
-                                </span>
+                            <div className="font-mono text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-slate-500">{staff.staff_code || `EMP-${staff.id}`}</span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                  staff.ssnit_no
+                                    ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                SSNIT: {staff.ssnit_no || "N/A"}
+                              </span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                  staff.nia_number
+                                    ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                NIA: {staff.nia_number || "N/A"}
+                              </span>
+                              {duplicateStaffIds.has(staff.id) && (
+                                <button
+                                  onClick={() => setMergeTarget(staff)}
+                                  title="Click to Compare, Merge or Delete Duplicate Record"
+                                  className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-800 text-[10px] flex items-center gap-1 hover:bg-amber-100 transition animate-pulse"
+                                >
+                                  <AlertCircle className="h-3 w-3 text-amber-500" />
+                                  <span>Duplicate Record (Click to Merge/Delete)</span>
+                                </button>
                               )}
                             </div>
                           </div>
@@ -513,6 +619,26 @@ export default function StaffListPage() {
                         {/* Actions */}
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Merge Duplicate Button */}
+                            {duplicateStaffIds.has(staff.id) && (
+                              <button
+                                onClick={() => setMergeTarget(staff)}
+                                title="Compare, Merge or Delete Duplicate Record"
+                                className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-bold hover:bg-amber-100 transition"
+                              >
+                                <GitMerge className="h-4 w-4" />
+                              </button>
+                            )}
+
+                            {/* Validate Button (Tick Icon) */}
+                            <button
+                              onClick={() => setValidateTarget(staff)}
+                              title="Click to Validate Staff for Monthly Payment"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </button>
+
                             <Link
                               href={`/staff/${staff.id}`}
                               title="View Details & History"
@@ -643,11 +769,26 @@ export default function StaffListPage() {
         onSuccess={fetchStaff}
       />
 
-      {/* Add Staff Modal */}
+      {/* Modals */}
       <AddStaffModal
         isOpen={showAddStaffModal}
         onClose={() => setShowAddStaffModal(false)}
-        onSuccess={fetchStaff}
+        onSuccess={() => fetchStaff()}
+      />
+
+      <ValidateStaffModal
+        isOpen={!!validateTarget}
+        staff={validateTarget}
+        onClose={() => setValidateTarget(null)}
+        onSuccess={() => fetchStaff()}
+      />
+
+      <MergeDuplicateModal
+        isOpen={!!mergeTarget}
+        staff={mergeTarget}
+        allStaff={staffList}
+        onClose={() => setMergeTarget(null)}
+        onSuccess={() => fetchStaff()}
       />
     </SidebarLayout>
   );

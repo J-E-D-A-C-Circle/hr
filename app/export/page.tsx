@@ -29,6 +29,8 @@ import { formatDateReadable } from "@/lib/status";
 export default function ExportPage() {
   const [filter, setFilter] = useState("currently_employed");
   const [department, setDepartment] = useState("");
+  const [exportType, setExportType] = useState("payroll");
+  const [validationMonth, setValidationMonth] = useState("August 2026");
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +40,7 @@ export default function ExportPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, department]);
+  }, [filter, department, exportType, validationMonth]);
 
   const totalPages = Math.max(1, Math.ceil(previewData.length / PAGE_SIZE));
 
@@ -53,6 +55,8 @@ export default function ExportPage() {
       const params = new URLSearchParams({
         filter,
         department,
+        export_type: exportType,
+        validation_month: validationMonth,
         format: "json",
       });
       const res = await fetch(`/api/export?${params.toString()}`);
@@ -69,12 +73,14 @@ export default function ExportPage() {
 
   useEffect(() => {
     fetchPreview();
-  }, [filter, department]);
+  }, [filter, department, exportType, validationMonth]);
 
   const handleDownloadExcel = () => {
     const params = new URLSearchParams({
       filter,
       department,
+      export_type: exportType,
+      validation_month: validationMonth,
       format: "excel",
     });
     window.open(`/api/export?${params.toString()}`, "_blank");
@@ -88,10 +94,10 @@ export default function ExportPage() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
               <Download className="h-6 w-6 text-emerald-600" />
-              <span>Monthly Payroll & Petra Insurance Export</span>
+              <span>Monthly Payroll & Statutory Export</span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Generate formatted Excel lists containing active employee salary, bank accounts, and Petra insurance policies
+              Extract validated staff payment lists in <strong>Monthly Payroll Payment</strong> format or <strong>SSNIT Statutory Contribution</strong> format
             </p>
           </div>
 
@@ -100,7 +106,13 @@ export default function ExportPage() {
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition self-start sm:self-auto"
           >
             <FileSpreadsheet className="h-4 w-4" />
-            <span>Download Excel Export (.xlsx)</span>
+            <span>
+              {exportType === "payroll"
+                ? "Download Payroll Payment Excel (.xlsx)"
+                : exportType === "ssnit"
+                ? "Download SSNIT Contribution Excel (.xlsx)"
+                : "Download Standard Export (.xlsx)"}
+            </span>
           </button>
         </div>
 
@@ -108,12 +120,52 @@ export default function ExportPage() {
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <Filter className="h-4 w-4 text-indigo-500" />
-            <span>Export Criteria Filters</span>
+            <span>Export Criteria & Payment Format Selection</span>
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Excel Payment Format
+              </label>
+              <Select value={exportType} onValueChange={setExportType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Payment Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="payroll">
+                    Monthly Payroll Payment Format
+                  </SelectItem>
+                  <SelectItem value="ssnit">
+                    SSNIT Statutory Contribution Format
+                  </SelectItem>
+                  <SelectItem value="standard">
+                    Standard Full Data Directory Export
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Validated Payment Month Filter
+              </label>
+              <Select value={validationMonth} onValueChange={setValidationMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Validated & Active Staff" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="August 2026">Validated for August 2026 Only</SelectItem>
+                  <SelectItem value="July 2026">Validated for July 2026 Only</SelectItem>
+                  <SelectItem value="June 2026">Validated for June 2026 Only</SelectItem>
+                  <SelectItem value="May 2026">Validated for May 2026 Only</SelectItem>
+                  <SelectItem value="">All Active / Employed Staff (No Month Filter)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Employment Status Selection
               </label>
               <Select value={filter} onValueChange={setFilter}>
@@ -122,7 +174,7 @@ export default function ExportPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="currently_employed">
-                    Currently Employed (Active + Expiring Soon) - Recommended for Payroll
+                    Currently Employed (Active + Expiring Soon)
                   </SelectItem>
                   <SelectItem value="active">Active Contracts Only</SelectItem>
                   <SelectItem value="expiring">Expiring Soon (≤30 Days) Only</SelectItem>
@@ -132,19 +184,19 @@ export default function ExportPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Station Filter (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="Leave blank for All Stations"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Station Filter (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="Leave blank for All Stations"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+            />
           </div>
         </div>
 
@@ -180,7 +232,6 @@ export default function ExportPage() {
                   <th className="p-3">Dept & Role</th>
                   <th className="p-3">Bank Details</th>
                   <th className="p-3">Monthly Salary</th>
-                  <th className="p-3">Petra Policy No.</th>
                   <th className="p-3">End Date</th>
                   <th className="p-3">Status</th>
                 </tr>
@@ -188,13 +239,13 @@ export default function ExportPage() {
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-slate-400">
+                    <td colSpan={7} className="p-8 text-center text-slate-400">
                       Loading preview...
                     </td>
                   </tr>
                 ) : previewData.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-slate-400">
+                    <td colSpan={7} className="p-8 text-center text-slate-400">
                       No records match the selected export filter.
                     </td>
                   </tr>
@@ -210,7 +261,7 @@ export default function ExportPage() {
                       </td>
                       <td className="p-3">
                         <div className="font-semibold text-slate-800 dark:text-slate-200">
-                          {item.bank_name || "N/A"}
+                          {item.bank_name || "N/A"}{item.bank_branch ? ` (${item.bank_branch})` : ""}
                         </div>
                         <div className="font-mono text-[11px] text-slate-500">
                           {item.bank_account || "N/A"}
@@ -218,9 +269,6 @@ export default function ExportPage() {
                       </td>
                       <td className="p-3 font-bold text-emerald-600 dark:text-emerald-400">
                         {item.salary ? `GH₵${Number(item.salary).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "GH₵0.00"}
-                      </td>
-                      <td className="p-3 font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                        {item.insurance_policy_no || "N/A"}
                       </td>
                       <td className="p-3 font-medium text-slate-700 dark:text-slate-300">
                         {item.currentContract ? formatDateReadable(item.currentContract.end_date) : "N/A"}

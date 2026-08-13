@@ -74,8 +74,6 @@ export default function ImportExcelPage() {
         "Bank Name": "Chase Bank",
         "Account Number": "9988776655",
         "Monthly Wage": 4800,
-        "Petra Policy No": "PTR-2026-901",
-        "Insurance Premium": 160,
         "Contract Start": "2026-06-01",
       },
       {
@@ -87,8 +85,6 @@ export default function ImportExcelPage() {
         "Bank Name": "Citibank",
         "Account Number": "1122334455",
         "Monthly Wage": 4100,
-        "Petra Policy No": "PTR-2026-902",
-        "Insurance Premium": 140,
         "Contract Start": "2026-03-15",
       },
     ];

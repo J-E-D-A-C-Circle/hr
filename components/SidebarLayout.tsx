@@ -489,7 +489,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               {pathname.startsWith("/staff/") && pathname !== "/staff/new" && "Staff Member Profile"}
               {pathname === "/staff" && "Temporary Staff Directory"}
               {pathname === "/import" && "Excel Data Migration Hub"}
-              {pathname === "/export" && "Monthly Payroll & Petra Insurance Export"}
+              {pathname === "/export" && "Monthly Payroll Export"}
             </h2>
           </div>
 

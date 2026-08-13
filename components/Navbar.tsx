@@ -43,7 +43,7 @@ export default function Navbar() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Petra Insurance & Payroll Manager
+                Temporary Staff & Payroll Manager
               </p>
             </div>
           </Link>

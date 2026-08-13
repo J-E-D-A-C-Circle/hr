@@ -5,10 +5,14 @@ CREATE TABLE IF NOT EXISTS staff (
   id INT AUTO_INCREMENT PRIMARY KEY,
   staff_code VARCHAR(50) UNIQUE,          -- existing ID/employee number from Excel
   full_name VARCHAR(150) NOT NULL,
+  date_of_birth DATETIME NULL,
+  gender VARCHAR(20) NULL,
+  email VARCHAR(150) NULL,
   role VARCHAR(100),
   department VARCHAR(100),
   phone VARCHAR(30),
   bank_name VARCHAR(100),
+  bank_branch VARCHAR(100) NULL,
   bank_account VARCHAR(50),
   salary DECIMAL(10,2),
   insurance_provider VARCHAR(50) DEFAULT 'Petra',
@@ -16,6 +20,8 @@ CREATE TABLE IF NOT EXISTS staff (
   insurance_premium DECIMAL(10,2),
   payment_status VARCHAR(50) DEFAULT 'paid', -- 'paid' or 'unpaid' / on hold
   unpaid_reason VARCHAR(255) NULL,
+  ssnit_no VARCHAR(50) NULL,
+  nia_number VARCHAR(50) NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -40,6 +46,17 @@ CREATE TABLE IF NOT EXISTS deduction_settings (
   petra_employee_rate DECIMAL(5,2) DEFAULT 5.00,  -- 5.0% Petra Tier 3 Employee
   petra_employer_rate DECIMAL(5,2) DEFAULT 5.00,  -- 5.0% Petra Tier 3 Employer
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS staff_validations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  staff_id INT NOT NULL,
+  month VARCHAR(50) NOT NULL,
+  validated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  validated_by VARCHAR(100) DEFAULT 'Admin',
+  notes VARCHAR(255) NULL,
+  FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_staff_month (staff_id, month)
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (

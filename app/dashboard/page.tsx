@@ -73,7 +73,7 @@ export default function DashboardPage() {
               Contract Dashboard
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Rolling 6-month temporary staff tracking, Petra insurance policy alerts & payroll status
+              Rolling 6-month temporary staff contract tracking & payroll status
             </p>
           </div>
 
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                   Action Required: Contracts Expiring Within 30 Days
                 </h2>
                 <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
-                  Review upcoming contract end dates and process 6-month renewals to prevent lapse in Petra insurance coverage.
+                  Review upcoming contract end dates and process 6-month renewals.
                 </p>
               </div>
             </div>

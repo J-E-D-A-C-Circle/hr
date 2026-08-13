@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus } from "@/lib/status";
-import { buildExportWorkbook } from "@/lib/excel";
+import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook } from "@/lib/excel";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get("filter") || "currently_employed"; // default Active + Expiring Soon
     const department = searchParams.get("department") || "";
     const format = searchParams.get("format") || "excel";
+    const exportType = searchParams.get("export_type") || "standard"; // "standard", "payroll", "ssnit"
+    const validationMonth = searchParams.get("validation_month") || "";
 
     const whereClause: any = {};
     if (department) {
@@ -21,6 +23,11 @@ export async function GET(request: NextRequest) {
         contracts: {
           orderBy: {
             created_at: "desc",
+          },
+        },
+        validations: {
+          orderBy: {
+            validated_at: "desc",
           },
         },
       },
@@ -41,6 +48,14 @@ export async function GET(request: NextRequest) {
     });
 
     const filtered = annotated.filter((item: any) => {
+      // Month Validation Filter
+      if (validationMonth) {
+        const hasValidation = item.validations?.some(
+          (v: any) => v.month.toLowerCase() === validationMonth.toLowerCase()
+        );
+        if (!hasValidation) return false;
+      }
+
       if (filter === "currently_employed") {
         // Active + Expiring Soon
         return item.computedStatus === "Active" || item.computedStatus === "Expiring Soon";
@@ -60,10 +75,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, count: filtered.length, data: filtered });
     }
 
-    // Generate Excel Buffer
-    const excelBuffer = buildExportWorkbook(filtered);
+    // Generate Excel Buffer based on export_type
+    let excelBuffer: Buffer;
+    let filename: string;
     const dateStr = new Date().toISOString().split("T")[0];
-    const filename = `Payroll_Petra_Insurance_${filter}_${dateStr}.xlsx`;
+
+    if (exportType === "payroll") {
+      const mStr = validationMonth || "August 2026";
+      excelBuffer = buildPayrollPaymentWorkbook(filtered, mStr);
+      filename = `Payroll_Payment_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
+    } else if (exportType === "ssnit") {
+      const mStr = validationMonth || "August 2026";
+      excelBuffer = buildSsnitContributionWorkbook(filtered, mStr);
+      filename = `SSNIT_Contribution_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
+    } else {
+      excelBuffer = buildExportWorkbook(filtered);
+      filename = `Staff_Export_${filter}_${dateStr}.xlsx`;
+    }
 
     return new NextResponse(excelBuffer as unknown as BodyInit, {
       status: 200,

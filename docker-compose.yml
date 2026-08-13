@@ -41,3 +41,5 @@ services:
 
 volumes:
   tempstaff_mysql_data:
+    external: true
+    name: drap_temp_stack_tempstaff_mysql_data
