@@ -557,6 +557,11 @@ export default function StaffListPage() {
                               >
                                 NIA: {staff.nia_number || "N/A"}
                               </span>
+                              {staff.validations?.some((v: any) => v.month.includes("Supplementary")) && (
+                                <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold border border-amber-300 dark:border-amber-800 text-[10px] flex items-center gap-1">
+                                  ⚡ Supplementary Validated
+                                </span>
+                              )}
                               {duplicateStaffIds.has(staff.id) && (
                                 <button
                                   onClick={() => setMergeTarget(staff)}

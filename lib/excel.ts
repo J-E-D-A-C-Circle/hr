@@ -187,7 +187,12 @@ export function buildExportWorkbook(staffRecords: any[]): Buffer {
  * Builds Payroll Payment Workbook matching TEMP JULY.xlsx format
  */
 export function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Buffer {
-  const titleHeader = [`TEMPORARY STAFF PAYROLL FOR ${monthStr.toUpperCase()}`];
+  const isSupplementary = monthStr.toLowerCase().includes("supplementary");
+  const cleanMonth = monthStr.replace(/\s*[\(\-]*\s*supplementary\s*[\)]*/i, "").trim().toUpperCase();
+  const formattedTitle = isSupplementary
+    ? `TEMPORARY STAFF SUPPLEMENTARY PAYROLL FOR ${cleanMonth}`
+    : `TEMPORARY STAFF PAYROLL FOR ${monthStr.toUpperCase()}`;
+  const titleHeader = [formattedTitle];
   const colHeaders = [
     "Sr. No.",
     "EMPLOYEE ID",

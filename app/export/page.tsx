@@ -172,15 +172,20 @@ export default function ExportPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="August 2026" className="font-bold text-emerald-600 dark:text-emerald-400">
-                    Validated for August 2026 (Current Month)
+                    Validated for August 2026 (Current Active Regular Month)
                   </SelectItem>
-                  <SelectItem value="July 2026">Validated for July 2026</SelectItem>
-                  <SelectItem value="June 2026">Validated for June 2026</SelectItem>
-                  <SelectItem value="May 2026">Validated for May 2026</SelectItem>
-                  <SelectItem value="April 2026">Validated for April 2026</SelectItem>
-                  <SelectItem value="March 2026">Validated for March 2026</SelectItem>
-                  <SelectItem value="February 2026">Validated for February 2026</SelectItem>
-                  <SelectItem value="January 2026">Validated for January 2026</SelectItem>
+                  <SelectItem value="July 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
+                    ⚡ Validated for July 2026 (Supplementary List)
+                  </SelectItem>
+                  <SelectItem value="August 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
+                    ⚡ Validated for August 2026 (Supplementary List)
+                  </SelectItem>
+                  <SelectItem value="June 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
+                    ⚡ Validated for June 2026 (Supplementary List)
+                  </SelectItem>
+                  <SelectItem value="July 2026">Validated for July 2026 (Regular)</SelectItem>
+                  <SelectItem value="June 2026">Validated for June 2026 (Regular)</SelectItem>
+                  <SelectItem value="May 2026">Validated for May 2026 (Regular)</SelectItem>
                   <SelectItem value="">All Active / Employed Staff (No Month Filter)</SelectItem>
                 </SelectContent>
               </Select>

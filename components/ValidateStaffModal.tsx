@@ -13,22 +13,29 @@ interface ValidateStaffModalProps {
 
 export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }: ValidateStaffModalProps) {
   const currentMonthStr = "August 2026";
-  const monthOptions = [
-    "August 2026",
-    "July 2026",
-    "June 2026",
-    "May 2026",
-    "April 2026",
-    "March 2026",
-    "February 2026",
-    "January 2026",
-  ];
-
+  const [payrollRunType, setPayrollRunType] = useState<"regular" | "supplementary">("regular");
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
+  const [notes, setNotes] = useState<string>("");
   const [isValidated, setIsValidated] = useState<boolean>(false);
   const [validationDetails, setValidationDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const regularMonthOptions = ["August 2026"];
+  const supplementaryMonthOptions = [
+    "July 2026 (Supplementary)",
+    "August 2026 (Supplementary)",
+    "June 2026 (Supplementary)",
+    "May 2026 (Supplementary)",
+  ];
+
+  useEffect(() => {
+    if (payrollRunType === "regular") {
+      setSelectedMonth("August 2026");
+    } else {
+      setSelectedMonth("July 2026 (Supplementary)");
+    }
+  }, [payrollRunType]);
 
   useEffect(() => {
     if (staff && isOpen) {
@@ -47,9 +54,11 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
     if (found) {
       setIsValidated(true);
       setValidationDetails(found);
+      if (found.notes) setNotes(found.notes);
     } else {
       setIsValidated(false);
       setValidationDetails(null);
+      setNotes("");
     }
   };
 
@@ -80,6 +89,7 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
           body: JSON.stringify({
             staff_id: staff.id,
             month: selectedMonth,
+            notes: notes.trim() || (payrollRunType === "supplementary" ? "Approved for Supplementary Payroll Run" : null),
             validated_by: "HR Admin",
           }),
         });
@@ -112,7 +122,7 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
                 Monthly Staff Validation
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Validate employee payroll eligibility for payment export
+                Regular Payroll or Supplementary Payment List Approval
               </p>
             </div>
           </div>
@@ -154,45 +164,85 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
             </div>
           </div>
 
+          {/* Payroll Run Type Selector */}
+          <div className="space-y-1.5">
+            <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+              Validation Run Category
+            </label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setPayrollRunType("regular")}
+                className={`py-2 text-xs font-bold rounded-lg transition ${
+                  payrollRunType === "regular"
+                    ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Regular Payroll
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayrollRunType("supplementary")}
+                className={`py-2 text-xs font-bold rounded-lg transition ${
+                  payrollRunType === "supplementary"
+                    ? "bg-amber-500 text-white shadow-xs"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Supplementary List
+              </button>
+            </div>
+          </div>
+
           {/* Month Selection */}
           <div className="space-y-1.5">
             <label className="font-semibold text-slate-700 dark:text-slate-300 block flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5 text-indigo-500" />
               <span>Select Payment Validation Month</span>
             </label>
-            <Select
-              value={selectedMonth}
-              onValueChange={(val) => {
-                // Strictly allow ONLY the current month ("August 2026")
-                if (val === currentMonthStr) {
-                  setSelectedMonth(val);
-                }
-              }}
-            >
-              <SelectTrigger className="w-full h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold shadow-xs focus:ring-2 focus:ring-emerald-500">
-                <SelectValue placeholder="Select Payment Validation Month" />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => {
-                  const isCurrent = m === currentMonthStr;
-                  return (
-                    <SelectItem
-                      key={m}
-                      value={m}
-                      disabled={!isCurrent}
-                      className={
-                        !isCurrent
-                          ? "opacity-30 blur-[0.8px] pointer-events-none select-none cursor-not-allowed bg-slate-100/60 dark:bg-slate-800/60 text-slate-400 line-through"
-                          : "font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40"
-                      }
-                    >
-                      {m} {!isCurrent ? "🔒 (Past Month - Locked)" : "✓ (Current Active Month)"}
+            {payrollRunType === "regular" ? (
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-full h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold shadow-xs focus:ring-2 focus:ring-emerald-500">
+                  <SelectValue placeholder="Select Regular Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="August 2026" className="font-bold text-emerald-600 dark:text-emerald-400">
+                    August 2026 ✓ (Current Active Regular Month)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-full h-[44px] rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-950/40 text-amber-950 dark:text-amber-100 font-bold shadow-xs focus:ring-2 focus:ring-amber-500">
+                  <SelectValue placeholder="Select Supplementary Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supplementaryMonthOptions.map((m) => (
+                    <SelectItem key={m} value={m} className="font-bold text-amber-700 dark:text-amber-300">
+                      ⚡ {m}
                     </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+
+          {/* Optional Supplementary Notes Field */}
+          {payrollRunType === "supplementary" && (
+            <div className="space-y-1">
+              <label className="font-semibold text-amber-700 dark:text-amber-300 block text-[11px]">
+                Reason / Notes for Supplementary Payout (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Skipped in main July payout - approved for supplementary list"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full p-2.5 text-xs rounded-xl border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+              />
+            </div>
+          )}
 
           {/* Status Indicator Banner */}
           {isExpiredOrTerminated ? (
