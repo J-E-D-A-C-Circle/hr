@@ -41,19 +41,23 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { id, name, code, regionId, headName, headEmail, active } = body;
 
-    if (!name || !code || !regionId || !headName || !headEmail) {
-      return NextResponse.json({ error: 'Name, code, region, head name, and head email are required' }, { status: 400 });
+    if (!name || !regionId) {
+      return NextResponse.json({ error: 'Station name and region are required' }, { status: 400 });
     }
+
+    const branchCode = code && code.trim() ? code.trim() : null;
+    const managerName = headName && headName.trim() ? headName.trim() : null;
+    const managerEmail = headEmail && headEmail.trim() ? headEmail.trim() : null;
 
     let branch;
     if (id) {
       branch = await prisma.branch.update({
         where: { id },
-        data: { name, code, regionId, headName, headEmail, active: active ?? true },
+        data: { name, code: branchCode, regionId, headName: managerName, headEmail: managerEmail, active: active ?? true },
       });
     } else {
       branch = await prisma.branch.create({
-        data: { name, code, regionId, headName, headEmail, active: active ?? true },
+        data: { name, code: branchCode, regionId, headName: managerName, headEmail: managerEmail, active: active ?? true },
       });
     }
 
@@ -62,15 +66,60 @@ export async function POST(request: Request) {
       action: id ? 'BRANCH_UPDATE' : 'BRANCH_CREATE',
       targetType: 'BRANCH',
       targetId: branch.id,
-      metadata: { name, code, regionId },
+      metadata: { name, code: branchCode, regionId },
     });
 
     return NextResponse.json({ success: true, branch });
   } catch (error: any) {
     console.error('Error saving branch:', error);
     if (error.code === 'P2002') {
-      return NextResponse.json({ error: 'A branch with this code or name already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'A station branch with this name already exists' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Failed to save branch' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'HR_ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const deleteAll = searchParams.get('deleteAll');
+
+    if (deleteAll === 'true') {
+      await prisma.branch.deleteMany({});
+      await logAuditAction({
+        actorId: session.id,
+        action: 'BRANCH_DELETE_ALL',
+        targetType: 'BRANCH',
+        metadata: { message: 'Deleted all station branches' },
+      });
+      return NextResponse.json({ success: true, message: 'All station branches deleted successfully' });
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'Station ID is required' }, { status: 400 });
+    }
+
+    const deleted = await prisma.branch.delete({
+      where: { id },
+    });
+
+    await logAuditAction({
+      actorId: session.id,
+      action: 'BRANCH_DELETE',
+      targetType: 'BRANCH',
+      targetId: id,
+      metadata: { name: deleted.name },
+    });
+
+    return NextResponse.json({ success: true, deletedId: id });
+  } catch (error) {
+    console.error('Error deleting branch:', error);
+    return NextResponse.json({ error: 'Failed to delete branch' }, { status: 500 });
   }
 }

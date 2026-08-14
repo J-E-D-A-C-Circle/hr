@@ -17,7 +17,15 @@ import {
   AlertCircle,
   X,
   Download,
+  Trash2,
 } from 'lucide-react';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 interface Branch {
   id: string;
@@ -137,7 +145,7 @@ export default function BranchesUsersPage() {
 
   const handleSaveBranch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editBranch?.name || !editBranch?.code || !editBranch?.regionId || !editBranch?.headEmail) return;
+    if (!editBranch?.name || !editBranch?.regionId) return;
 
     try {
       const res = await fetch('/api/admin/branches', {
@@ -154,6 +162,38 @@ export default function BranchesUsersPage() {
       }
     } catch {
       alert('Error saving station');
+    }
+  };
+
+  const handleDeleteBranch = async (branchId: string, branchName: string) => {
+    if (!confirm(`Are you sure you want to delete "${branchName}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/branches?id=${branchId}`, { method: 'DELETE' });
+      if (res.ok) {
+        loadData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete station');
+      }
+    } catch {
+      alert('Error deleting station');
+    }
+  };
+
+  const handleDeleteAllBranches = async () => {
+    if (!confirm('Are you sure you want to delete ALL stations? You can add your own custom stations afterwards.')) return;
+
+    try {
+      const res = await fetch('/api/admin/branches?deleteAll=true', { method: 'DELETE' });
+      if (res.ok) {
+        loadData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to clear stations');
+      }
+    } catch {
+      alert('Error clearing stations');
     }
   };
 
@@ -228,23 +268,35 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
           </button>
 
           {activeTab === 'BRANCHES' ? (
-            <button
-              onClick={() => {
-                setEditBranch({ name: '', code: '', headName: '', headEmail: '', active: true, regionId: regions[0]?.id || '' });
-                setShowBranchModal(true);
-              }}
-              className="px-5 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Station</span>
-            </button>
+            <>
+              {branches.length > 0 && (
+                <button
+                  onClick={handleDeleteAllBranches}
+                  className="px-4 py-2.5 text-xs font-normal rounded-xl bg-rose-700 hover:bg-rose-800 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Clear All Stations</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  setEditBranch({ name: '', code: '', headName: '', headEmail: '', active: true, regionId: regions[0]?.id || '' });
+                  setShowBranchModal(true);
+                }}
+                className="px-5 py-2.5 text-xs font-normal rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Station</span>
+              </button>
+            </>
           ) : (
             <button
               onClick={() => {
                 setEditUser({ name: '', email: '', role: 'STATION_MANAGER', active: true });
                 setShowUserModal(true);
               }}
-              className="px-5 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+              className="px-5 py-2.5 text-xs font-normal rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span>Add User</span>
@@ -258,7 +310,7 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             onClick={() => setActiveTab('BRANCHES')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
+            className={`px-4 py-2 text-xs font-normal rounded-lg transition ${
               activeTab === 'BRANCHES'
                 ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
                 : 'text-slate-600 hover:text-slate-900'
@@ -268,7 +320,7 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
           </button>
           <button
             onClick={() => setActiveTab('USERS')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
+            className={`px-4 py-2 text-xs font-normal rounded-lg transition ${
               activeTab === 'USERS'
                 ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
                 : 'text-slate-600 hover:text-slate-900'
@@ -285,7 +337,7 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={`Search ${activeTab.toLowerCase()}...`}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-600 focus:outline-none"
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-normal text-slate-900 placeholder-slate-400 focus:bg-white focus:border-emerald-600 focus:outline-none"
           />
         </div>
       </div>
@@ -296,7 +348,6 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
-                <th className="p-4">Code</th>
                 <th className="p-4">Station Name</th>
                 <th className="p-4">Region</th>
                 <th className="p-4">Station Manager Name</th>
@@ -308,14 +359,14 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={6} className="py-12 text-center text-slate-500">
                     Loading station roster...
                   </td>
                 </tr>
               ) : branches.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
-                    No stations configured yet. Click &ldquo;CSV Bulk Import&rdquo; to load 50+ stations.
+                  <td colSpan={6} className="py-12 text-center text-slate-500 font-normal">
+                    No stations configured yet. Click &ldquo;Add Station&rdquo; to add your station.
                   </td>
                 </tr>
               ) : (
@@ -323,16 +374,18 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                   .filter(
                     (b) =>
                       b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      b.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      b.headName.toLowerCase().includes(searchQuery.toLowerCase())
+                      (b.code && b.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                      (b.headName && b.headName.toLowerCase().includes(searchQuery.toLowerCase()))
                   )
                   .map((b) => (
                     <tr key={b.id} className="hover:bg-slate-50 transition">
-                      <td className="p-4 font-mono font-bold text-indigo-700">{b.code}</td>
-                      <td className="p-4 font-bold text-slate-900">{b.name}</td>
+                      <td className="p-4 font-bold text-slate-900">
+                        {b.name}
+                        {b.code && <span className="ml-2 text-[10px] text-emerald-800 font-mono">({b.code})</span>}
+                      </td>
                       <td className="p-4 text-slate-600">{b.region.name}</td>
-                      <td className="p-4 text-slate-800 font-medium">{b.headName}</td>
-                      <td className="p-4 font-mono text-slate-600">{b.headEmail}</td>
+                      <td className="p-4 text-slate-800 font-medium">{b.headName || '—'}</td>
+                      <td className="p-4 font-mono text-slate-600">{b.headEmail || '—'}</td>
                       <td className="p-4">
                         <span
                           className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${
@@ -345,16 +398,25 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                         </span>
                       </td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => {
-                            setEditBranch(b);
-                            setShowBranchModal(true);
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[11px] font-semibold transition inline-flex items-center gap-1"
-                        >
-                          <Edit2 className="h-3 w-3 text-slate-500" />
-                          <span>Edit</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setEditBranch(b);
+                              setShowBranchModal(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[11px] font-normal transition inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit2 className="h-3 w-3 text-slate-500" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBranch(b.id, b.name)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-normal transition inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="h-3 w-3 text-rose-600" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -519,14 +581,13 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
 
             <form onSubmit={handleSaveBranch} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Station Code</label>
+                <label className="block text-slate-700 font-normal mb-1">Station Code (Optional)</label>
                 <input
                   type="text"
-                  required
                   value={editBranch.code || ''}
                   onChange={(e) => setEditBranch({ ...editBranch, code: e.target.value })}
-                  placeholder="BR-055"
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  placeholder="e.g. ST-01 (Optional)"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-normal text-xs"
                 />
               </div>
 
@@ -542,42 +603,44 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Region</label>
-                <select
+              <div className="space-y-1">
+                <label className="block text-slate-700 font-normal">Region</label>
+                <Select
                   value={editBranch.regionId || ''}
-                  onChange={(e) => setEditBranch({ ...editBranch, regionId: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  onValueChange={(val) => setEditBranch({ ...editBranch, regionId: val })}
                 >
-                  {regions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regions.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Station Manager Name</label>
+                <label className="block text-slate-700 font-normal mb-1">Station Manager Name (Optional)</label>
                 <input
                   type="text"
-                  required
                   value={editBranch.headName || ''}
                   onChange={(e) => setEditBranch({ ...editBranch, headName: e.target.value })}
-                  placeholder="Manager Full Name"
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  placeholder="Manager Name (Optional)"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-normal text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Station Manager Email</label>
+                <label className="block text-slate-700 font-normal mb-1">Station Manager Email (Optional)</label>
                 <input
                   type="email"
-                  required
                   value={editBranch.headEmail || ''}
                   onChange={(e) => setEditBranch({ ...editBranch, headEmail: e.target.value })}
-                  placeholder="manager@pvc.local"
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  placeholder="manager@company.com (Optional)"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-normal text-xs"
                 />
               </div>
 
@@ -585,13 +648,13 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                 <button
                   type="button"
                   onClick={() => setShowBranchModal(false)}
-                  className="px-4 py-2 font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  className="px-4 py-2 text-xs font-normal rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  className="px-5 py-2 text-xs font-normal rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
                 >
                   Save Station
                 </button>
@@ -603,10 +666,10 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
 
       {/* Edit User Modal */}
       {showUserModal && editUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs font-sans">
           <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-base text-slate-900">
+              <h3 className="font-normal text-base text-slate-900">
                 {editUser.id ? 'Edit User Account' : 'Add User Account'}
               </h3>
               <button onClick={() => setShowUserModal(false)} className="text-slate-400 hover:text-slate-600">
@@ -616,31 +679,31 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
 
             <form onSubmit={handleSaveUser} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Full Name</label>
+                <label className="block text-slate-700 font-normal mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={editUser.name || ''}
                   onChange={(e) => setEditUser({ ...editUser, name: e.target.value })}
                   placeholder="Full Name"
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-normal"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Email</label>
+                <label className="block text-slate-700 font-normal mb-1">Email</label>
                 <input
                   type="email"
                   required
                   value={editUser.email || ''}
                   onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
-                  placeholder="user@pvc.local"
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  placeholder="user@company.com"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-normal"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">
+                <label className="block text-slate-700 font-normal mb-1">
                   Password {editUser.id && '(Leave blank to keep existing)'}
                 </label>
                 <input
@@ -649,33 +712,37 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                   value={editUser.password || ''}
                   onChange={(e) => setEditUser({ ...editUser, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-normal"
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Role</label>
-                <select
+              <div className="space-y-1">
+                <label className="block text-slate-700 font-normal">Role</label>
+                <Select
                   value={editUser.role || 'STATION_MANAGER'}
-                  onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium"
+                  onValueChange={(val) => setEditUser({ ...editUser, role: val })}
                 >
-                  <option value="STATION_MANAGER">Station Manager</option>
-                  <option value="HR_ADMIN">HR Admin</option>
-                </select>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STATION_MANAGER">Station Manager</SelectItem>
+                    <SelectItem value="HR_ADMIN">HR Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowUserModal(false)}
-                  className="px-4 py-2 font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  className="px-4 py-2 font-normal text-xs rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                  className="px-5 py-2 font-normal text-xs rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
                 >
                   Save Account
                 </button>

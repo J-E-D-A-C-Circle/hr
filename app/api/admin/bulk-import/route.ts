@@ -64,10 +64,10 @@ export async function POST(request: Request) {
         create: { name: regionName, code: regionCode },
       });
 
-      // Upsert branch
+      // Upsert branch by name
       const branch = await prisma.branch.upsert({
-        where: { code: branchCode },
-        update: { name: branchName, regionId: region.id, headName, headEmail },
+        where: { name: branchName },
+        update: { code: branchCode, regionId: region.id, headName, headEmail },
         create: {
           code: branchCode,
           name: branchName,

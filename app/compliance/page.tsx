@@ -13,8 +13,17 @@ import {
   PieChart,
   RefreshCw,
   Search,
+  Archive,
 } from 'lucide-react';
 import Papa from 'papaparse';
+import AuditZipExportModal from '@/components/AuditZipExportModal';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 interface Branch {
   id: string;
@@ -40,6 +49,7 @@ export default function CompliancePage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showZipModal, setShowZipModal] = useState(false);
 
   const [regionFilter, setRegionFilter] = useState('ALL');
   const [yearFilter, setYearFilter] = useState(2026);
@@ -83,7 +93,7 @@ export default function CompliancePage() {
     }
   };
 
-  const filteredBranches = branches.filter((b) => {
+  const filteredBranches = branches.filter((b: Branch) => {
     if (regionFilter !== 'ALL' && b.region.id !== regionFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -97,11 +107,11 @@ export default function CompliancePage() {
   let totalPending = 0;
   let totalOverdue = 0;
 
-  filteredBranches.forEach((b) => {
+  filteredBranches.forEach((b: Branch) => {
     months.forEach((m) => {
       if (m <= currentMonth) {
         totalRequiredCells++;
-        const sub = b.submissions.find((s) => s.month === m && s.year === yearFilter);
+        const sub = b.submissions.find((s: any) => s.month === m && s.year === yearFilter);
         if (sub?.status === 'APPROVED') totalApproved++;
         else if (sub?.status === 'PENDING') totalPending++;
         else totalOverdue++;
@@ -114,9 +124,9 @@ export default function CompliancePage() {
   const exportCSV = () => {
     const csvRows: any[] = [];
 
-    filteredBranches.forEach((b) => {
+    filteredBranches.forEach((b: Branch) => {
       months.forEach((m) => {
-        const sub = b.submissions.find((s) => s.month === m && s.year === yearFilter);
+        const sub = b.submissions.find((s: any) => s.month === m && s.year === yearFilter);
         let cellStatus = 'Not Yet Due';
         if (sub?.status === 'APPROVED') cellStatus = 'Approved';
         else if (sub?.status === 'PENDING') cellStatus = 'Pending Review';
@@ -148,37 +158,48 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 font-sans">
+      {/* Zip Export Modal */}
+      <AuditZipExportModal isOpen={showZipModal} onClose={() => setShowZipModal(false)} />
+
       {/* Top Header Card */}
       <div className="rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-6 sm:p-8 border border-emerald-700 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs">
               <LayoutGrid className="h-3.5 w-3.5 text-emerald-300" />
-              Compliance Overview
+              Compliance Table
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">Compliance Matrix Grid</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">Station Compliance Grid</h1>
           <p className="text-xs sm:text-sm text-emerald-100/90 font-normal max-w-2xl mt-1">
-            Real-time compliance status tracking across 50+ station branches for {yearFilter}.
+            Check monthly submission progress across all stations for {yearFilter}.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowZipModal(true)}
+            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+          >
+            <Archive className="h-4 w-4 text-emerald-200" />
+            <span>Download Zip Files for Audit</span>
+          </button>
+
           <button
             onClick={loadData}
-            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
+            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
           >
             <RefreshCw className="h-4 w-4 text-emerald-300" />
-            <span>Refresh Grid</span>
+            <span>Refresh Table</span>
           </button>
 
           <button
             onClick={exportCSV}
-            className="px-5 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
           >
             <Download className="h-4 w-4 text-white" />
-            <span>Export Report (CSV)</span>
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
@@ -189,52 +210,52 @@ export default function CompliancePage() {
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-500 to-emerald-500" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">Overall Rate</span>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Overall Rate</span>
             <div className="h-9 w-9 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold border border-teal-200">
               <PieChart className="h-5 w-5" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{complianceRate}%</div>
-          <p className="text-[11px] font-bold text-slate-500 mt-1">Approved against YTD required</p>
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2">{complianceRate}%</div>
+          <p className="text-[11px] text-slate-500 mt-1">Approved forms out of total due</p>
         </div>
 
         {/* Total Approved */}
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-500" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">Approved Scans</span>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Approved Forms</span>
             <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold border border-emerald-200">
               <CheckCircle2 className="h-5 w-5" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{totalApproved}</div>
-          <p className="text-[11px] font-bold text-emerald-700 mt-1">Validated & Archived</p>
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2">{totalApproved}</div>
+          <p className="text-[11px] text-emerald-700 mt-1">Checked and approved</p>
         </div>
 
         {/* Pending Review */}
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-amber-500" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">Pending Review</span>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Pending Review</span>
             <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold border border-amber-200">
               <Clock className="h-5 w-5" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{totalPending}</div>
-          <p className="text-[11px] font-bold text-amber-700 mt-1">In HR Approval Queue</p>
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2">{totalPending}</div>
+          <p className="text-[11px] text-amber-700 mt-1">Waiting for review</p>
         </div>
 
         {/* Overdue / Missing */}
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-rose-500" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">Overdue / Missing</span>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Overdue / Missing</span>
             <div className="h-9 w-9 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold border border-rose-200">
               <XCircle className="h-5 w-5" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{totalOverdue}</div>
-          <p className="text-[11px] font-bold text-rose-700 mt-1">Requires Station Action</p>
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2">{totalOverdue}</div>
+          <p className="text-[11px] text-rose-700 mt-1">Needs station submission</p>
         </div>
       </div>
 
@@ -242,45 +263,47 @@ export default function CompliancePage() {
       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4 flex-1">
           {/* Search Input */}
-          <div className="relative flex-1 min-w-[220px]">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search station name or branch code..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-600 focus:outline-none transition shadow-2xs"
+              placeholder="Search station name or code..."
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-normal text-slate-900 placeholder-slate-400 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
             />
           </div>
 
           {/* Region Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-700 font-black uppercase tracking-wider">Region:</span>
-            <select
-              value={regionFilter}
-              onChange={(e) => setRegionFilter(e.target.value)}
-              className="py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:outline-none transition shadow-2xs"
-            >
-              <option value="ALL">All Regions</option>
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-1 min-w-[140px]">
+            <label className="block text-[11px] text-slate-500 font-normal">Region</label>
+            <Select value={regionFilter} onValueChange={setRegionFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Region" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Regions</SelectItem>
+                {regions.map((r: Region) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Year Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-700 font-black uppercase tracking-wider">Year:</span>
-            <select
-              value={yearFilter}
-              onChange={(e) => setYearFilter(parseInt(e.target.value))}
-              className="py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:outline-none transition shadow-2xs"
-            >
-              <option value={2026}>2026</option>
-              <option value={2025}>2025</option>
-            </select>
+          <div className="space-y-1 min-w-[110px]">
+            <label className="block text-[11px] text-slate-500 font-normal">Year</label>
+            <Select value={yearFilter.toString()} onValueChange={(val) => setYearFilter(parseInt(val))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2026">2026</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -342,7 +365,7 @@ export default function CompliancePage() {
                   </td>
                 </tr>
               ) : (
-                filteredBranches.map((b) => (
+                filteredBranches.map((b: Branch) => (
                   <tr key={b.id} className="hover:bg-slate-50 transition">
                     {/* Station Info (Sticky Left) */}
                     <td className="p-3.5 sticky left-0 bg-white border-r border-slate-200 z-10 font-medium">
@@ -357,7 +380,7 @@ export default function CompliancePage() {
 
                     {/* Months 1-12 Status Cells */}
                     {months.map((m) => {
-                      const sub = b.submissions.find((s) => s.month === m && s.year === yearFilter);
+                      const sub = b.submissions.find((s: any) => s.month === m && s.year === yearFilter);
 
                       let bgClass = 'bg-slate-100 text-slate-400';
                       let statusText = '—';

@@ -26,6 +26,14 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+
 interface Branch {
   id: string;
   name: string;
@@ -66,8 +74,11 @@ export default function PublicValidationFormPage() {
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [staffType, setStaffType] = useState<'PERMANENT' | 'CONTRACT' | 'BOTH'>('PERMANENT');
   const [employeeCount, setEmployeeCount] = useState<string>('');
   const [payrollAmount, setPayrollAmount] = useState<string>('');
+  const [permanentAmount, setPermanentAmount] = useState<string>('');
+  const [contractAmount, setContractAmount] = useState<string>('');
   const [signerName, setSignerName] = useState<string>('');
   const [attested, setAttested] = useState<boolean>(false);
   const [note, setNote] = useState<string>('');
@@ -235,21 +246,36 @@ export default function PublicValidationFormPage() {
     return new File([pdfBlob], compiledFileName, { type: 'application/pdf' });
   };
 
+  // Calculate Total Payroll Amount
+  const getEffectivePayrollAmount = () => {
+    if (staffType === 'PERMANENT') return permanentAmount || payrollAmount;
+    if (staffType === 'CONTRACT') return contractAmount || payrollAmount;
+    const p = parseFloat(permanentAmount || '0') || 0;
+    const c = parseFloat(contractAmount || '0') || 0;
+    return (p + c).toString();
+  };
+
   // Perform Form Submission
   const processSubmission = async (fileToUpload: File) => {
     setSubmitting(true);
     setSubmitError(null);
+
+    const totalPayroll = getEffectivePayrollAmount();
 
     try {
       const formData = new FormData();
       formData.append('branchId', selectedBranchId);
       formData.append('month', month.toString());
       formData.append('year', year.toString());
+      formData.append('staffType', staffType);
       formData.append('file', fileToUpload);
 
       const formPayload = {
         employeeCount,
-        payrollAmount,
+        payrollAmount: totalPayroll,
+        permanentAmount,
+        contractAmount,
+        staffType,
         signerName,
         uploadMode,
         contextNote: note,
@@ -285,8 +311,10 @@ export default function PublicValidationFormPage() {
       return;
     }
 
-    if (!employeeCount || !payrollAmount || !signerName) {
-      setSubmitError('Please fill out all required declaration form fields.');
+    const totalPayroll = getEffectivePayrollAmount();
+
+    if (!employeeCount || !totalPayroll || parseFloat(totalPayroll) <= 0 || !signerName) {
+      setSubmitError('Please fill out all required form fields with valid numbers.');
       return;
     }
 
@@ -450,61 +478,67 @@ export default function PublicValidationFormPage() {
         <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <h2 className="text-sm font-normal text-slate-900 uppercase tracking-wider">
-              1. Station Branch & Period Selection
+              1. Choose Station & Month
             </h2>
             <span className="text-xs text-slate-400">Step 1 of 3</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Station Branch Selection */}
-            <div>
-              <label className="block text-xs font-normal text-slate-700 mb-1.5">Select Station Branch *</label>
-              <select
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-slate-700">Select Station *</label>
+              <Select
                 value={selectedBranchId}
-                onChange={(e) => {
-                  setSelectedBranchId(e.target.value);
-                  setHistoryBranchId(e.target.value);
+                onValueChange={(val) => {
+                  setSelectedBranchId(val);
+                  setHistoryBranchId(val);
                 }}
-                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-3 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition cursor-pointer"
               >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select station branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}{b.code ? ` (${b.code})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Target Period */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-normal text-slate-700 mb-1.5">Target Month</label>
-                <select
-                  value={month}
-                  onChange={(e) => setMonth(parseInt(e.target.value))}
-                  className="w-full rounded-xl bg-slate-50 border border-slate-300 p-3 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition cursor-pointer"
-                >
-                  {[
-                    'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'
-                  ].map((m, idx) => (
-                    <option key={idx + 1} value={idx + 1}>
-                      {m} ({idx + 1})
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-normal text-slate-700">Month</label>
+                <Select value={month.toString()} onValueChange={(val) => setMonth(parseInt(val))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      'January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'
+                    ].map((m, idx) => (
+                      <SelectItem key={idx + 1} value={(idx + 1).toString()}>
+                        {m} ({idx + 1})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div>
-                <label className="block text-xs font-normal text-slate-700 mb-1.5">Target Year</label>
-                <select
-                  value={year}
-                  onChange={(e) => setYear(parseInt(e.target.value))}
-                  className="w-full rounded-xl bg-slate-50 border border-slate-300 p-3 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition cursor-pointer"
-                >
-                  <option value={2026}>2026</option>
-                  <option value={2025}>2025</option>
-                </select>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-normal text-slate-700">Year</label>
+                <Select value={year.toString()} onValueChange={(val) => setYear(parseInt(val))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2026">2026</SelectItem>
+                    <SelectItem value="2025">2025</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -514,15 +548,32 @@ export default function PublicValidationFormPage() {
         <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <h2 className="text-sm font-normal text-slate-900 uppercase tracking-wider">
-              2. Payroll Declaration Details
+              2. Payroll & Staff Information
             </h2>
             <span className="text-xs text-slate-400">Step 2 of 3</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Staff Category Select Dropdown */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-slate-700">
+                Staff Type *
+              </label>
+              <Select value={staffType} onValueChange={(val: any) => setStaffType(val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select staff type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PERMANENT">Permanent Staff</SelectItem>
+                  <SelectItem value="CONTRACT">Contract Staff</SelectItem>
+                  <SelectItem value="BOTH">Both Permanent & Contract Staff</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <label className="block text-xs font-normal text-slate-700 mb-1.5">
-                Total Employees Covered *
+                Number of Workers Covered *
               </label>
               <input
                 type="number"
@@ -531,10 +582,13 @@ export default function PublicValidationFormPage() {
                 placeholder="e.g. 45"
                 value={employeeCount}
                 onChange={(e) => setEmployeeCount(e.target.value)}
-                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-3 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
+                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
               />
             </div>
+          </div>
 
+          {/* Payroll Amount Fields based on Staff Type */}
+          {staffType === 'PERMANENT' && (
             <div>
               <label className="block text-xs font-normal text-slate-700 mb-1.5">
                 Total Monthly Payroll Amount (GH₵) *
@@ -545,30 +599,97 @@ export default function PublicValidationFormPage() {
                 step="0.01"
                 min="0"
                 placeholder="e.g. 125400.00"
-                value={payrollAmount}
-                onChange={(e) => setPayrollAmount(e.target.value)}
-                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-3 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
+                value={permanentAmount || payrollAmount}
+                onChange={(e) => {
+                  setPermanentAmount(e.target.value);
+                  setPayrollAmount(e.target.value);
+                }}
+                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
               />
             </div>
-          </div>
+          )}
+
+          {staffType === 'CONTRACT' && (
+            <div>
+              <label className="block text-xs font-normal text-slate-700 mb-1.5">
+                Contract Staff Monthly Payroll Amount (GH₵) *
+              </label>
+              <input
+                type="number"
+                required
+                step="0.01"
+                min="0"
+                placeholder="e.g. 45000.00"
+                value={contractAmount || payrollAmount}
+                onChange={(e) => {
+                  setContractAmount(e.target.value);
+                  setPayrollAmount(e.target.value);
+                }}
+                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
+              />
+            </div>
+          )}
+
+          {staffType === 'BOTH' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-normal text-slate-700 mb-1.5">
+                    Permanent Staff Payroll (GH₵) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 100000.00"
+                    value={permanentAmount}
+                    onChange={(e) => setPermanentAmount(e.target.value)}
+                    className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-normal text-slate-700 mb-1.5">
+                    Contract Staff Payroll (GH₵) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 25400.00"
+                    value={contractAmount}
+                    onChange={(e) => setContractAmount(e.target.value)}
+                    className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
+                  />
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex justify-between items-center">
+                <span>Total Combined Payroll:</span>
+                <span className="font-bold">
+                  GH₵ {((parseFloat(permanentAmount || '0') || 0) + (parseFloat(contractAmount || '0') || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-normal text-slate-700 mb-1.5">
-              Authorized Station Manager Name *
+              Station Manager Name *
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. John Doe (Station Head)"
+              placeholder="e.g. John Doe"
               value={signerName}
               onChange={(e) => setSignerName(e.target.value)}
-              className="w-full rounded-xl bg-slate-50 border border-slate-300 p-3 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
+              className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
             />
           </div>
 
           <div>
             <label className="block text-xs font-normal text-slate-700 mb-1.5">
-              Optional Context Notes / Resubmission Comments
+              Additional Notes (Optional)
             </label>
             <textarea
               rows={2}
@@ -830,51 +951,54 @@ export default function PublicValidationFormPage() {
 
             {/* Filter Bar */}
             <div className="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div>
-                <label className="block text-slate-500 font-normal mb-1">Station Branch:</label>
-                <select
-                  value={historyBranchId}
-                  onChange={(e) => setHistoryBranchId(e.target.value)}
-                  className="w-full rounded-xl bg-white border border-slate-300 p-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
-                >
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.code})
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-1">
+                <label className="block text-slate-500 font-normal">Station:</label>
+                <Select value={historyBranchId} onValueChange={setHistoryBranchId}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select station" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div>
-                <label className="block text-slate-500 font-normal mb-1">Target Year:</label>
-                <select
-                  value={historyYear}
-                  onChange={(e) => setHistoryYear(e.target.value)}
-                  className="w-full rounded-xl bg-white border border-slate-300 p-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
-                >
-                  <option value="ALL">All Years</option>
-                  <option value="2026">2026</option>
-                  <option value="2025">2025</option>
-                </select>
+              <div className="space-y-1">
+                <label className="block text-slate-500 font-normal">Year:</label>
+                <Select value={historyYear} onValueChange={setHistoryYear}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Years</SelectItem>
+                    <SelectItem value="2026">2026</SelectItem>
+                    <SelectItem value="2025">2025</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div>
-                <label className="block text-slate-500 font-normal mb-1">Target Month:</label>
-                <select
-                  value={historyMonth}
-                  onChange={(e) => setHistoryMonth(e.target.value)}
-                  className="w-full rounded-xl bg-white border border-slate-300 p-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
-                >
-                  <option value="ALL">All Months</option>
-                  {[
-                    'Jan (1)', 'Feb (2)', 'Mar (3)', 'Apr (4)', 'May (5)', 'Jun (6)',
-                    'Jul (7)', 'Aug (8)', 'Sep (9)', 'Oct (10)', 'Nov (11)', 'Dec (12)'
-                  ].map((m, idx) => (
-                    <option key={idx + 1} value={(idx + 1).toString()}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-1">
+                <label className="block text-slate-500 font-normal">Month:</label>
+                <Select value={historyMonth} onValueChange={setHistoryMonth}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Months</SelectItem>
+                    {[
+                      'Jan (1)', 'Feb (2)', 'Mar (3)', 'Apr (4)', 'May (5)', 'Jun (6)',
+                      'Jul (7)', 'Aug (8)', 'Sep (9)', 'Oct (10)', 'Nov (11)', 'Dec (12)'
+                    ].map((m, idx) => (
+                      <SelectItem key={idx + 1} value={(idx + 1).toString()}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

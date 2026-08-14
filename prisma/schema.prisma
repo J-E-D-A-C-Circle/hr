@@ -21,11 +21,11 @@ model Region {
 model Branch {
   id        String   @id @default(uuid())
   name      String   @unique
-  code      String   @unique
+  code      String?
   regionId  String
   region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
-  headName  String
-  headEmail String
+  headName  String?
+  headEmail String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -83,6 +83,7 @@ model Submission {
   priorSubmissions Submission[] @relation("Resubmissions")
   ocrPassed        Boolean   @default(true)
   ocrText          String?
+  staffType        String    @default("PERMANENT") // PERMANENT | CONTRACT | BOTH
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,6 +91,7 @@ model Submission {
   @@index([branchId, year, month])
   @@index([status])
   @@index([year, month])
+  @@index([staffType])
 }
 
 model AuditLog {

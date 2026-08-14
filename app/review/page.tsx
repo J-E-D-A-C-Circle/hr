@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Archive,
   ClipboardCheck,
   Search,
   CheckCircle2,
@@ -17,12 +18,21 @@ import {
   Calendar,
   Filter,
 } from 'lucide-react';
+import AuditZipExportModal from '@/components/AuditZipExportModal';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 interface Submission {
   id: string;
   month: number;
   year: number;
   status: string;
+  staffType?: string;
   fileName: string;
   fileSize: number;
   note?: string;
@@ -49,10 +59,14 @@ export default function ReviewPage() {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('PENDING');
+  const [staffTypeFilter, setStaffTypeFilter] = useState('ALL');
   const [regionFilter, setRegionFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [monthFilter, setMonthFilter] = useState('8');
   const [yearFilter, setYearFilter] = useState('2026');
+
+  // Zip Archive Modal
+  const [showZipModal, setShowZipModal] = useState(false);
 
   // Selected Submission for Split View
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
@@ -74,13 +88,14 @@ export default function ReviewPage() {
           loadRegions();
         }
       });
-  }, [statusFilter, regionFilter, monthFilter, yearFilter]);
+  }, [statusFilter, staffTypeFilter, regionFilter, monthFilter, yearFilter]);
 
   const loadSubmissions = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
+      if (staffTypeFilter !== 'ALL') params.append('staffType', staffTypeFilter);
       if (regionFilter !== 'ALL') params.append('regionId', regionFilter);
       if (monthFilter !== 'ALL') params.append('month', monthFilter);
       if (yearFilter !== 'ALL') params.append('year', yearFilter);
@@ -114,7 +129,7 @@ export default function ReviewPage() {
   const handleReviewAction = async (action: 'APPROVE' | 'REJECT') => {
     if (!selectedSub) return;
     if (action === 'REJECT' && !reviewNotes.trim()) {
-      setActionError('Rejection comment is mandatory to guide the station manager on resubmission.');
+      setActionError('Please enter a note explaining why this document needs correction.');
       setRejecting(true);
       return;
     }
@@ -149,34 +164,47 @@ export default function ReviewPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {/* Zip Archive Modal */}
+      <AuditZipExportModal isOpen={showZipModal} onClose={() => setShowZipModal(false)} />
+
       {/* Top Header Card */}
       <div className="rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-6 sm:p-8 border border-emerald-700 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs">
               <ClipboardCheck className="h-3.5 w-3.5 text-emerald-300" />
-              HR Admin Review Desk
+              HR Review Desk
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">Admin Review Queue</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">Review Queue</h1>
           <p className="text-xs sm:text-sm text-emerald-100/90 font-normal max-w-2xl mt-1">
-            Review and approve scanned monthly payroll validations submitted across 50+ station branches.
+            Check and approve payroll validation forms submitted by station managers.
           </p>
         </div>
 
-        <button
-          onClick={loadSubmissions}
-          className="self-start md:self-auto px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
-        >
-          <RefreshCw className="h-4 w-4 text-emerald-300" />
-          <span>Refresh Queue</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowZipModal(true)}
+            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 transition flex items-center gap-2 shadow-md cursor-pointer"
+          >
+            <Archive className="h-4 w-4 text-emerald-200" />
+            <span>Download Zip Files for Audit</span>
+          </button>
+
+          <button
+            onClick={loadSubmissions}
+            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
+          >
+            <RefreshCw className="h-4 w-4 text-emerald-300" />
+            <span>Refresh Queue</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar with Shadcn UI Select Components */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-4">
         {/* Search */}
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
           <input
             type="text"
@@ -184,57 +212,76 @@ export default function ReviewPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && loadSubmissions()}
             placeholder="Search station name or code..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-600 focus:outline-none transition shadow-2xs"
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-normal text-slate-900 placeholder-slate-400 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
           />
         </div>
 
+        {/* Staff Type Segregation Filter */}
+        <div className="space-y-1 min-w-[150px]">
+          <label className="block text-[11px] font-normal text-slate-500">Staff Category</label>
+          <Select value={staffTypeFilter} onValueChange={setStaffTypeFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Staff type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Staff</SelectItem>
+              <SelectItem value="PERMANENT">Permanent Staff</SelectItem>
+              <SelectItem value="CONTRACT">Contract Staff</SelectItem>
+              <SelectItem value="BOTH">Both Permanent & Contract</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Status Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-700 font-black uppercase tracking-wider">Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:outline-none transition shadow-2xs"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="PENDING">Pending Review</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Needs Resubmission</option>
-          </select>
+        <div className="space-y-1 min-w-[140px]">
+          <label className="block text-[11px] font-normal text-slate-500">Status</label>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="PENDING">Pending Review</SelectItem>
+              <SelectItem value="APPROVED">Approved</SelectItem>
+              <SelectItem value="REJECTED">Needs Resubmission</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Region Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-700 font-black uppercase tracking-wider">Region:</span>
-          <select
-            value={regionFilter}
-            onChange={(e) => setRegionFilter(e.target.value)}
-            className="py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:outline-none transition shadow-2xs"
-          >
-            <option value="ALL">All Regions</option>
-            {regions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-1 min-w-[130px]">
+          <label className="block text-[11px] font-normal text-slate-500">Region</label>
+          <Select value={regionFilter} onValueChange={setRegionFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Region" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Regions</SelectItem>
+              {regions.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Month Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-700 font-black uppercase tracking-wider">Month:</span>
-          <select
-            value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-            className="py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:outline-none transition shadow-2xs"
-          >
-            <option value="ALL">All Months</option>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
-              <option key={m} value={m}>
-                Month {m}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-1 min-w-[120px]">
+          <label className="block text-[11px] font-normal text-slate-500">Month</label>
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Month" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Months</SelectItem>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                <SelectItem key={m} value={m.toString()}>
+                  Month {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -258,35 +305,60 @@ export default function ReviewPage() {
               <div className="divide-y divide-slate-200 max-h-[680px] overflow-y-auto">
                 {submissions.map((sub) => {
                   const isSelected = selectedSub?.id === sub.id;
+                  let parsedNote: any = {};
+                  try {
+                    if (sub.note && sub.note.startsWith('{')) {
+                      parsedNote = JSON.parse(sub.note);
+                    }
+                  } catch (e) {}
+
+                  const staffCategory = sub.staffType || parsedNote.staffType || 'PERMANENT';
+
                   return (
                     <div
                       key={sub.id}
                       onClick={() => setSelectedSub(sub)}
                       className={`p-4 cursor-pointer transition flex items-center justify-between gap-3 ${
                         isSelected
-                          ? 'bg-indigo-50/90 border-l-4 border-indigo-600 shadow-2xs'
+                          ? 'bg-emerald-50/90 border-l-4 border-emerald-600 shadow-2xs'
                           : 'hover:bg-slate-50'
                       }`}
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-slate-900">{sub.branch.name}</span>
-                          <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-slate-900">{sub.branch.name}</span>
+                          <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                             {sub.branch.code}
                           </span>
+                          {/* Staff Category Badge */}
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-medium rounded-md border ${
+                              staffCategory === 'CONTRACT'
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : staffCategory === 'BOTH'
+                                ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                : 'bg-teal-50 text-teal-800 border-teal-200'
+                            }`}
+                          >
+                            {staffCategory === 'CONTRACT'
+                              ? 'Contract Staff'
+                              : staffCategory === 'BOTH'
+                              ? 'Permanent & Contract'
+                              : 'Permanent Staff'}
+                          </span>
                         </div>
-                        <div className="text-[11px] text-slate-600 font-semibold flex items-center gap-2">
+                        <div className="text-[11px] text-slate-500 font-normal flex items-center gap-2">
                           <span>{sub.branch.region.name}</span>
                           <span>•</span>
                           <span>
-                            {sub.month}/{sub.year}
+                            {sub.month}/{sub.year} Cycle
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
                         <span
-                          className={`px-2.5 py-1 text-[10px] font-black rounded-lg border shadow-2xs ${
+                          className={`px-2.5 py-1 text-[10px] font-normal rounded-lg border ${
                             sub.status === 'APPROVED'
                               ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
                               : sub.status === 'PENDING'
@@ -296,7 +368,7 @@ export default function ReviewPage() {
                         >
                           {sub.status === 'APPROVED' && 'Approved'}
                           {sub.status === 'PENDING' && 'Pending'}
-                          {sub.status === 'REJECTED' && 'Rejected'}
+                          {sub.status === 'REJECTED' && 'Needs Correction'}
                         </span>
                         <ChevronRight className="h-4 w-4 text-slate-400" />
                       </div>
@@ -315,14 +387,14 @@ export default function ReviewPage() {
               {/* Header & Status */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-slate-900">{selectedSub.branch.name}</h2>
-                    <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg font-bold text-slate-900">{selectedSub.branch.name}</h2>
+                    <span className="text-xs font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                       {selectedSub.branch.code}
                     </span>
                   </div>
-                  <p className="text-xs font-semibold text-slate-600 mt-1">
-                    Period: {selectedSub.month}/{selectedSub.year} Validation Scan • Uploaded by {selectedSub.uploadedBy.name}
+                  <p className="text-xs text-slate-500 mt-1 font-normal">
+                    {selectedSub.month}/{selectedSub.year} Cycle • Uploaded by {selectedSub.uploadedBy.name}
                   </p>
                 </div>
 
@@ -330,9 +402,9 @@ export default function ReviewPage() {
                   <a
                     href={`/api/submissions/${selectedSub.id}/file`}
                     download={selectedSub.fileName}
-                    className="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition flex items-center gap-1.5 shadow-2xs"
+                    className="px-3.5 py-2 text-xs font-normal rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition flex items-center gap-1.5"
                   >
-                    <Download className="h-4 w-4 text-teal-400" />
+                    <Download className="h-4 w-4 text-emerald-400" />
                     <span>Download PDF</span>
                   </a>
                 </div>
@@ -347,7 +419,7 @@ export default function ReviewPage() {
                 />
               </div>
 
-              {/* Form Metadata & OCR Pre-check details */}
+              {/* Form Details & Breakdown */}
               {(() => {
                 let parsedForm: any = null;
                 try {
@@ -356,47 +428,65 @@ export default function ReviewPage() {
                   }
                 } catch (e) {}
 
+                const staffCategory = selectedSub.staffType || parsedForm?.staffType || 'PERMANENT';
+
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-normal">
-                    {/* Declaration Details Card */}
+                    {/* Form Information Card */}
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                       <div className="text-slate-500 font-normal uppercase tracking-wider text-[10px] pb-1 border-b border-slate-200">
-                        Station Manager Form Declaration:
+                        Form Information:
                       </div>
                       {parsedForm ? (
                         <div className="space-y-1.5 text-slate-800">
-                          <div><span className="text-slate-500">Covered Employees:</span> <span className="font-normal text-slate-900">{parsedForm.employeeCount || 'N/A'} Staff</span></div>
-                          <div><span className="text-slate-500">Total Payroll Amount:</span> <span className="font-normal text-slate-900">GH₵ {parseFloat(parsedForm.payrollAmount || '0').toLocaleString()}</span></div>
-                          <div><span className="text-slate-500">Authorized Manager Signer:</span> <span className="font-normal text-slate-900">{parsedForm.signerName || 'N/A'}</span></div>
-                          {parsedForm.contextNote && <div><span className="text-slate-500">Manager Note:</span> <span className="italic text-slate-900">{parsedForm.contextNote}</span></div>}
+                          <div>
+                            <span className="text-slate-500">Staff Category:</span>{' '}
+                            <span className="font-semibold text-slate-900">
+                              {staffCategory === 'CONTRACT'
+                                ? 'Contract Staff'
+                                : staffCategory === 'BOTH'
+                                ? 'Both Permanent & Contract'
+                                : 'Permanent Staff'}
+                            </span>
+                          </div>
+                          <div><span className="text-slate-500">Workers Covered:</span> <span className="font-normal text-slate-900">{parsedForm.employeeCount || 'N/A'} Staff</span></div>
+                          {parsedForm.permanentAmount && (
+                            <div><span className="text-slate-500">Permanent Staff Payroll:</span> <span className="font-normal text-slate-900">GH₵ {parseFloat(parsedForm.permanentAmount).toLocaleString()}</span></div>
+                          )}
+                          {parsedForm.contractAmount && (
+                            <div><span className="text-slate-500">Contract Staff Payroll:</span> <span className="font-normal text-slate-900">GH₵ {parseFloat(parsedForm.contractAmount).toLocaleString()}</span></div>
+                          )}
+                          <div><span className="text-slate-500">Total Payroll:</span> <span className="font-bold text-emerald-900">GH₵ {parseFloat(parsedForm.payrollAmount || '0').toLocaleString()}</span></div>
+                          <div><span className="text-slate-500">Station Manager:</span> <span className="font-normal text-slate-900">{parsedForm.signerName || 'N/A'}</span></div>
+                          {parsedForm.contextNote && <div><span className="text-slate-500">Notes:</span> <span className="italic text-slate-900">{parsedForm.contextNote}</span></div>}
                         </div>
                       ) : (
                         <div className="text-slate-900 italic">
-                          {selectedSub.note || 'No additional note provided.'}
+                          {selectedSub.note || 'No notes provided.'}
                         </div>
                       )}
                     </div>
 
-                    {/* OCR Check Card */}
+                    {/* Document Check Card */}
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                       <div className="text-slate-500 font-normal uppercase tracking-wider text-[10px] pb-1 border-b border-slate-200">
-                        Automated Inspection & OCR:
+                        Document Check:
                       </div>
                       <div className="space-y-2 pt-0.5">
                         <div className="flex items-center gap-2">
                           {selectedSub.ocrPassed ? (
                             <span className="text-emerald-800 font-normal flex items-center gap-1.5">
-                              <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Passed automated scan check
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Readable PDF scan
                             </span>
                           ) : (
                             <span className="text-amber-800 font-normal flex items-center gap-1.5">
-                              <AlertCircle className="h-4 w-4 text-amber-600" /> Low text density warning
+                              <AlertCircle className="h-4 w-4 text-amber-600" /> Photo scan with low text
                             </span>
                           )}
                         </div>
                         {parsedForm?.uploadMode && (
                           <div className="text-slate-600 text-xs">
-                            Upload Mode: <span className="text-slate-900 font-normal">{parsedForm.uploadMode === 'IMAGES' ? 'Compiled from Multi-Image Photos' : 'Direct PDF Upload'}</span>
+                            Document Type: <span className="text-slate-900 font-normal">{parsedForm.uploadMode === 'IMAGES' ? 'Photos merged into PDF' : 'PDF Document'}</span>
                           </div>
                         )}
                       </div>

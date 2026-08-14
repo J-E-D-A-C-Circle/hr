@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : undefined;
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const status = searchParams.get('status') || undefined;
+    const staffType = searchParams.get('staffType') || undefined;
     const regionId = searchParams.get('regionId') || undefined;
     const branchId = searchParams.get('branchId') || undefined;
     const query = searchParams.get('q') || undefined;
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
     if (month) where.month = month;
     if (year) where.year = year;
     if (status && status !== 'ALL') where.status = status;
+    if (staffType && staffType !== 'ALL') where.staffType = staffType;
     if (effectiveBranchId) where.branchId = effectiveBranchId;
     if (regionId && regionId !== 'ALL') {
       where.branch = { regionId };
@@ -154,14 +156,19 @@ export async function POST(request: Request) {
     }
 
     const timestamp = Date.now();
-    const safeBranchCode = branch.code.replace(/[^a-zA-Z0-9-]/g, '_');
+    const safeBranchCode = (branch.code || branch.name).replace(/[^a-zA-Z0-9-]/g, '_');
     const fileName = `payroll_${safeBranchCode}_${year}_${String(month).padStart(2, '0')}_${timestamp}.pdf`;
     const fullFilePath = path.join(uploadDir, fileName);
     const relativeFilePath = `uploads/${fileName}`;
 
-    fs.writeFileSync(fullFilePath, fileBuffer);
-
     const isResubmission = !!priorSubmission;
+    let staffType = (formData.get('staffType') as string) || 'PERMANENT';
+    try {
+      if (note && note.startsWith('{')) {
+        const parsedNote = JSON.parse(note);
+        if (parsedNote.staffType) staffType = parsedNote.staffType;
+      }
+    } catch (e) {}
 
     const newSubmission = await prisma.submission.create({
       data: {
@@ -178,6 +185,7 @@ export async function POST(request: Request) {
         resubmissionOfId: priorSubmission?.id || null,
         ocrPassed: ocrResult.passed,
         ocrText: ocrResult.text.slice(0, 1000),
+        staffType,
       },
       include: {
         branch: true,

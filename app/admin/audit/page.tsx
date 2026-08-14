@@ -16,7 +16,16 @@ import {
   Database,
   Terminal,
   RefreshCw,
+  Archive,
 } from 'lucide-react';
+import AuditZipExportModal from '@/components/AuditZipExportModal';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 interface AuditLog {
   id: string;
@@ -38,6 +47,7 @@ export default function AuditPage() {
 
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showZipModal, setShowZipModal] = useState(false);
 
   const [actionFilter, setActionFilter] = useState('ALL');
   const [targetTypeFilter, setTargetTypeFilter] = useState('ALL');
@@ -96,29 +106,42 @@ export default function AuditPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 font-sans">
+      {/* Zip Export Modal */}
+      <AuditZipExportModal isOpen={showZipModal} onClose={() => setShowZipModal(false)} />
+
       {/* Header */}
       <div className="rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-6 sm:p-8 border border-emerald-700 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs">
               <ShieldAlert className="h-3.5 w-3.5 text-emerald-300" />
-              Security & Operations Audit
+              Activity Log
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">System Audit Log</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">Audit Trail Log</h1>
           <p className="text-xs sm:text-sm text-emerald-100/90 font-normal max-w-2xl mt-1">
-            Immutable chronological record of every submission, approval, rejection, login, and automated reminder notice.
+            Complete history of form uploads, approvals, rejections, and user logins.
           </p>
         </div>
 
-        <button
-          onClick={loadAuditLogs}
-          className="self-start md:self-auto px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
-        >
-          <RefreshCw className="h-4 w-4 text-emerald-300" />
-          <span>Refresh Audit Trail</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowZipModal(true)}
+            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+          >
+            <Archive className="h-4 w-4 text-emerald-200" />
+            <span>Download Zip Files for Audit</span>
+          </button>
+
+          <button
+            onClick={loadAuditLogs}
+            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
+          >
+            <RefreshCw className="h-4 w-4 text-emerald-300" />
+            <span>Refresh Audit Log</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -130,43 +153,45 @@ export default function AuditPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && loadAuditLogs()}
-            placeholder="Search actor, action, or metadata..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-600 focus:outline-none"
+            placeholder="Search user, action, or station..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-normal text-slate-900 placeholder-slate-400 focus:bg-white focus:border-emerald-600 focus:outline-none"
           />
         </div>
 
         {/* Action Filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-slate-500 font-semibold">Action:</span>
-          <select
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-            className="py-2 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:bg-white focus:border-indigo-600 focus:outline-none"
-          >
-            <option value="ALL">All Actions</option>
-            <option value="UPLOAD">Upload</option>
-            <option value="APPROVE">Approve</option>
-            <option value="REJECT">Reject</option>
-            <option value="REMINDER_SENT">Reminder Sent</option>
-            <option value="LOGIN">Login</option>
-            <option value="BULK_IMPORT">Bulk Import</option>
-          </select>
+        <div className="space-y-1 min-w-[140px]">
+          <label className="block text-[11px] text-slate-500 font-normal">Action</label>
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Action" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Actions</SelectItem>
+              <SelectItem value="UPLOAD">Form Upload</SelectItem>
+              <SelectItem value="APPROVE">Approved</SelectItem>
+              <SelectItem value="REJECT">Needs Correction</SelectItem>
+              <SelectItem value="REMINDER_SENT">Reminder Sent</SelectItem>
+              <SelectItem value="LOGIN">User Login</SelectItem>
+              <SelectItem value="BULK_IMPORT">Bulk Import</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Target Type Filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-slate-500 font-semibold">Target Type:</span>
-          <select
-            value={targetTypeFilter}
-            onChange={(e) => setTargetTypeFilter(e.target.value)}
-            className="py-2 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:bg-white focus:border-indigo-600 focus:outline-none"
-          >
-            <option value="ALL">All Targets</option>
-            <option value="SUBMISSION">Submission</option>
-            <option value="BRANCH">Branch</option>
-            <option value="USER">User</option>
-            <option value="SYSTEM">System</option>
-          </select>
+        <div className="space-y-1 min-w-[140px]">
+          <label className="block text-[11px] text-slate-500 font-normal">Target Type</label>
+          <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Target" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Targets</SelectItem>
+              <SelectItem value="SUBMISSION">Form Submissions</SelectItem>
+              <SelectItem value="BRANCH">Stations</SelectItem>
+              <SelectItem value="USER">User Accounts</SelectItem>
+              <SelectItem value="SYSTEM">System Process</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

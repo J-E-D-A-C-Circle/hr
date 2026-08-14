@@ -12,7 +12,6 @@ import {
   Building2,
   ShieldAlert,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 
 interface HeaderProps {

@@ -244,8 +244,8 @@ async function main() {
     const regId = regions[st.regionCode];
 
     const branch = await prisma.branch.upsert({
-      where: { code: st.code },
-      update: { name: st.name, regionId: regId, headName: st.headName, headEmail: st.headEmail },
+      where: { name: st.name },
+      update: { code: st.code, regionId: regId, headName: st.headName, headEmail: st.headEmail },
       create: {
         code: st.code,
         name: st.name,

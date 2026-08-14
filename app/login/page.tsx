@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileCheck2, Lock, Mail, ArrowRight, ShieldCheck, UserCheck, Building, Shield, Sparkles } from 'lucide-react';
+import { FileCheck2, Lock, Mail, ArrowRight, ShieldCheck, UserCheck, Building, Shield } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -84,12 +84,8 @@ export default function LoginPage() {
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 shadow-xl shadow-emerald-600/30 text-white ring-8 ring-emerald-50">
             <FileCheck2 className="h-8 w-8 text-white" />
           </div>
-          <div className="flex items-center justify-center gap-2">
+          <div>
             <h1 className="text-3xl font-bold tracking-normal text-slate-900 font-sans">PVC Portal</h1>
-            <span className="rounded-lg bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200 flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-emerald-600" />
-              AI Edition
-            </span>
           </div>
           <p className="text-sm font-normal text-slate-600 max-w-xs mx-auto">
             Payroll Validation Collection portal for station managers & HR compliance team.
