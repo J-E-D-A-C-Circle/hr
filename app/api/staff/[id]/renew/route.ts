@@ -43,7 +43,13 @@ export async function POST(
       newStartDate = new Date(body.custom_start_date);
     }
 
-    const newEndDate = calculateEndDate(newStartDate);
+    let newEndDate = calculateEndDate(newStartDate);
+    if (body.custom_end_date) {
+      const parsedCustomEnd = new Date(body.custom_end_date);
+      if (!isNaN(parsedCustomEnd.getTime())) {
+        newEndDate = parsedCustomEnd;
+      }
+    }
     const nextRenewalNumber = currentContract.renewal_number + 1;
 
     // Use transaction to set old contract is_current = false and create new contract

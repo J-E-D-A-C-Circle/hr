@@ -123,7 +123,13 @@ export async function POST(request: NextRequest) {
     }
 
     const startDateObj = parseFlexibleDate(start_date) || new Date();
-    const endDateObj = calculateEndDate(startDateObj);
+    let endDateObj = calculateEndDate(startDateObj);
+    if (body.end_date) {
+      const parsedEnd = parseFlexibleDate(body.end_date);
+      if (parsedEnd && !isNaN(parsedEnd.getTime())) {
+        endDateObj = parsedEnd;
+      }
+    }
 
     // Create staff + initial contract
     const newStaff = await prisma.staff.create({

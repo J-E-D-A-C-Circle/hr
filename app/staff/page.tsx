@@ -52,7 +52,7 @@ export default function StaffListPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"name" | "endDate" | "days">("days");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Modal states
   const [renewTarget, setRenewTarget] = useState<any | null>(null);
@@ -202,11 +202,13 @@ export default function StaffListPage() {
           valA = a.full_name || "";
           valB = b.full_name || "";
         } else if (sortBy === "endDate") {
-          valA = a.currentContract?.end_date ? new Date(a.currentContract.end_date).getTime() : 0;
-          valB = b.currentContract?.end_date ? new Date(b.currentContract.end_date).getTime() : 0;
+          const fallback = sortOrder === "desc" ? 0 : 9999999999999;
+          valA = a.currentContract?.end_date ? new Date(a.currentContract.end_date).getTime() : fallback;
+          valB = b.currentContract?.end_date ? new Date(b.currentContract.end_date).getTime() : fallback;
         } else if (sortBy === "days") {
-          valA = a.daysRemaining !== null ? a.daysRemaining : 9999;
-          valB = b.daysRemaining !== null ? b.daysRemaining : 9999;
+          const fallback = sortOrder === "desc" ? -9999 : 9999;
+          valA = a.daysRemaining !== null && a.daysRemaining !== undefined ? a.daysRemaining : fallback;
+          valB = b.daysRemaining !== null && b.daysRemaining !== undefined ? b.daysRemaining : fallback;
         }
 
         if (valA < valB) return sortOrder === "asc" ? -1 : 1;
@@ -276,7 +278,7 @@ export default function StaffListPage() {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
       setSortBy(field);
-      setSortOrder("asc");
+      setSortOrder(field === "name" ? "asc" : "desc");
     }
   };
 
@@ -395,7 +397,9 @@ export default function StaffListPage() {
                 onClick={() => toggleSort("days")}
                 className={`flex-1 px-3 py-2 text-xs font-semibold rounded-xl border transition flex items-center justify-center gap-1.5 ${
                   sortBy === "days"
-                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-300"
+                    ? sortOrder === "desc"
+                      ? "bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-300"
+                      : "bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-950/60 dark:border-rose-800 dark:text-rose-300"
                     : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
@@ -633,8 +637,17 @@ export default function StaffListPage() {
                             {/* Validate Button (Tick Icon) */}
                             <button
                               onClick={() => setValidateTarget(staff)}
-                              title="Click to Validate Staff for Monthly Payment"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                              disabled={status === "Expired" || status === "Terminated"}
+                              title={
+                                status === "Expired" || status === "Terminated"
+                                  ? `Validation Disabled (${status} Staff)`
+                                  : "Click to Validate Staff for Monthly Payment"
+                              }
+                              className={`p-1.5 rounded-lg transition ${
+                                status === "Expired" || status === "Terminated"
+                                  ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40"
+                                  : "text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
                             >
                               <CheckCircle2 className="h-4 w-4" />
                             </button>

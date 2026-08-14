@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { CheckCircle2, X, Calendar, Building, DollarSign, UserCheck, ShieldAlert, AlertCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ValidateStaffModalProps {
   isOpen: boolean;
@@ -95,6 +96,8 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
     }
   };
 
+  const isExpiredOrTerminated = staff?.computedStatus === "Expired" || staff?.computedStatus === "Terminated";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 relative overflow-hidden flex flex-col">
@@ -157,21 +160,52 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
               <Calendar className="h-3.5 w-3.5 text-indigo-500" />
               <span>Select Payment Validation Month</span>
             </label>
-            <select
+            <Select
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold"
+              onValueChange={(val) => {
+                // Strictly allow ONLY the current month ("August 2026")
+                if (val === currentMonthStr) {
+                  setSelectedMonth(val);
+                }
+              }}
             >
-              {monthOptions.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold shadow-xs focus:ring-2 focus:ring-emerald-500">
+                <SelectValue placeholder="Select Payment Validation Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((m) => {
+                  const isCurrent = m === currentMonthStr;
+                  return (
+                    <SelectItem
+                      key={m}
+                      value={m}
+                      disabled={!isCurrent}
+                      className={
+                        !isCurrent
+                          ? "opacity-30 blur-[0.8px] pointer-events-none select-none cursor-not-allowed bg-slate-100/60 dark:bg-slate-800/60 text-slate-400 line-through"
+                          : "font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40"
+                      }
+                    >
+                      {m} {!isCurrent ? "🔒 (Past Month - Locked)" : "✓ (Current Active Month)"}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status Indicator Banner */}
-          {isValidated ? (
+          {isExpiredOrTerminated ? (
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 space-y-1">
+              <div className="flex items-center gap-2 font-bold text-xs">
+                <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                <span>Validation Disabled ({staff.computedStatus} Staff)</span>
+              </div>
+              <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed">
+                This employee's contract status is <strong>"{staff.computedStatus}"</strong>. Payment validation is strictly available for <strong>Active</strong> and <strong>Expiring Soon</strong> staff members only. Please renew contract first to enable validation.
+              </p>
+            </div>
+          ) : isValidated ? (
             <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 space-y-1">
               <div className="flex items-center gap-2 font-bold text-xs">
                 <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -205,8 +239,8 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
 
           <button
             onClick={handleToggleValidation}
-            disabled={loading}
-            className={`px-5 py-2 rounded-xl font-bold text-xs text-white shadow-md transition flex items-center gap-2 disabled:opacity-50 ${
+            disabled={loading || isExpiredOrTerminated}
+            className={`px-5 py-2 rounded-xl font-bold text-xs text-white shadow-md transition flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
               isValidated
                 ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
                 : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
@@ -216,6 +250,8 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
             <span>
               {loading
                 ? "Processing..."
+                : isExpiredOrTerminated
+                ? "Validation Disabled (Expired)"
                 : isValidated
                 ? "Remove Validation"
                 : `Validate & Submit (${selectedMonth})`}

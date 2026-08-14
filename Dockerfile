@@ -27,5 +27,5 @@ EXPOSE 3002
 ENV PORT=3002
 ENV NODE_ENV=production
 
-# Wait for MySQL database container, sync schema, seed database, and start standalone server
-CMD ["sh", "-c", "until nc -z tempstaff-db 3306 || nc -z db 3306; do echo 'Waiting for TempStaff MySQL database...'; sleep 2; done; npx prisma db push && node scripts/import_real_data.js && node .next/standalone/server.js"]
+# Wait for MySQL database container, sync schema, seed database, map bank details, and start standalone server
+CMD ["sh", "-c", "until nc -z tempstaff-db 3306 || nc -z db 3306; do echo 'Waiting for TempStaff MySQL database...'; sleep 2; done; npx prisma db push && node scripts/import_real_data.js && node scripts/update_bank_accounts.js && node .next/standalone/server.js"]

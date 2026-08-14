@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import SidebarLayout from "@/components/SidebarLayout";
 import {
   ShieldCheck,
@@ -12,6 +12,10 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import {
   Select,
@@ -27,6 +31,21 @@ export default function AuditLogsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
+
+  // Pagination State (25 items per page)
+  const PAGE_SIZE = 25;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [actionFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+
+  const paginatedLogs = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return logs.slice(start, start + PAGE_SIZE);
+  }, [logs, currentPage]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -133,7 +152,7 @@ export default function AuditLogsPage() {
                     </td>
                   </tr>
                 ) : (
-                  logs.map((log) => (
+                  paginatedLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="p-3.5 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                         <div className="flex items-center gap-1.5">
@@ -185,6 +204,59 @@ export default function AuditLogsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* 25-Item Pagination Footer Bar */}
+          {logs.length > 0 && (
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-slate-50/50 dark:bg-slate-950/40">
+              <div className="text-slate-500 dark:text-slate-400 font-medium">
+                Showing <strong>{Math.min((currentPage - 1) * PAGE_SIZE + 1, logs.length)}</strong> to{" "}
+                <strong>{Math.min(currentPage * PAGE_SIZE, logs.length)}</strong> of{" "}
+                <strong>{logs.length}</strong> system audit events
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                  title="First Page"
+                  className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </button>
+
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  title="Previous Page"
+                  className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                <span className="px-3 py-1 font-bold text-slate-800 dark:text-slate-200">
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  title="Next Page"
+                  className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                  title="Last Page"
+                  className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </SidebarLayout>

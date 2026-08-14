@@ -21,7 +21,7 @@ interface RenewModalProps {
 
 export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewModalProps) {
   const [startDate, setStartDate] = useState<string>("");
-  const [computedEndDate, setComputedEndDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +32,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
 
       const oldEndObj = new Date(staff.currentContract.end_date);
       const newEndObj = calculateEndDate(oldEndObj);
-      setComputedEndDate(formatDateReadable(newEndObj));
+      setEndDate(formatDateToISO(newEndObj));
     }
   }, [staff]);
 
@@ -42,7 +42,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
       const d = new Date(val);
       if (!isNaN(d.getTime())) {
         const newEndObj = calculateEndDate(d);
-        setComputedEndDate(formatDateReadable(newEndObj));
+        setEndDate(formatDateToISO(newEndObj));
       }
     }
   };
@@ -62,6 +62,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           custom_start_date: startDate,
+          custom_end_date: endDate,
         }),
       });
 
@@ -98,7 +99,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
               Renew Temporary Contract
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Contract Period Extension (+6 Months Rolling)
+              Contract Period Extension (Editable End Date)
             </p>
           </div>
         </div>
@@ -136,7 +137,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
                   type="date"
                   value={startDate}
                   onChange={(e) => handleStartDateChange(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
                 <Calendar className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
@@ -144,11 +145,16 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Calculated End Date (+6 Mo)
+                New End Date (Editable)
               </label>
-              <div className="px-3 py-2 text-xs font-semibold rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5 h-[38px]">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>{computedEndDate || "Calculating..."}</span>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+                <Calendar className="h-4 w-4 text-emerald-500 absolute left-3 top-2.5" />
               </div>
             </div>
           </div>

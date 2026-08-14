@@ -34,9 +34,9 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
     bank_account: "",
     salary: "",
     start_date: formatDateToISO(new Date()),
+    end_date: formatDateToISO(calculateEndDate(new Date())),
   });
 
-  const [computedEndDate, setComputedEndDate] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [duplicateCodeError, setDuplicateCodeError] = useState<string | null>(null);
@@ -59,6 +59,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         bank_account: "",
         salary: "",
         start_date: formatDateToISO(new Date()),
+        end_date: formatDateToISO(calculateEndDate(new Date())),
       });
       setError(null);
       setDuplicateCodeError(null);
@@ -70,7 +71,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
       const startObj = new Date(formData.start_date);
       if (!isNaN(startObj.getTime())) {
         const endObj = calculateEndDate(startObj);
-        setComputedEndDate(formatDateReadable(endObj));
+        setFormData((prev) => ({ ...prev, end_date: formatDateToISO(endObj) }));
       }
     }
   }, [formData.start_date]);
@@ -125,6 +126,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         bank_account: "",
         salary: "",
         start_date: formatDateToISO(new Date()),
+        end_date: formatDateToISO(calculateEndDate(new Date())),
       });
 
       if (onSuccess) {
@@ -182,7 +184,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
           <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              <span>1. Rolling Contract Window (Dec 31 Year-End Cap)</span>
+              <span>1. Contract Window (Auto 6-Month Calculation - Editable)</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -202,12 +204,15 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Calculated End Date (Dec 31 Cap)
+                  Contract End Date (Editable)
                 </label>
-                <div className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-2 h-[38px]">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                  <span>{computedEndDate || "Select start date..."}</span>
-                </div>
+                <input
+                  type="date"
+                  name="end_date"
+                  value={formData.end_date || ""}
+                  onChange={handleChange}
+                  className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold"
+                />
               </div>
             </div>
           </div>

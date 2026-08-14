@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   CreditCard,
   Eye,
+  Search,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -31,6 +32,7 @@ export default function ExportPage() {
   const [department, setDepartment] = useState("");
   const [exportType, setExportType] = useState("payroll");
   const [validationMonth, setValidationMonth] = useState("August 2026");
+  const [search, setSearch] = useState("");
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -40,14 +42,28 @@ export default function ExportPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, department, exportType, validationMonth]);
+  }, [filter, department, exportType, validationMonth, search]);
 
-  const totalPages = Math.max(1, Math.ceil(previewData.length / PAGE_SIZE));
+  const filteredPreviewData = useMemo(() => {
+    if (!search.trim()) return previewData;
+    const q = search.toLowerCase();
+    return previewData.filter((item) => {
+      const matchName = item.full_name?.toLowerCase().includes(q);
+      const matchCode = item.staff_code?.toLowerCase().includes(q);
+      const matchDept = item.department?.toLowerCase().includes(q);
+      const matchRole = item.role?.toLowerCase().includes(q);
+      const matchBank = item.bank_name?.toLowerCase().includes(q) || item.bank_account?.toLowerCase().includes(q);
+      const matchSsnit = item.ssnit_no?.toLowerCase().includes(q);
+      return matchName || matchCode || matchDept || matchRole || matchBank || matchSsnit;
+    });
+  }, [previewData, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPreviewData.length / PAGE_SIZE));
 
   const paginatedExportData = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
-    return previewData.slice(start, start + PAGE_SIZE);
-  }, [previewData, currentPage]);
+    return filteredPreviewData.slice(start, start + PAGE_SIZE);
+  }, [filteredPreviewData, currentPage]);
 
   const fetchPreview = async () => {
     setLoading(true);
@@ -155,10 +171,16 @@ export default function ExportPage() {
                   <SelectValue placeholder="All Validated & Active Staff" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="August 2026">Validated for August 2026 Only</SelectItem>
-                  <SelectItem value="July 2026">Validated for July 2026 Only</SelectItem>
-                  <SelectItem value="June 2026">Validated for June 2026 Only</SelectItem>
-                  <SelectItem value="May 2026">Validated for May 2026 Only</SelectItem>
+                  <SelectItem value="August 2026" className="font-bold text-emerald-600 dark:text-emerald-400">
+                    Validated for August 2026 (Current Month)
+                  </SelectItem>
+                  <SelectItem value="July 2026">Validated for July 2026</SelectItem>
+                  <SelectItem value="June 2026">Validated for June 2026</SelectItem>
+                  <SelectItem value="May 2026">Validated for May 2026</SelectItem>
+                  <SelectItem value="April 2026">Validated for April 2026</SelectItem>
+                  <SelectItem value="March 2026">Validated for March 2026</SelectItem>
+                  <SelectItem value="February 2026">Validated for February 2026</SelectItem>
+                  <SelectItem value="January 2026">Validated for January 2026</SelectItem>
                   <SelectItem value="">All Active / Employed Staff (No Month Filter)</SelectItem>
                 </SelectContent>
               </Select>
@@ -186,23 +208,41 @@ export default function ExportPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Station Filter (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="Leave blank for All Stations"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Search Specific Employee
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search name, staff code, bank account, ssnit..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+                <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Station Filter (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="Leave blank for All Stations"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+              />
+            </div>
           </div>
         </div>
 
         {/* Live Export Preview Table */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-3">
             <div className="flex items-center gap-3">
               <Eye className="h-5 w-5 text-indigo-500" />
               <div>
@@ -210,14 +250,14 @@ export default function ExportPage() {
                   Export Data Live Preview
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {previewData.length} records matching current filter criteria
+                  Showing {filteredPreviewData.length} records matching search & filter criteria
                 </p>
               </div>
             </div>
 
             <button
               onClick={handleDownloadExcel}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm"
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm self-start sm:self-auto"
             >
               Export Now
             </button>

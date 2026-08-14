@@ -76,6 +76,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         ...json.data,
         date_of_birth: json.data.date_of_birth ? formatDateToISO(new Date(json.data.date_of_birth)) : "",
         start_date: currentContract ? formatDateToISO(new Date(currentContract.start_date)) : "",
+        end_date: currentContract ? formatDateToISO(new Date(currentContract.end_date)) : "",
       });
     } catch (err: any) {
       setError(err.message);
@@ -112,6 +113,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
           bank_account: editForm.bank_account,
           salary: editForm.salary,
           start_date: editForm.start_date,
+          end_date: editForm.end_date,
         }),
       });
 
@@ -465,23 +467,44 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
 
-              <div>
-                <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
-                  <Calendar className="h-3 w-3 text-indigo-500" />
-                  <span>Contract Start Date</span>
-                </label>
-                {isEditing ? (
-                  <input
-                    type="date"
-                    value={editForm.start_date || ""}
-                    onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
-                    className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white"
-                  />
-                ) : (
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    {currentContract ? formatDateReadable(currentContract.start_date) : "N/A"}
-                  </span>
-                )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-indigo-500" />
+                    <span>Contract Start Date</span>
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={editForm.start_date || ""}
+                      onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                      className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {currentContract ? formatDateReadable(currentContract.start_date) : "N/A"}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-emerald-500" />
+                    <span>Contract End Date</span>
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={editForm.end_date || ""}
+                      onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
+                      className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {currentContract ? formatDateReadable(currentContract.end_date) : "N/A"}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

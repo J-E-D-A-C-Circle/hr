@@ -56,6 +56,13 @@ export async function GET(request: NextRequest) {
         if (!hasValidation) return false;
       }
 
+      // Standard Full Data Directory Export MUST EXCLUDE EXPIRED & TERMINATED STAFF
+      if (exportType === "standard") {
+        if (item.computedStatus === "Expired" || item.computedStatus === "Terminated") {
+          return false;
+        }
+      }
+
       if (filter === "currently_employed") {
         // Active + Expiring Soon
         return item.computedStatus === "Active" || item.computedStatus === "Expiring Soon";

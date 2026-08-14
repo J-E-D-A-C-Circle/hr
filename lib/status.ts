@@ -1,4 +1,4 @@
-import { addMonths, differenceInCalendarDays, startOfDay } from "date-fns";
+import { addMonths, subDays, differenceInCalendarDays, startOfDay } from "date-fns";
 
 export type ContractStatus = "Active" | "Expiring Soon" | "Expired" | "Terminated" | "No Contract";
 
@@ -15,19 +15,13 @@ export interface RawContract {
 }
 
 /**
- * Calculates contract end date (up to +6 months), capped at Dec 31st of the start year
- * so temporary contracts do not cross into the next calendar year.
+ * Automatically calculates contract end date (+6 months minus 1 day).
+ * E.g., Start Date = 1st April 2026 -> End Date = 30th September 2026
+ * E.g., Start Date = 3rd August 2026 -> End Date = 2nd February 2027
  */
 export function calculateEndDate(startDate: Date | string): Date {
   const start = new Date(startDate);
-  const sixMonthsLater = addMonths(start, 6);
-
-  // If +6 months crosses into the next calendar year, cap at Dec 31 of the current year
-  if (sixMonthsLater.getFullYear() > start.getFullYear()) {
-    return new Date(start.getFullYear(), 11, 31);
-  }
-
-  return sixMonthsLater;
+  return subDays(addMonths(start, 6), 1);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { computeContractStatus } from "@/lib/status";
 
 // GET /api/staff/validate?month=August 2026&staff_id=12
 export async function GET(request: NextRequest) {
@@ -44,6 +45,30 @@ export async function POST(request: NextRequest) {
     }
 
     const staffId = parseInt(String(staff_id), 10);
+
+    const staffRecord = await prisma.staff.findUnique({
+      where: { id: staffId },
+      include: {
+        contracts: { orderBy: { created_at: "desc" } },
+      },
+    });
+
+    if (!staffRecord) {
+      return NextResponse.json({ success: false, error: "Staff record not found." }, { status: 404 });
+    }
+
+    const currentContract = staffRecord.contracts.find((c: any) => c.is_current) || staffRecord.contracts[0] || null;
+    const computedStatus = computeContractStatus(currentContract);
+
+    if (computedStatus === "Expired" || computedStatus === "Terminated") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Cannot validate staff member with status "${computedStatus}". Validation is strictly available for Active and Expiring Soon staff members only.`,
+        },
+        { status: 400 }
+      );
+    }
 
     // Upsert validation
     const validation = await prisma.staffValidation.upsert({

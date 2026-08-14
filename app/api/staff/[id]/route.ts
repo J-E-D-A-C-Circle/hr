@@ -81,6 +81,7 @@ export async function PATCH(
       insurance_provider,
       insurance_policy_no,
       start_date,
+      end_date,
     } = body;
 
     // Check staff_code uniqueness if changed
@@ -100,22 +101,31 @@ export async function PATCH(
     }
 
     // Update current contract start_date & end_date if provided
-    if (start_date) {
-      const startDateObj = parseFlexibleDate(start_date);
-      if (startDateObj && !isNaN(startDateObj.getTime())) {
-        const endDateObj = calculateEndDate(startDateObj);
-        const currentContract = await prisma.contract.findFirst({
-          where: { staff_id: staffId, is_current: true },
-        });
-        if (currentContract) {
-          await prisma.contract.update({
-            where: { id: currentContract.id },
-            data: {
-              start_date: startDateObj,
-              end_date: endDateObj,
-            },
-          });
+    if (start_date || end_date) {
+      const currentContract = await prisma.contract.findFirst({
+        where: { staff_id: staffId, is_current: true },
+      });
+
+      if (currentContract) {
+        const startDateObj = start_date ? parseFlexibleDate(start_date) : currentContract.start_date;
+        let endDateObj = currentContract.end_date;
+
+        if (end_date) {
+          const parsedEnd = parseFlexibleDate(end_date);
+          if (parsedEnd && !isNaN(parsedEnd.getTime())) {
+            endDateObj = parsedEnd;
+          }
+        } else if (start_date && startDateObj) {
+          endDateObj = calculateEndDate(startDateObj);
         }
+
+        await prisma.contract.update({
+          where: { id: currentContract.id },
+          data: {
+            start_date: startDateObj || currentContract.start_date,
+            end_date: endDateObj,
+          },
+        });
       }
     }
 
