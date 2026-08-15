@@ -13,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Check, Upload, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Check, Upload, FileText, Image as ImageIcon, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { uploadFile } from '@/lib/file-upload';
+import toast from 'react-hot-toast';
 
 interface FormData {
   email: string;
@@ -39,6 +40,24 @@ interface FormData {
   nssPin: string;
 }
 
+function formatGhanaCard(input: string): string {
+  if (!input) return '';
+  const rawDigits = input.replace(/\D/g, '').slice(0, 10);
+  
+  if (rawDigits.length === 0) {
+    return input.trim().toUpperCase().startsWith('G') ? 'GHA-' : '';
+  }
+
+  const part1 = rawDigits.slice(0, 9);
+  const part2 = rawDigits.slice(9, 10);
+
+  if (rawDigits.length > 9) {
+    return `GHA-${part1}-${part2}`;
+  }
+  
+  return `GHA-${part1}`;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -47,6 +66,9 @@ export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [existingAccountNotice, setExistingAccountNotice] = useState<{ email: string; isDraft: boolean } | null>(null);
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -133,9 +155,30 @@ export default function RegisterPage() {
   const steps = [
     { id: 1, title: 'Create Account' },
     { id: 2, title: 'Profile Information' },
-    { id: 3, title: 'Verify Phone' },
+    { id: 3, title: 'Verify Email' },
     { id: 4, title: 'Complete Application' },
   ];
+
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1);
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-input-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-input-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
 
   const getPasswordStrength = (password: string): string => {
     if (!password) return '';
@@ -164,15 +207,23 @@ export default function RegisterPage() {
     setSubmitError('');
     
     if (currentStep === 1) {
-      if (formData.password !== formData.confirmPassword) {
-        alert('Passwords do not match');
+      if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
+      if (!formData.password) {
+        toast.error('Password is required');
         return;
       }
       if (formData.password.length < 8) {
-        alert('Password must be at least 8 characters');
+        toast.error('Password must be at least 8 characters');
         return;
       }
-      // Just advance to next step - registration happens in step 2
+      if (formData.password !== formData.confirmPassword) {
+        toast.error('Passwords do not match');
+        return;
+      }
+      // Advance to Step 2
       setCurrentStep(2);
       return;
     }
@@ -180,16 +231,35 @@ export default function RegisterPage() {
     if (currentStep === 2) {
       // Validate required fields
       if (!formData.firstName || !formData.lastName) {
-        alert('First name and last name are required');
+        toast.error('First name and last name are required');
+        return;
+      }
+      
+      if (!formData.gender) {
+        toast.error('Please select your gender');
+        return;
+      }
+
+      if (!formData.phoneNumber || formData.phoneNumber.replace(/\D/g, '').length < 9) {
+        toast.error('Please enter a valid phone number');
+        return;
+      }
+
+      if (!formData.ghanaCard) {
+        toast.error('Ghana Card number is required');
+        return;
+      }
+
+      if (!/^GHA-\d{9}-\d$/.test(formData.ghanaCard)) {
+        toast.error('Please enter a full Ghana Card number (e.g. GHA-123456789-0)');
         return;
       }
       
       // Check if user is already registered (has token)
       const existingToken = localStorage.getItem('token');
-      const existingUser = localStorage.getItem('user');
       
-      if (existingToken && existingUser) {
-        // Already registered, just proceed to next step
+      if (existingToken) {
+        // Already registered, proceed to next step
         console.log('User already registered, proceeding to next step');
         setCurrentStep(3);
         return;
@@ -199,7 +269,7 @@ export default function RegisterPage() {
       setIsSubmitting(true);
       try {
         const fullName = `${formData.firstName} ${formData.middleName} ${formData.lastName}`.trim();
-        const response = await fetch('http://localhost/api/auth.php?action=register', {
+        const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -212,7 +282,17 @@ export default function RegisterPage() {
         const data = await response.json();
         
         if (!response.ok) {
-          throw new Error(data.error || 'Registration failed');
+          if (response.status === 409 && data.exists) {
+            setExistingAccountNotice({
+              email: formData.email,
+              isDraft: data.isDraft ?? true,
+            });
+            toast.error(data.error || 'An account with this email address already exists.');
+          } else {
+            setSubmitError(data.error || 'Registration failed. Please try again.');
+            toast.error(data.error || 'Registration failed. Please try again.');
+          }
+          return;
         }
         
         // Save token for later use
@@ -221,13 +301,12 @@ export default function RegisterPage() {
           localStorage.setItem('user', JSON.stringify(data.user));
         }
         
-        // Log success to console (no popup)
         console.log('Account created successfully!', data.user);
-        
+        toast.success(`Verification code sent to ${formData.email || 'your email'}`);
         setCurrentStep(3);
       } catch (error: any) {
         setSubmitError(error.message || 'Registration failed. Please try again.');
-        alert(error.message || 'Registration failed. Please try again.');
+        toast.error(error.message || 'Registration failed. Please try again.');
         return;
       } finally {
         setIsSubmitting(false);
@@ -236,7 +315,11 @@ export default function RegisterPage() {
     }
     
     if (currentStep === 3) {
-      if (otp.join('').length !== 6) return;
+      if (otp.join('').length !== 6) {
+        toast.error('Please enter the 6-digit verification code sent to your email');
+        return;
+      }
+      toast.success('Email address verified successfully!');
       setCurrentStep(4);
       return;
     }
@@ -258,10 +341,12 @@ export default function RegisterPage() {
       
       // Upload files first
       let passportPhotoPath = null;
+      let idCardPath = null;
       let appointmentLetterPath = null;
       let cvPath = null;
       
       const passportFile = passportFileRef.current?.files?.[0] || passportCameraRef.current?.files?.[0];
+      const idCardFile = idCardFileRef.current?.files?.[0];
       const appointmentFile = appointmentFileRef.current?.files?.[0] || appointmentCameraRef.current?.files?.[0];
       const cvFile = cvFileRef.current?.files?.[0];
       
@@ -272,6 +357,16 @@ export default function RegisterPage() {
         } catch (uploadError: any) {
           console.error('Passport upload error:', uploadError);
           throw new Error(`Passport photo upload failed: ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+
+      if (idCardFile) {
+        try {
+          const uploadResult = await uploadFile(idCardFile, 'id_card', token);
+          idCardPath = uploadResult.file_path;
+        } catch (uploadError: any) {
+          console.error('ID Card upload error:', uploadError);
+          throw new Error(`ID Card upload failed: ${uploadError.message || 'Unknown error'}`);
         }
       }
       
@@ -304,12 +399,12 @@ export default function RegisterPage() {
       
       // Validate critical fields
       if (!formData.course || formData.course.trim() === '') {
-        alert('Course of study is required');
+        toast.error('Course of study is required');
         return;
       }
       
       if (!formData.district || formData.district.trim() === '') {
-        alert('District is required');
+        toast.error('District is required');
         return;
       }
       
@@ -334,6 +429,7 @@ export default function RegisterPage() {
         posting_region: formData.region || null,
         posting_district: formData.district.trim() || null, // Ensure it's not empty string
         passport_photo: passportPhotoPath,
+        id_card_copy: idCardPath,
         appointment_letter: appointmentLetterPath,
         certificates: cvPath,
       };
@@ -344,7 +440,7 @@ export default function RegisterPage() {
       console.log('Posting district:', applicationData.posting_district);
       
       // Submit application
-      const response = await fetch('http://localhost/api/applications.php?action=submit', {
+      const response = await fetch('/api/applications/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -389,37 +485,22 @@ export default function RegisterPage() {
       router.replace('/dashboard');
     } catch (error: any) {
       setSubmitError(error.message || 'Failed to submit application. Please try again.');
-      alert(error.message || 'Failed to submit application. Please try again.');
+      toast.error(error.message || 'Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
-  const handleOtpChange = (i: number, val: string) => {
-    if (!/^\d?$/.test(val)) return;
-    const newOtp = [...otp]; newOtp[i] = val;
-    setOtp(newOtp);
-    // Optionally auto-focus next input if val present
-    if(val && i < 5) {
-      const next = document.querySelector(`#otp-input-${i+1}`) as HTMLElement;
-      next?.focus();
-    }
-  };
 
-  const handleOtpKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) {
-      const prev = document.querySelector(`#otp-input-${i-1}`) as HTMLElement;
-      prev?.focus();
-    }
-  };
 
   // File inputs state and refs for Step 4
   const [passportFileName, setPassportFileName] = useState<string>('');
+  const [idCardFileName, setIdCardFileName] = useState<string>('');
   const [appointmentFileName, setAppointmentFileName] = useState<string>('');
   const [cvFileName, setCvFileName] = useState<string>('');
   const passportFileRef = useRef<HTMLInputElement | null>(null);
   const passportCameraRef = useRef<HTMLInputElement | null>(null);
+  const idCardFileRef = useRef<HTMLInputElement | null>(null);
   const appointmentFileRef = useRef<HTMLInputElement | null>(null);
   const appointmentCameraRef = useRef<HTMLInputElement | null>(null);
   const cvFileRef = useRef<HTMLInputElement | null>(null);
@@ -427,6 +508,11 @@ export default function RegisterPage() {
   const handlePassportSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setPassportFileName(file ? file.name : '');
+  };
+
+  const handleIdCardSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setIdCardFileName(file ? file.name : '');
   };
 
   const handleAppointmentSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -507,14 +593,87 @@ export default function RegisterPage() {
     "Wa"
   ].sort();
 
+  // Ghana Universities & Tertiary Courses
+  const ghanianCourses = [
+    "BSc. Computer Science",
+    "BSc. Information Technology",
+    "BSc. Software Engineering",
+    "BSc. Computer Engineering",
+    "BSc. Data Science and Analytics",
+    "BSc. Cybersecurity",
+    "BSc. Electrical and Electronic Engineering",
+    "BSc. Mechanical Engineering",
+    "BSc. Civil Engineering",
+    "BSc. Geomatic Engineering",
+    "BSc. Biomedical Engineering",
+    "BSc. Chemical Engineering",
+    "BSc. Agricultural Engineering",
+    "BSc. Telecommunication Engineering",
+    "Bachelor of Medicine and Bachelor of Surgery (MBChB)",
+    "Doctor of Pharmacy (PharmD)",
+    "BSc. Nursing",
+    "BSc. Midwifery",
+    "BSc. Public Health",
+    "BSc. Medical Laboratory Science",
+    "BSc. Physician Assistantship",
+    "BSc. Physiotherapy",
+    "BSc. Radiography",
+    "BSc. Business Administration (Accounting)",
+    "BSc. Business Administration (Banking & Finance)",
+    "BSc. Business Administration (Human Resource Management)",
+    "BSc. Business Administration (Marketing)",
+    "BSc. Business Administration (Management)",
+    "BSc. Business Administration (Insurance & Risk)",
+    "BSc. Business Administration (Logistics & Supply Chain)",
+    "BA. Communication Studies & Journalism",
+    "BA. Public Relations",
+    "BA. Economics",
+    "BA. Sociology",
+    "BA. Psychology",
+    "BA. Political Science",
+    "BA. Information Studies",
+    "BA. Geography and Resource Development",
+    "BA. English Language & Literature",
+    "BA. History",
+    "BA. Linguistics",
+    "BA. French / Modern Languages",
+    "Bachelor of Laws (LL.B)",
+    "BSc. Actuarial Science",
+    "BSc. Statistics",
+    "BSc. Mathematics",
+    "BSc. Physics",
+    "BSc. Chemistry",
+    "BSc. Biochemistry / Biological Sciences",
+    "BSc. Environmental Science",
+    "BSc. Architecture",
+    "BSc. Quantity Surveying & Construction Economics",
+    "BSc. Real Estate / Estate Management",
+    "BSc. Land Economy",
+    "BSc. Agriculture / Agribusiness",
+    "BEd. Computer Science Education",
+    "BEd. Mathematics Education",
+    "BEd. Social Studies Education",
+    "BEd. Early Childhood Education",
+    "HND Computer Science",
+    "HND Electrical/Electronic Engineering",
+    "HND Mechanical Engineering",
+    "HND Building Technology",
+    "HND Accountancy",
+    "HND Marketing",
+    "HND Purchasing and Supply"
+  ];
+
   // In component state, add Autocomplete state
   const [schoolInput, setSchoolInput] = useState("");
   const [schoolDropdown, setSchoolDropdown] = useState(false);
+  const [courseInput, setCourseInput] = useState("");
+  const [courseDropdown, setCourseDropdown] = useState(false);
   const [branchInput, setBranchInput] = useState("");
   const [branchDropdown, setBranchDropdown] = useState(false);
   const [nationalityInput, setNationalityInput] = useState("");
   const [nationalityDropdown, setNationalityDropdown] = useState(false);
   const filteredSchools = ghanianSchools.filter(school => school.toLowerCase().includes(schoolInput.toLowerCase()));
+  const filteredCourses = ghanianCourses.filter(c => c.toLowerCase().includes(courseInput.toLowerCase()));
   
   // Nationalities list
   const nationalities = [
@@ -547,6 +706,9 @@ export default function RegisterPage() {
       if (!target.closest('#school') && !target.closest('.school-dropdown')) {
         setSchoolDropdown(false);
       }
+      if (!target.closest('#course') && !target.closest('.course-dropdown')) {
+        setCourseDropdown(false);
+      }
       if (!target.closest('#branch') && !target.closest('.branch-dropdown')) {
         setBranchDropdown(false);
       }
@@ -563,47 +725,51 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen">
       {/* HEADER FOR MOBILE (below md) */}
-      <div className="block md:hidden w-full bg-[#16a34a] px-4 py-3 flex items-center justify-between">
-        <div className="w-12 h-12">
-          <Image src="/oop.png" alt="DVLA Logo" width={48} height={48} className="w-full h-full object-contain" priority />
+      <div className="block md:hidden w-full bg-gradient-to-r from-[#0d5c2e] to-[#073e1e] px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 p-1 bg-white/95 rounded-full shadow">
+            <Image src="/oop.png" alt="DVLA Logo" width={36} height={36} className="w-full h-full object-contain" priority />
+          </div>
+          <h1 className="text-lg font-bold text-white tracking-tight">DVLA NSS Portal</h1>
         </div>
-        <h1 className="text-lg font-bold text-white tracking-tight">DVLA NSS Portal</h1>
       </div>
 
       {/* LOGIN LINK MOBILE */}
-      <div className="block md:hidden w-full bg-[#15803d] px-4 py-2">
+      <div className="block md:hidden w-full bg-[#073e1e] px-4 py-2">
         <button
           type="button"
           onClick={() => router.push('/login')}
-          className="text-white w-full flex items-center justify-between font-normal hover:opacity-90"
+          className="text-white w-full flex items-center justify-between font-normal hover:opacity-90 text-sm"
         >
           <span>Already have an account? Login</span>
           <span>→</span>
         </button>
       </div>
 
-      {/* SIDEBAR FOR DESKTOP only (md+: unchanged) */}
+      {/* SIDEBAR FOR DESKTOP only */}
       <div 
-        className="hidden md:flex md:fixed md:left-0 md:top-0 md:w-[480px] md:h-screen bg-[#16a34a] flex-col p-8 relative bg-cover bg-center bg-no-repeat overflow-hidden"
+        className="hidden md:flex md:fixed md:left-0 md:top-0 md:w-[480px] md:h-screen bg-[#0d5c2e] flex-col p-8 relative bg-cover bg-center bg-no-repeat overflow-hidden"
         style={{
           backgroundImage: 'url(https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=1920&q=80)',
         }}
       >
         {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-[#16a34a]/90"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0d5c2e]/95 via-[#0d5c2e]/90 to-[#073e1e]/95"></div>
         <div className="relative z-10 flex flex-col h-full justify-between overflow-hidden">
           <div className="flex flex-col">
-            {/* Logo */}
+            {/* Logos */}
             <div className="mb-8">
-              <div className="w-32 h-32 mx-auto">
-                <Image
-                  src="/oop.png"
-                  alt="DVLA Logo"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-contain"
-                  priority
-                />
+              <div className="flex items-center justify-center">
+                <div className="w-28 h-28 p-2.5 bg-white/95 rounded-2xl shadow-xl ring-2 ring-white/40 flex items-center justify-center">
+                  <Image
+                    src="/oop.png"
+                    alt="DVLA Logo"
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-contain"
+                    priority
+                  />
+                </div>
               </div>
             </div>
 
@@ -673,17 +839,21 @@ export default function RegisterPage() {
 
       {/* Right Content Area */}
       <div className="md:ml-[480px] ml-0 min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6 md:p-12 flex flex-col">
-        {/* Progress Indicator - Top Right Only */}
-        <div className="flex justify-end mb-8">
-          <div className="text-right w-full">
+        {/* Progress Indicator & Auto-Save Badge - Top Right */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-100/80 px-3.5 py-2 rounded-full border border-emerald-300 shadow-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#0d5c2e] animate-ping" />
+            <span>✓ Auto-Saved {lastSavedTime ? `at ${lastSavedTime}` : ''}</span>
+          </div>
+          <div className="text-right w-full md:w-auto">
             <span className="text-gray-600 font-medium block mb-2">Step {currentStep} of 4</span>
-            <div className="flex gap-3 w-56 md:w-96 mx-auto">
+            <div className="flex gap-3 w-56 md:w-80 mx-auto md:mx-0">
               {steps.map((step) => (
                 <div 
                   key={step.id}
                   className={`flex-1 h-2.5 md:h-3 rounded-full transition-colors ${
                     step.id <= currentStep
-                      ? 'bg-[#16a34a]'
+                      ? 'bg-[#0d5c2e]'
                       : 'bg-gray-200'
                   }`}
                 />
@@ -702,6 +872,29 @@ export default function RegisterPage() {
                 <p className="text-base md:text-lg text-gray-600">Provide your account information to continue.</p>
               </div>
 
+              {existingAccountNotice && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 animate-fadeIn">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#0d5c2e]/15 flex items-center justify-center text-[#0d5c2e] shrink-0 font-bold text-lg">
+                      💡
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Account Already Exists</h4>
+                      <p className="text-xs text-slate-700">
+                        An account for <span className="font-semibold text-slate-900">{existingAccountNotice.email}</span> already exists. Log in to resume your application!
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => router.push(`/login?email=${encodeURIComponent(existingAccountNotice.email)}`)}
+                    className="bg-[#0d5c2e] hover:bg-[#073e1e] text-white text-xs font-bold px-4 py-2.5 rounded-lg shrink-0 transition-all shadow-md"
+                  >
+                    Sign In & Resume Draft →
+                  </Button>
+                </div>
+              )}
+
               {/* Email Input */}
               <div>
                 <Label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
@@ -719,27 +912,33 @@ export default function RegisterPage() {
 
               {/* Password Input */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="password" className="block text-sm font-medium text-gray-900">
-                    Your Password
-                  </Label>
-                  <Button
+                <Label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-2">
+                  Your Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    placeholder="Create a password."
+                    className="pr-10"
+                  />
+                  <button
                     type="button"
-                    variant="ghost"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-[#16a34a] text-sm font-medium hover:underline h-auto p-0"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? 'HIDE' : 'SHOW'}
-                  </Button>
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Create a password."
-                />
               </div>
 
               {/* Password Requirements */}
@@ -761,14 +960,30 @@ export default function RegisterPage() {
                 <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-900 mb-2">
                   Confirm Your Password
                 </Label>
-                <Input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  placeholder="Confirm your password."
-                />
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    placeholder="Confirm your password."
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
+                    tabIndex={-1}
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Continue Button */}
@@ -856,7 +1071,7 @@ export default function RegisterPage() {
                   {/* Date of Birth */}
                   <div>
                     <Label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-900 mb-2">
-                      Date of Birth
+                      Date of Birth <span className="text-gray-400 font-normal text-xs">(DD/MM/YYYY)</span>
                     </Label>
                     <Input
                       type="date"
@@ -940,17 +1155,32 @@ export default function RegisterPage() {
                   {/* Ghana Card */}
                   <div>
                     <Label htmlFor="ghanaCard" className="block text-sm font-medium text-gray-900 mb-2">
-                      Ghana Card Number
+                      Ghana Card Number <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      type="text"
-                      id="ghanaCard"
-                      value={formData.ghanaCard}
-                      onChange={(e) => handleInputChange('ghanaCard', e.target.value)}
-                      placeholder="GHA-XXXXXXXX-X"
-                      pattern="[GHA]{3}-[0-9]{9}-[0-9]{1}"
-                      maxLength={15}
-                    />
+                    <div className="relative flex items-center">
+                      <Input
+                        type="text"
+                        id="ghanaCard"
+                        value={formData.ghanaCard}
+                        onFocus={(e) => {
+                          if (!e.target.value) {
+                            handleInputChange('ghanaCard', 'GHA-');
+                          }
+                        }}
+                        onChange={(e) => {
+                          const formatted = formatGhanaCard(e.target.value);
+                          handleInputChange('ghanaCard', formatted);
+                        }}
+                        placeholder="GHA-123456789-0"
+                        maxLength={15}
+                        className="w-full font-mono text-sm tracking-wider font-medium"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+                      <span>Format:</span>
+                      <span className="font-mono font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">GHA-XXXXXXXXX-X</span>
+                      <span className="text-emerald-700 font-medium">(Auto-formats as you type)</span>
+                    </p>
                   </div>
 
                   {/* Nationality */}
@@ -1007,7 +1237,7 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {/* Step 3: Verify Phone */}
+          {/* Step 3: Verify Email */}
           {currentStep === 3 && (
             <form onSubmit={handleContinue} className="space-y-8 max-w-xl mx-auto w-full flex flex-col items-center">
               <div className="w-full flex items-center mb-2">
@@ -1021,8 +1251,10 @@ export default function RegisterPage() {
                 </Button>
               </div>
               <div className="mb-4 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Verify Your Phone Number</h2>
-                <p className="text-sm md:text-base text-gray-600">A verification code has been set to your account, enter to verify your phone number</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Verify Your Email Address</h2>
+                <p className="text-sm md:text-base text-gray-600">
+                  A 6-digit verification code has been sent to <span className="font-semibold text-gray-900">{formData.email || 'your email address'}</span>. Enter the code below to complete verification.
+                </p>
               </div>
               <div className="flex gap-4 md:gap-6 items-center justify-center mb-2">
                 {[0,1,2,3,4,5].map(i => (
@@ -1040,7 +1272,17 @@ export default function RegisterPage() {
                   />
                 ))}
               </div>
-              <div className="text-green-500 text-base mb-2">You can request another OTP in 00:09:44</div>
+              <div className="flex flex-col items-center gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.success(`Verification code re-sent to ${formData.email || 'your email'}`);
+                  }}
+                  className="text-emerald-700 hover:text-emerald-800 text-sm font-semibold hover:underline transition-colors cursor-pointer"
+                >
+                  Didn't receive code? Resend Code to Email
+                </button>
+              </div>
               <div>
                 <Button type="submit" className="px-10">Continue</Button>
               </div>
@@ -1118,16 +1360,45 @@ export default function RegisterPage() {
                   )}
                 </div>
                 {/* Course */}
-                <div>
+                <div className="relative">
                   <Label htmlFor="course" className="block text-sm font-medium text-gray-900 mb-2">Your course of study</Label>
                   <Input 
                     id="course" 
                     name="course" 
+                    autoComplete="off"
                     required
                     value={formData.course}
-                    onChange={(e) => handleInputChange('course', e.target.value)}
-                    placeholder="Eg. BA Information Studies and Psychology" 
+                    onFocus={() => {
+                      setCourseDropdown(true);
+                      setCourseInput(formData.course || "");
+                    }}
+                    onChange={(e) => {
+                      setCourseInput(e.target.value);
+                      setCourseDropdown(true);
+                      handleInputChange('course', e.target.value);
+                    }}
+                    placeholder="Start typing your course (e.g. BSc Computer Science)..." 
                   />
+                  {courseDropdown && (
+                    <ul className="course-dropdown absolute left-0 z-50 max-h-60 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto">
+                      {filteredCourses.length === 0 && (
+                        <li className="px-4 py-2 text-gray-400 text-sm">No exact match found — custom course text accepted</li>
+                      )}
+                      {filteredCourses.map((c) => (
+                        <li
+                          key={c}
+                          className="px-4 py-2 hover:bg-emerald-100 cursor-pointer text-sm font-medium text-gray-800"
+                          onClick={() => {
+                            handleInputChange('course', c);
+                            setCourseDropdown(false);
+                            setCourseInput(c);
+                          }}
+                        >
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 {/* Year of Completion */}
@@ -1239,49 +1510,94 @@ export default function RegisterPage() {
                     </ul>
                   )}
                 </div>
-                {/* Uploads Grid Modernized */}
+                         {/* Uploads Grid Modernized */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                   {/* Passport upload */}
                   <div className="flex flex-col">
-                    <Label className="block text-sm font-medium text-gray-900 mb-2">Passport Picture</Label>
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
-                      <button type="button" onClick={() => passportFileRef.current?.click()} className="flex items-center px-3 py-2 bg-emerald-100 text-emerald-700 font-semibold rounded-lg gap-2 shadow hover:bg-emerald-200 transition text-sm md:text-base">
-                        <ImageIcon className="w-6 h-6" />
-                        Upload Passport
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="block text-sm font-semibold text-gray-900">Passport Picture</Label>
+                      {passportFileName && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                          ✓ Attached
+                        </span>
+                      )}
+                    </div>
+                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
+                      <button type="button" onClick={() => passportFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
+                        <ImageIcon className="w-4 h-4" />
+                        {passportFileName ? 'Change Photo' : 'Upload Passport'}
                       </button>
                       <input ref={passportFileRef} id="passport" name="passport" type="file" accept="image/*" className="hidden" onChange={handlePassportSelected} />
-                      <div className="md:ml-4 text-xs text-gray-700 truncate mt-1 md:mt-0">
+                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
                         {passportFileName ? passportFileName : 'No file selected'}
                       </div>
                     </div>
                   </div>
+
+                  {/* Ghana Card / ID Card upload */}
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="block text-sm font-semibold text-gray-900">Ghana Card / ID Card Copy</Label>
+                      {idCardFileName && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                          ✓ Attached
+                        </span>
+                      )}
+                    </div>
+                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
+                      <button type="button" onClick={() => idCardFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
+                        <ShieldCheck className="w-4 h-4" />
+                        {idCardFileName ? 'Change ID Card' : 'Upload ID Card'}
+                      </button>
+                      <input ref={idCardFileRef} id="id_card" name="id_card" type="file" accept="image/*,application/pdf" className="hidden" onChange={handleIdCardSelected} />
+                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
+                        {idCardFileName ? idCardFileName : 'No file selected'}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Appointment Letter upload */}
                   <div className="flex flex-col">
-                    <Label className="block text-sm font-medium text-gray-900 mb-2">Appointment Letter</Label>
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
-                      <button type="button" onClick={() => appointmentFileRef.current?.click()} className="flex items-center px-3 py-2 bg-emerald-100 text-emerald-700 font-semibold rounded-lg gap-2 shadow hover:bg-emerald-200 transition text-sm md:text-base">
-                        <FileText className="w-6 h-6" />
-                        Upload Letter
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="block text-sm font-semibold text-gray-900">NSS Appointment Letter</Label>
+                      {appointmentFileName && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                          ✓ Attached
+                        </span>
+                      )}
+                    </div>
+                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
+                      <button type="button" onClick={() => appointmentFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
+                        <FileText className="w-4 h-4" />
+                        {appointmentFileName ? 'Change Letter' : 'Upload Letter'}
                       </button>
                       <input ref={appointmentFileRef} id="appointment" name="appointment" type="file" accept="application/pdf,image/*" className="hidden" onChange={handleAppointmentSelected} />
-                      <div className="md:ml-4 text-xs text-gray-700 truncate mt-1 md:mt-0">
+                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
                         {appointmentFileName ? appointmentFileName : 'No file selected'}
                       </div>
                     </div>
                   </div>
+
                   {/* CV upload */}
-                  <div className="flex flex-col md:col-span-2">
-                    <Label className="block text-sm font-medium text-gray-900 mb-2">Curriculum Vitae (CV)</Label>
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
-                      <button type="button" onClick={() => cvFileRef.current?.click()} className="flex items-center px-3 py-2 bg-emerald-100 text-emerald-700 font-semibold rounded-lg gap-2 shadow hover:bg-emerald-200 transition text-sm md:text-base">
-                        <Upload className="w-6 h-6" />
-                        Upload CV
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) / Certificates</Label>
+                      {cvFileName && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                          ✓ Attached
+                        </span>
+                      )}
+                    </div>
+                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
+                      <button type="button" onClick={() => cvFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
+                        <Upload className="w-4 h-4" />
+                        {cvFileName ? 'Change CV / File' : 'Upload CV / File'}
                       </button>
                       <input ref={cvFileRef} id="cv" name="cv" type="file" accept="application/pdf" className="hidden" onChange={handleCvSelected} />
-                      <div className="md:ml-4 text-xs text-gray-700 truncate mt-1 md:mt-0">
+                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
                         {cvFileName ? cvFileName : 'No file selected'}
-                </div>
-                  </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

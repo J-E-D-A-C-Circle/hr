@@ -19,26 +19,12 @@ export default function LoginPage() {
     password: '',
   });
 
-  // Set active session on login page load
+  // Redirect to dashboard if user is already logged in
   useEffect(() => {
-    // Mark this as an active session if not already set
-    if (!sessionStorage.getItem('active_session')) {
-      sessionStorage.setItem('active_session', 'true');
-    }
-
-    // Clear session when tab is closed
-    const handleBeforeUnload = () => {
-      sessionStorage.removeItem('active_session');
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    // Only redirect if we have an active session AND auth data
-    const hasActiveSession = sessionStorage.getItem('active_session');
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
-    if (hasActiveSession && token && userStr) {
+    if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
         if (user.role === 'admin') {
@@ -50,11 +36,17 @@ export default function LoginPage() {
         // Invalid user data, continue to login
       }
     }
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const emailParam = params.get('email');
+      if (emailParam) {
+        setFormData(prev => ({ ...prev, email: emailParam }));
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,16 +54,13 @@ export default function LoginPage() {
     setError('');
     try {
       const response = await axios.post(
-        `http://localhost/api/auth.php?action=login`,
+        '/api/auth/login',
         formData,
         {
           headers: { 'Content-Type': 'application/json' },
         }
       );
       if (response.data.token) {
-        // Set active session on successful login
-        sessionStorage.setItem('active_session', 'true');
-        
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         if (response.data.user.role === 'admin') {
@@ -81,7 +70,7 @@ export default function LoginPage() {
         }
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'An error occurred');
+      setError(err.response?.data?.error || 'An error occurred during sign in');
     } finally {
       setLoading(false);
     }
@@ -186,7 +175,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#16a34a] transition-colors focus:outline-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
                     tabIndex={-1}
                   >
                     {showPassword ? (

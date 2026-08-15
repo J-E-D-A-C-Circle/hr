@@ -8,45 +8,25 @@ export default function SplashPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if this is a new tab session
-    // If sessionStorage doesn't have 'active_session', this is a new tab
-    // Clear localStorage auth data so user must login again
-    const hasActiveSession = sessionStorage.getItem('active_session');
-    
-    if (!hasActiveSession) {
-      // New tab - clear any existing auth data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Mark this as an active session
-      sessionStorage.setItem('active_session', 'true');
-    }
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
 
-    // Clear session when tab is closed/unloaded
-    const handleBeforeUnload = () => {
-      sessionStorage.removeItem('active_session');
-    };
-
-    // Clear session when page is hidden (tab switch or close)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        // Don't clear immediately, wait for beforeunload
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Show splash for 3 seconds, then redirect to login
     const timer = setTimeout(() => {
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            router.replace('/admin/dashboard');
+          } else {
+            router.replace('/dashboard');
+          }
+          return;
+        } catch (e) {}
+      }
       router.push('/login');
-    }, 3000);
+    }, 2000);
 
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return () => clearTimeout(timer);
   }, [router]);
 
   return (

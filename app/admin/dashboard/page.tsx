@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import axios from 'axios';
-import { LogOut, Home, Users, FileText, X, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Check, X as XIcon, Search, Download, ArrowUpDown, Filter, ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
+import { LogOut, Home, Users, FileText, X, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Check, X as XIcon, Search, Download, ArrowUpDown, Filter, ChevronLeft, ChevronRight, BarChart3, Menu, Printer, PieChart, Building, Briefcase, ShieldCheck, FileSpreadsheet, Layers, Globe, Award } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { formatDate, formatDateTime } from '@/lib/utils';
+import AppointmentLetterModal from '@/components/AppointmentLetterModal';
 
 interface Application {
   id: number;
@@ -65,6 +68,7 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [filter, setFilter] = useState<string>('all');
   const [selectedApplication, setSelectedApplication] = useState<FullApplication | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -83,6 +87,8 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [stationPage, setStationPage] = useState(1);
+  const [departmentPage, setDepartmentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -94,25 +100,10 @@ export default function AdminDashboard() {
     district: '',
   });
 
+  const [isLetterGeneratorOpen, setIsLetterGeneratorOpen] = useState(false);
+  const [letterApplication, setLetterApplication] = useState<any>(null);
+
   useEffect(() => {
-    // Check if we have an active session
-    // If not, this is a new tab - clear auth and redirect to login
-    const hasActiveSession = sessionStorage.getItem('active_session');
-    
-    if (!hasActiveSession) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      router.replace('/login');
-      return;
-    }
-
-    // Clear session when tab is closed
-    const handleBeforeUnload = () => {
-      sessionStorage.removeItem('active_session');
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
@@ -121,18 +112,19 @@ export default function AdminDashboard() {
       return;
     }
 
-    const parsedUser = JSON.parse(userStr);
-    if (parsedUser.role !== 'admin') {
-      router.replace('/dashboard');
-      return;
+    try {
+      const parsedUser = JSON.parse(userStr);
+      if (parsedUser.role !== 'admin') {
+        router.replace('/dashboard');
+        return;
+      }
+      setUser(parsedUser);
+      fetchApplications();
+    } catch (e) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.replace('/login');
     }
-
-    setUser(parsedUser);
-    fetchApplications();
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
   }, [router]);
 
   const [allApplications, setAllApplications] = useState<Application[]>([]);
@@ -141,8 +133,8 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('token');
       const url = status && status !== 'all'
-        ? `http://localhost/api/applications.php?action=all&status=${status}`
-        : 'http://localhost/api/applications.php?action=all';
+        ? `/api/applications/all?status=${status}`
+        : '/api/applications/all';
       
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -243,7 +235,7 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost/api/applications.php?action=view&id=${id}`,
+        `/api/applications/view/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -258,7 +250,7 @@ export default function AdminDashboard() {
       setModalOpen(true);
     } catch (error) {
       console.error('Error fetching application:', error);
-      alert('Failed to load application details');
+      toast.error('Failed to load application details');
     } finally {
       setLoadingApplication(false);
     }
@@ -284,7 +276,7 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost/api/applications.php?action=review',
+        '/api/applications/review',
         {
           application_id: targetApplication.id,
           status: status,
@@ -297,8 +289,13 @@ export default function AdminDashboard() {
         }
       );
       
-      if (!applicationId) {
-        setModalOpen(false);
+      if (selectedApplication && targetApplication.id === selectedApplication.id) {
+        setSelectedApplication(prev => prev ? {
+          ...prev,
+          status: status as any,
+          posting_station: reviewData.posting_station || prev.posting_station,
+          posting_department: reviewData.posting_department || prev.posting_department,
+        } : null);
       }
       
       // Remove from selected if bulk action
@@ -348,7 +345,7 @@ export default function AdminDashboard() {
       const token = localStorage.getItem('token');
       const promises = selectedApplications.map(id => 
         axios.put(
-          'http://localhost/api/applications.php?action=review',
+          '/api/applications/review',
           {
             application_id: id,
             status: status,
@@ -389,7 +386,7 @@ export default function AdminDashboard() {
       'Email': app.email,
       'NSS Number': app.nss_number || 'N/A',
       'Status': app.status,
-      'Submitted': new Date(app.created_at).toLocaleDateString(),
+      'Submitted': formatDate(app.created_at),
     }));
 
     const headers = Object.keys(csvData[0] || {});
@@ -471,6 +468,139 @@ export default function AdminDashboard() {
 
   const stationStats = getStationStats();
 
+  const getDepartmentStats = () => {
+    const deptMap = new Map<string, number>();
+    allApplications.forEach(app => {
+      const dept = (app as any).posting_department || (app as any).department_name || 'Operations';
+      if (dept && dept !== '0' && dept !== 'N/A') {
+        deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
+      }
+    });
+    if (deptMap.size === 0) {
+      deptMap.set('Operations', allApplications.length || 0);
+    }
+    return Array.from(deptMap.entries())
+      .map(([department, count]) => ({ department, count }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  const departmentStats = getDepartmentStats();
+
+  const getGenderStats = () => {
+    let male = 0;
+    let female = 0;
+    let unspecified = 0;
+    allApplications.forEach(app => {
+      const g = ((app as any).gender || '').toLowerCase();
+      if (g === 'male' || g === 'm') male++;
+      else if (g === 'female' || g === 'f') female++;
+      else unspecified++;
+    });
+    return { male, female, unspecified };
+  };
+
+  const genderStats = getGenderStats();
+
+  const getDocumentCompliance = () => {
+    let photoCount = 0;
+    let idCount = 0;
+    let certCount = 0;
+    allApplications.forEach(app => {
+      if ((app as any).passport_photo) photoCount++;
+      if ((app as any).id_card_copy) idCount++;
+      if ((app as any).certificates) certCount++;
+    });
+    const total = allApplications.length || 1;
+    return {
+      photoRate: Math.min(100, (photoCount / total) * 100).toFixed(1),
+      idRate: Math.min(100, (idCount / total) * 100).toFixed(1),
+      certRate: Math.min(100, (certCount / total) * 100).toFixed(1),
+      photoCount,
+      idCount,
+      certCount,
+    };
+  };
+
+  const docCompliance = getDocumentCompliance();
+
+  const handlePrintMasterReport = () => {
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>DVLA NSS Placement Executive Summary Report</title>
+        <style>
+          @media print {
+            @page { margin: 15mm; size: A4 portrait; }
+            body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          }
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #111827; background: #fff; }
+          .header { text-align: center; border-bottom: 3px solid #008053; padding-bottom: 16px; margin-bottom: 24px; }
+          .title { font-size: 24px; font-weight: 900; color: #008053; text-transform: uppercase; letter-spacing: 0.5px; }
+          .subtitle { font-size: 14px; font-weight: 600; color: #374151; margin-top: 4px; }
+          .meta { font-size: 11px; color: #6b7280; margin-top: 8px; font-weight: bold; }
+          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+          .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 16px; background: #f9fafb; text-align: center; }
+          .num { font-size: 26px; font-weight: 900; color: #008053; }
+          .lbl { font-size: 11px; text-transform: uppercase; color: #4b5563; font-weight: 800; margin-top: 4px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+          th, td { border: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; }
+          th { background: #f3f4f6; font-weight: 800; color: #111827; text-transform: uppercase; font-size: 11px; }
+          .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 16px; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Driver and Vehicle Licensing Authority (DVLA)</div>
+          <div class="subtitle">National Service Personnel (NSS) Executive Analytics & Placement Report</div>
+          <div class="meta">Generated: ${today} &bull; Official Management Information Systems Report</div>
+        </div>
+
+        <div class="grid">
+          <div class="card"><div class="num">${statusCounts.all}</div><div class="lbl">Total Registered</div></div>
+          <div class="card"><div class="num" style="color:#d97706">${statusCounts.pending}</div><div class="lbl">Pending Review</div></div>
+          <div class="card"><div class="num" style="color:#16a34a">${statusCounts.approved}</div><div class="lbl">Approved Placements</div></div>
+          <div class="card"><div class="num" style="color:#dc2626">${statusCounts.rejected}</div><div class="lbl">Re-posted / Released</div></div>
+        </div>
+
+        <h3 style="font-size: 15px; font-weight: 800; color: #111827; margin-top: 24px; text-transform: uppercase;">Station Allocation Breakdown</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Posting Station Name</th>
+              <th>Assigned Personnel</th>
+              <th>Percentage Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${stationStats.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding: 20px; color:#6b7280;">No station placements recorded yet</td></tr>' : stationStats.map((s, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td><strong>${s.station}</strong></td>
+                <td><strong>${s.count}</strong></td>
+                <td>${((s.count / (statusCounts.all || 1)) * 100).toFixed(1)}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          Official DVLA NSS Management Report &bull; Executive Directorate
+        </div>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+  };
+
   const userDisplayName = user?.full_name || 'Admin';
 
   if (loading) {
@@ -515,8 +645,55 @@ export default function AdminDashboard() {
       )}
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-[#22c55e] to-[#16a34a] shadow-lg border-b border-white/20">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-[#0d5c2e] to-[#073e1e] shadow-lg border-b border-white/20">
         <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="text-white p-1.5 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-2">
+              <Image 
+                src="/oop.png" 
+                width={32} 
+                height={32} 
+                alt="DVLA Logo" 
+                className="rounded-full bg-white/90 p-0.5 shadow-md ring-1 ring-white/50" 
+              />
+              <div>
+                <h2 className="text-white font-bold text-sm leading-tight">Admin Portal</h2>
+                <p className="text-white/90 text-xs">{userDisplayName.split(' ')[0]}</p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-white bg-red-500/90 hover:bg-red-600 active:bg-red-700 px-3 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md active:scale-95"
+          >
+            <LogOut className="w-4 h-4" /> 
+            <span className="text-xs">Sign Out</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer Overlay Backdrop */}
+      {mobileSidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar Drawer */}
+      <div 
+        className={`md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 bg-gradient-to-b from-[#0d5c2e] to-[#073e1e] text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="pt-6 pb-4 px-6 flex items-center justify-between border-b border-white/15">
           <div className="flex items-center gap-3">
             <Image 
               src="/oop.png" 
@@ -526,33 +703,68 @@ export default function AdminDashboard() {
               className="rounded-full bg-white/90 p-1 shadow-md ring-2 ring-white/50" 
             />
             <div>
-              <h2 className="text-white font-bold text-sm leading-tight">Admin Dashboard</h2>
-              <p className="text-white/90 text-xs mt-0.5">{userDisplayName.split(' ')[0]}</p>
+              <h2 className="text-white font-bold text-sm leading-tight">Admin Portal</h2>
+              <p className="text-white/80 text-xs mt-0.5">{userDisplayName.split(' ')[0]}</p>
             </div>
           </div>
-              <button
-                onClick={handleLogout}
-            className="flex items-center gap-1.5 text-white bg-red-500/90 hover:bg-red-600 active:bg-red-700 px-3 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md active:scale-95"
-              >
-            <LogOut className="w-4 h-4" /> 
-            <span className="text-xs">Sign Out</span>
-              </button>
-            </div>
+          <button 
+            onClick={() => setMobileSidebarOpen(false)} 
+            className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10"
+            aria-label="Close navigation menu"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <nav className="flex-1 flex flex-col gap-2 px-4 py-6">
+          <div
+            onClick={() => { setActiveView('dashboard'); setMobileSidebarOpen(false); }}
+            className={`flex items-center font-medium text-base rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 select-none 
+              ${activeView === 'dashboard'
+                ? 'bg-white/25 text-white shadow-md backdrop-blur-sm' 
+                : 'text-white/95 hover:bg-white/15 hover:text-white'}`}
+          >
+            <span className="mr-3">
+              <Home className="w-5 h-5" />
+            </span>
+            <span>Dashboard</span>
           </div>
+          <div
+            onClick={() => { setActiveView('analytics'); setMobileSidebarOpen(false); }}
+            className={`flex items-center font-medium text-base rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 select-none 
+              ${activeView === 'analytics'
+                ? 'bg-white/25 text-white shadow-md backdrop-blur-sm' 
+                : 'text-white/95 hover:bg-white/15 hover:text-white'}`}
+          >
+            <span className="mr-3">
+              <BarChart3 className="w-5 h-5" />
+            </span>
+            <span>Analytics and Reports</span>
+          </div>
+        </nav>
+        <div className="mt-auto mb-6 px-4 pt-4 border-t border-white/20">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-3 text-white bg-red-500/90 hover:bg-red-600 px-4 py-3 rounded-lg w-full font-semibold transition-all duration-200 shadow-md active:scale-95"
+          >
+            <LogOut className="w-5 h-5" /> 
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
 
       {/* Sidebar */}
-      <div className="hidden md:flex flex-col min-h-screen w-64 bg-gradient-to-b from-[#22c55e] to-[#16a34a] shadow-xl">
-        <div className="pt-8 pb-6 px-7 flex flex-col items-center border-b border-white/20">
-          <div className="relative mb-5">
+      <div className="hidden md:flex flex-col min-h-screen w-64 bg-gradient-to-b from-[#0d5c2e] to-[#073e1e] shadow-xl">
+        <div className="pt-8 pb-6 px-6 flex flex-col items-center border-b border-white/10">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <Image 
               src="/oop.png" 
-              width={64} 
-              height={64} 
+              width={56} 
+              height={56} 
               alt="DVLA Logo" 
-              className="rounded-full bg-white/90 p-2 shadow-lg ring-2 ring-white/50" 
+              className="rounded-full bg-white/90 p-1.5 shadow-lg ring-2 ring-white/40" 
             />
           </div>
-          <h2 className="text-white font-bold text-lg tracking-wide">Admin Portal</h2>
+          <h2 className="text-white font-bold text-lg tracking-wide text-center">Admin Portal</h2>
         </div>
         <nav className="flex-1 flex flex-col gap-2 px-4 py-6">
           <div
@@ -661,125 +873,338 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Analytics and Reports View */}
           {activeView === 'analytics' ? (
             <div className="space-y-6">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-lg p-4 border border-blue-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg">
-                      <Users className="w-5 h-5 text-blue-700" />
-                    </div>
+              {/* Executive Reports Control Bar */}
+              <div className="bg-gradient-to-r from-emerald-950 via-[#0d5c2e] to-emerald-900 text-white rounded-2xl p-6 shadow-xl border border-emerald-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-amber-300 font-extrabold text-xs uppercase tracking-widest mb-1">
+                    <Award className="w-4 h-4" /> Management Information Systems Reports
                   </div>
-                  <div className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Total Applicants</div>
-                  <div className="text-2xl font-extrabold text-blue-900">{statusCounts.all}</div>
+                  <h2 className="text-2xl font-black tracking-tight text-white">NSS National Analytics & Intelligence</h2>
+                  <p className="text-xs text-emerald-200 mt-1">Real-time placement statistics, station allocation metrics, and document compliance reports.</p>
                 </div>
-
-                <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl shadow-lg p-4 border border-amber-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg">
-                      <Clock className="w-5 h-5 text-amber-700" />
-                    </div>
-                  </div>
-                  <div className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-1">Pending</div>
-                  <div className="text-2xl font-extrabold text-amber-900">{statusCounts.pending}</div>
-                </div>
-
-                <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl shadow-lg p-4 border border-emerald-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-emerald-700" />
-                    </div>
-                  </div>
-                  <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">Approved</div>
-                  <div className="text-2xl font-extrabold text-emerald-900">{statusCounts.approved}</div>
-                </div>
-
-                <div className="bg-gradient-to-br from-red-50 to-white rounded-xl shadow-lg p-4 border border-red-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 bg-gradient-to-br from-red-100 to-red-200 rounded-lg">
-                      <XCircle className="w-5 h-5 text-red-700" />
-                    </div>
-                  </div>
-                  <div className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-1">Rejected</div>
-                  <div className="text-2xl font-extrabold text-red-900">{statusCounts.rejected}</div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={handlePrintMasterReport}
+                    className="flex-1 md:flex-none px-4 py-2.5 bg-white text-emerald-950 rounded-xl text-xs font-black hover:bg-emerald-50 transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4 text-emerald-700" />
+                    <span>Print Master Report</span>
+                  </button>
+                  <button
+                    onClick={handleExportCSV}
+                    className="flex-1 md:flex-none px-4 py-2.5 bg-amber-400 text-gray-950 rounded-xl text-xs font-black hover:bg-amber-300 transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Export CSV Dataset</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Station Statistics */}
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <BarChart3 className="w-6 h-6 text-[#16a34a]" />
-                    Applicants by Station
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">Distribution of applicants across various posting stations</p>
-                </div>
-                <div className="p-6">
-                  {stationStats.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 font-medium">No station assignments found</p>
-                      <p className="text-gray-400 text-sm mt-2">Assign applicants to stations to see statistics here</p>
+              {/* KPI Stat Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Total Registered</span>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                      <Users className="w-5 h-5" />
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {stationStats.map((stat, index) => {
-                        const percentage = statusCounts.all > 0 ? (stat.count / statusCounts.all) * 100 : 0;
-                        return (
-                          <div key={stat.station} className="group">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-3 flex-1">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[#16a34a] to-[#15803d] flex items-center justify-center text-white font-bold shadow-sm">
-                                  {index + 1}
+                  </div>
+                  <div className="text-3xl font-black text-gray-900 mt-3">{statusCounts.all}</div>
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Active Candidates in System</span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Approval Rate</span>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                      <CheckCircle className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-black text-emerald-600 mt-3">
+                    {statusCounts.all > 0 ? ((statusCounts.approved / statusCounts.all) * 100).toFixed(1) : '0.0'}%
+                  </div>
+                  <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                    <div
+                      className="bg-emerald-500 h-full rounded-full"
+                      style={{ width: `${statusCounts.all > 0 ? (statusCounts.approved / statusCounts.all) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Document Compliance</span>
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-black text-purple-700 mt-3">{docCompliance.photoRate}%</div>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-purple-600 font-semibold truncate">
+                    <span>{docCompliance.photoCount} of {statusCounts.all} Photos Uploaded</span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Pending Review</span>
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-black text-amber-600 mt-3">{statusCounts.pending}</div>
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-amber-600 font-bold">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Awaiting Administrative Action</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Station Breakdown & Department Matrix */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Station Statistics */}
+                <div className="lg:col-span-7 bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                    <div>
+                      <h3 className="text-base font-black uppercase tracking-wide text-gray-900 flex items-center gap-2">
+                        <Building className="w-5 h-5 text-emerald-600" />
+                        Station Allocation Distribution
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Top stations assigned to NSS personnel</p>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                      {stationStats.length} Active Stations
+                    </span>
+                  </div>
+
+                  {stationStats.length === 0 ? (
+                    <div className="text-center py-10 text-gray-400">
+                      <Building className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                      <p className="text-xs font-semibold">No station placements found yet.</p>
+                    </div>
+                  ) : (() => {
+                    const stationsPerPage = 5;
+                    const totalStationPages = Math.ceil(stationStats.length / stationsPerPage) || 1;
+                    const currentStationPage = Math.min(stationPage, totalStationPages);
+                    const startIndex = (currentStationPage - 1) * stationsPerPage;
+                    const paginatedStations = stationStats.slice(startIndex, startIndex + stationsPerPage);
+
+                    return (
+                      <div className="space-y-4">
+                        <div className="space-y-4">
+                          {paginatedStations.map((stat, idx) => {
+                            const globalRank = startIndex + idx + 1;
+                            const pct = statusCounts.all > 0 ? (stat.count / statusCounts.all) * 100 : 0;
+                            return (
+                              <div key={stat.station} className="space-y-1.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-900 font-black text-[10px] flex items-center justify-center">
+                                      {globalRank}
+                                    </span>
+                                    <span className="font-bold text-gray-800">{stat.station}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-black text-gray-900">{stat.count} candidates</span>
+                                    <span className="font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                                      {pct.toFixed(1)}%
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-gray-900 truncate">{stat.station}</h3>
-                                  <p className="text-sm text-gray-500">{stat.count} applicant{stat.count !== 1 ? 's' : ''}</p>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-2xl font-bold text-[#16a34a]">{stat.count}</div>
-                                  <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-emerald-500 to-emerald-700 h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${pct}%` }}
+                                  ></div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                              <div 
-                                className="bg-gradient-to-r from-[#16a34a] to-[#22c55e] h-full rounded-full transition-all duration-500"
-                                style={{ width: `${percentage}%` }}
-                              ></div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Station Pagination Bar (5 per page) */}
+                        {totalStationPages > 1 && (
+                          <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs">
+                            <span className="text-gray-500 font-semibold">
+                              Showing <strong className="text-gray-900">{startIndex + 1}</strong> to <strong className="text-gray-900">{Math.min(startIndex + stationsPerPage, stationStats.length)}</strong> of <strong className="text-gray-900">{stationStats.length}</strong> Stations
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setStationPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentStationPage === 1}
+                                className="px-2.5 py-1 rounded-lg border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                                <span>Prev</span>
+                              </button>
+                              <span className="font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-lg">
+                                {currentStationPage} / {totalStationPages}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setStationPage(prev => Math.min(prev + 1, totalStationPages))}
+                                disabled={currentStationPage === totalStationPages}
+                                className="px-2.5 py-1 rounded-lg border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <span>Next</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
-                        );
-                      })}
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Department Matrix */}
+                <div className="lg:col-span-5 bg-white rounded-2xl shadow-lg border border-gray-200 p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                      <div>
+                        <h3 className="text-base font-black uppercase tracking-wide text-gray-900 flex items-center gap-2">
+                          <Briefcase className="w-5 h-5 text-blue-600" />
+                          Departmental Placement
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">Personnel distribution by operational department</p>
+                      </div>
+                      <span className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                        {departmentStats.length} Depts
+                      </span>
                     </div>
-                  )}
+
+                    {departmentStats.length === 0 ? (
+                      <div className="text-center py-10 text-gray-400">
+                        <Briefcase className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                        <p className="text-xs font-semibold">No department placements recorded.</p>
+                      </div>
+                    ) : (() => {
+                      const deptsPerPage = 5;
+                      const totalDeptPages = Math.ceil(departmentStats.length / deptsPerPage) || 1;
+                      const currentDeptPage = Math.min(departmentPage, totalDeptPages);
+                      const startIndex = (currentDeptPage - 1) * deptsPerPage;
+                      const paginatedDepts = departmentStats.slice(startIndex, startIndex + deptsPerPage);
+
+                      return (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {paginatedDepts.map((dept) => (
+                              <div key={dept.department} className="p-3.5 rounded-xl bg-gray-50/80 border border-gray-200/80 flex flex-col justify-between">
+                                <span className="text-xs font-bold text-gray-700 truncate">{dept.department}</span>
+                                <div className="flex items-baseline justify-between mt-2">
+                                  <span className="text-xl font-black text-gray-900">{dept.count}</span>
+                                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                    {statusCounts.all > 0 ? ((dept.count / statusCounts.all) * 100).toFixed(0) : 0}%
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Department Pagination Bar (5 per page) */}
+                          {totalDeptPages > 1 && (
+                            <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs mt-auto">
+                              <span className="text-gray-500 font-semibold">
+                                Showing <strong className="text-gray-900">{startIndex + 1}</strong> to <strong className="text-gray-900">{Math.min(startIndex + deptsPerPage, departmentStats.length)}</strong> of <strong className="text-gray-900">{departmentStats.length}</strong> Depts
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setDepartmentPage(prev => Math.max(prev - 1, 1))}
+                                  disabled={currentDeptPage === 1}
+                                  className="px-2.5 py-1 rounded-lg border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <ChevronLeft className="w-3.5 h-3.5" />
+                                  <span>Prev</span>
+                                </button>
+                                <span className="font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-lg">
+                                  {currentDeptPage} / {totalDeptPages}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setDepartmentPage(prev => Math.min(prev + 1, totalDeptPages))}
+                                  disabled={currentDeptPage === totalDeptPages}
+                                  className="px-2.5 py-1 rounded-lg border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <span>Next</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
 
-              {/* Additional Statistics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-amber-600" />
-                    Pending Applications
+              {/* Document Compliance & Demographics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Document Verification Track */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <h3 className="text-base font-black uppercase tracking-wide text-gray-900 mb-4 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-purple-600" />
+                    Document Submission Verification
                   </h3>
-                  <div className="text-4xl font-extrabold text-amber-600 mb-2">{statusCounts.pending}</div>
-                  <p className="text-sm text-gray-500">Applications awaiting review</p>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-gray-700 mb-1">
+                        <span>Passport Photographs</span>
+                        <span className="text-purple-700">{docCompliance.photoCount} ({docCompliance.photoRate}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div className="bg-purple-600 h-full rounded-full" style={{ width: `${docCompliance.photoRate}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-gray-700 mb-1">
+                        <span>Ghana Card / National Identification</span>
+                        <span className="text-blue-700">{docCompliance.idCount} ({docCompliance.idRate}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div className="bg-blue-600 h-full rounded-full" style={{ width: `${docCompliance.idRate}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-gray-700 mb-1">
+                        <span>Certificates & Credentials</span>
+                        <span className="text-emerald-700">{docCompliance.certCount} ({docCompliance.certRate}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${docCompliance.certRate}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                    Approval Rate
+                {/* Pipeline Status Breakdown */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <h3 className="text-base font-black uppercase tracking-wide text-gray-900 mb-4 flex items-center gap-2">
+                    <PieChart className="w-5 h-5 text-amber-600" />
+                    Application Review Pipeline
                   </h3>
-                  <div className="text-4xl font-extrabold text-blue-600 mb-2">
-                    {statusCounts.all > 0 
-                      ? ((statusCounts.approved / statusCounts.all) * 100).toFixed(1)
-                      : '0.0'}%
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                      <div className="text-2xl font-black text-amber-700">{statusCounts.pending}</div>
+                      <div className="text-[10px] font-bold text-amber-800 uppercase mt-1">Pending</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                      <div className="text-2xl font-black text-emerald-700">{statusCounts.approved}</div>
+                      <div className="text-[10px] font-bold text-emerald-800 uppercase mt-1">Approved</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-red-50 border border-red-200">
+                      <div className="text-2xl font-black text-red-700">{statusCounts.rejected}</div>
+                      <div className="text-[10px] font-bold text-red-800 uppercase mt-1">Re-posted</div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500">Percentage of approved applications</p>
                 </div>
               </div>
             </div>
@@ -1046,11 +1471,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap hidden sm:table-cell">
                           <div className="text-xs md:text-sm text-gray-600">
-                            {new Date(application.created_at).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}
+                            {formatDate(application.created_at)}
                           </div>
                         </td>
                         <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap">
@@ -1194,7 +1615,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="bg-white rounded-lg p-3 border border-gray-100">
                           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Date of Birth</span>
-                          <p className="text-gray-900 font-medium">{new Date(selectedApplication.date_of_birth).toLocaleDateString()}</p>
+                          <p className="text-gray-900 font-medium">{formatDate(selectedApplication.date_of_birth)}</p>
                         </div>
                         <div className="bg-white rounded-lg p-3 border border-gray-100">
                           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Gender</span>
@@ -1316,7 +1737,7 @@ export default function AdminDashboard() {
                               <p className="text-xs text-gray-500 truncate">{selectedApplication.passport_photo}</p>
                             </div>
                             <a
-                              href={`http://localhost/api/upload.php?action=serve&path=${encodeURIComponent(selectedApplication.passport_photo)}&token=${localStorage.getItem('token')}`}
+                              href={`/api/upload/serve?path=${encodeURIComponent(selectedApplication.passport_photo)}&token=${localStorage.getItem('token')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap"
@@ -1335,7 +1756,7 @@ export default function AdminDashboard() {
                               <p className="text-xs text-gray-500 truncate">{selectedApplication.id_card_copy}</p>
                             </div>
                             <a
-                              href={`http://localhost/api/upload.php?action=serve&path=${encodeURIComponent(selectedApplication.id_card_copy)}&token=${localStorage.getItem('token')}`}
+                              href={`/api/upload/serve?path=${encodeURIComponent(selectedApplication.id_card_copy)}&token=${localStorage.getItem('token')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap"
@@ -1354,7 +1775,7 @@ export default function AdminDashboard() {
                               <p className="text-xs text-gray-500 truncate">{selectedApplication.appointment_letter}</p>
                             </div>
                             <a
-                              href={`http://localhost/api/upload.php?action=serve&path=${encodeURIComponent(selectedApplication.appointment_letter)}&token=${localStorage.getItem('token')}`}
+                              href={`/api/upload/serve?path=${encodeURIComponent(selectedApplication.appointment_letter)}&token=${localStorage.getItem('token')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap"
@@ -1373,7 +1794,7 @@ export default function AdminDashboard() {
                               <p className="text-xs text-gray-500 truncate">{selectedApplication.certificates}</p>
                             </div>
                             <a
-                              href={`http://localhost/api/upload.php?action=serve&path=${encodeURIComponent(selectedApplication.certificates)}&token=${localStorage.getItem('token')}`}
+                              href={`/api/upload/serve?path=${encodeURIComponent(selectedApplication.certificates)}&token=${localStorage.getItem('token')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-4 py-2 bg-gradient-to-r from-orange-600 to-orange-700 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap"
@@ -1434,20 +1855,43 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                          {selectedApplication.status !== 'rejected' && (
+                            <button
+                              onClick={() => handleReview('approved')}
+                              disabled={reviewing || selectedApplication.status === 'approved'}
+                              className={`flex-1 bg-gradient-to-r from-[#16a34a] to-[#15803d] text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-base font-bold hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+                                selectedApplication.status === 'approved' ? 'opacity-95 bg-emerald-700 cursor-default' : ''
+                              }`}
+                            >
+                              {reviewing ? 'Processing...' : selectedApplication.status === 'approved' ? '✓ Approved' : '✓ Approve'}
+                            </button>
+                          )}
+
                           <button
-                            onClick={() => handleReview('approved')}
-                            disabled={reviewing}
-                            className="flex-1 bg-gradient-to-r from-[#16a34a] to-[#15803d] text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-base font-bold hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            type="button"
+                            onClick={() => {
+                              const appToOpen = selectedApplication;
+                              setSelectedApplication(null);
+                              setLetterApplication(appToOpen);
+                              setIsLetterGeneratorOpen(true);
+                            }}
+                            className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-gray-950 px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-base font-bold hover:shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
                           >
-                            {reviewing ? 'Processing...' : '✓ Approve'}
+                            <FileText className="w-4 h-4" />
+                            <span>Generate Appointment Letter</span>
                           </button>
-                          <button
-                            onClick={() => handleReview('rejected')}
-                            disabled={reviewing}
-                            className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-base font-bold hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                          >
-                            {reviewing ? 'Processing...' : '✗ Reject'}
-                          </button>
+
+                          {selectedApplication.status !== 'approved' && (
+                            <button
+                              onClick={() => handleReview('rejected')}
+                              disabled={reviewing || selectedApplication.status === 'rejected'}
+                              className={`flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-base font-bold hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+                                selectedApplication.status === 'rejected' ? 'opacity-95 bg-red-800 cursor-default' : ''
+                              }`}
+                            >
+                              {reviewing ? 'Processing...' : selectedApplication.status === 'rejected' ? '✗ Rejected' : '✗ Reject'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1457,6 +1901,15 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Appointment Letter Generator Modal */}
+      {letterApplication && (
+        <AppointmentLetterModal
+          isOpen={isLetterGeneratorOpen}
+          onClose={() => setIsLetterGeneratorOpen(false)}
+          application={letterApplication}
+        />
       )}
     </div>
   );

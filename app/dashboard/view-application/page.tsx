@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import { formatDate, formatDateTime } from '@/lib/utils';
 
 interface Application {
   id: number;
@@ -52,7 +53,7 @@ export default function ViewApplicationPage() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost/api/applications.php?action=my-application',
+        '/api/applications/my-application',
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -125,15 +126,26 @@ export default function ViewApplicationPage() {
       <main className="max-w-5xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white rounded-lg shadow p-6 md:p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">My Application Details</h2>
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusBadge(
-                  application.status
-                )}`}
-              >
-                {application.status.replace('_', ' ')}
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">My Application Details</h2>
+                <p className="text-xs text-gray-500 mt-1">Review your submitted details and attached documents.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold capitalize ${getStatusBadge(
+                    application.status
+                  )}`}
+                >
+                  {application.status.replace('_', ' ')}
+                </span>
+                <Link
+                  href="/dashboard/apply"
+                  className="px-4 py-2 bg-[#0d5c2e] text-white text-xs font-bold rounded-lg hover:bg-[#073e1e] transition-colors shadow-sm"
+                >
+                  Upload / Update Documents
+                </Link>
+              </div>
             </div>
 
             {/* Personal Information */}
@@ -152,7 +164,7 @@ export default function ViewApplicationPage() {
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Date of Birth</span>
-                  <p className="text-gray-900">{new Date(application.date_of_birth).toLocaleDateString()}</p>
+                  <p className="text-gray-900">{formatDate(application.date_of_birth)}</p>
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Gender</span>
@@ -233,9 +245,9 @@ export default function ViewApplicationPage() {
                   <div>
                     <span className="text-sm text-gray-500">Service Period</span>
                     <p className="text-gray-900">
-                      {new Date(application.service_period_start).toLocaleDateString()} -{' '}
+                      {formatDate(application.service_period_start)} -{' '}
                       {application.service_period_end
-                        ? new Date(application.service_period_end).toLocaleDateString()
+                        ? formatDate(application.service_period_end)
                         : 'Ongoing'}
                     </p>
                   </div>
@@ -249,12 +261,12 @@ export default function ViewApplicationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <span className="text-sm text-gray-500">Submitted</span>
-                  <p className="text-gray-900">{new Date(application.created_at).toLocaleString()}</p>
+                  <p className="text-gray-900">{formatDateTime(application.created_at)}</p>
                 </div>
                 {application.reviewed_at && (
                   <div>
                     <span className="text-sm text-gray-500">Reviewed At</span>
-                    <p className="text-gray-900">{new Date(application.reviewed_at).toLocaleString()}</p>
+                    <p className="text-gray-900">{formatDateTime(application.reviewed_at)}</p>
                   </div>
                 )}
               </div>

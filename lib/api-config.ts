@@ -1,19 +1,24 @@
 // API Configuration
-// Update this if your PHP API is running on a different URL
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export const API_ENDPOINTS = {
   auth: {
-    register: `${API_BASE_URL}/auth.php?action=register`,
-    login: `${API_BASE_URL}/auth.php?action=login`,
-    me: `${API_BASE_URL}/auth.php?action=me`,
+    register: `${API_BASE_URL}/auth/register`,
+    login: `${API_BASE_URL}/auth/login`,
+    me: `${API_BASE_URL}/auth/me`,
   },
   applications: {
-    submit: `${API_BASE_URL}/applications.php?action=submit`,
-    myApplication: `${API_BASE_URL}/applications.php?action=my-application`,
-    all: `${API_BASE_URL}/applications.php?action=all`,
-    view: (id: string | number) => `${API_BASE_URL}/applications.php?action=view&id=${id}`,
-    review: `${API_BASE_URL}/applications.php?action=review`,
+    submit: `${API_BASE_URL}/applications/submit`,
+    myApplication: `${API_BASE_URL}/applications/my-application`,
+    all: `${API_BASE_URL}/applications/all`,
+    view: (id: string | number) => `${API_BASE_URL}/applications/view/${id}`,
+    review: `${API_BASE_URL}/applications/review`,
+    generatePdf: `${API_BASE_URL}/applications/generate-pdf`,
+  },
+  upload: {
+    upload: `${API_BASE_URL}/upload`,
+    serve: `${API_BASE_URL}/upload/serve`,
   },
 };
+
 

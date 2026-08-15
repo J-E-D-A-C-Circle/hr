@@ -1,31 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* DVLA Brand Colors */
-  --dvla-primary: #0d4f91;
-  --dvla-primary-dark: #0a3d73;
-  --dvla-primary-light: #1565c0;
-  --dvla-secondary: #00695c;
+  --font-public-sans: 'Public Sans', system-ui, sans-serif;
+  /* DVLA Brand Colors - Deep Rich Forest Green */
+  --dvla-primary: #0d5c2e;
+  --dvla-primary-dark: #073e1e;
+  --dvla-primary-light: #147a3e;
+  --dvla-secondary: #004d40;
   --dvla-accent: #f9a825;
-  --dvla-success: #2e7d32;
-  --dvla-danger: #c62828;
-  --dvla-warning: #f57c00;
+  --dvla-success: #15803d;
+  --dvla-danger: #b91c1c;
+  --dvla-warning: #c2410c;
   
   /* Neutral Colors */
-  --background: #f5f7fa;
-  --foreground: #1a1a1a;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card-bg: #ffffff;
-  --border: #e0e0e0;
-  --text-primary: #1a1a1a;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
   
-  /* Shadcn UI Variables */
+  /* UI Variables */
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #16a34a;
+  --popover-foreground: #0f172a;
+  --primary: #0d5c2e;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -35,8 +37,8 @@
   --accent-foreground: #0f172a;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --input: #e2e8f0;
-  --ring: #16a34a;
+  --input: #cbd5e1;
+  --ring: #0d5c2e;
   --radius: 0.5rem;
 }
 
@@ -56,20 +58,21 @@
   --color-dvla-danger: var(--dvla-danger);
   --color-dvla-warning: var(--dvla-warning);
   
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  --font-sans: var(--font-public-sans), 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
+  font-family: var(--font-public-sans), 'Public Sans', sans-serif !important;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-public-sans), 'Public Sans', sans-serif !important;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -166,7 +169,7 @@ body {
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 40%, #16a34a 80%, #15803d 100%);
+  background: linear-gradient(135deg, #0d5c2e 0%, #073e1e 40%, #0b6b35 80%, #073e1e 100%);
   background-size: 300% 300%;
   animation: shimmer 10s ease-in-out infinite;
   overflow: hidden;

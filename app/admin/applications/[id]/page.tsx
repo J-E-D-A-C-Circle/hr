@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import toast from 'react-hot-toast';
+import { formatDate, formatDateTime } from '@/lib/utils';
+import { FileText } from 'lucide-react';
+import AppointmentLetterModal from '@/components/AppointmentLetterModal';
 
 interface Application {
   id: number;
@@ -41,6 +45,7 @@ export default function ApplicationDetailPage() {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState(false);
+  const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
   const [reviewData, setReviewData] = useState({
     status: '',
     review_notes: '',
@@ -68,7 +73,7 @@ export default function ApplicationDetailPage() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost/api/applications.php?action=view&id=${params.id}`,
+        `/api/applications/view/${params.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -92,7 +97,7 @@ export default function ApplicationDetailPage() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost/api/applications.php?action=review',
+        '/api/applications/review',
         {
           application_id: params.id,
           status: reviewData.status,
@@ -107,9 +112,9 @@ export default function ApplicationDetailPage() {
       );
 
       fetchApplication();
-      alert('Application reviewed successfully!');
+      toast.success('Application reviewed successfully!');
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to review application');
+      toast.error(error.response?.data?.error || 'Failed to review application');
     } finally {
       setReviewing(false);
     }
@@ -171,17 +176,30 @@ export default function ApplicationDetailPage() {
       <main className="max-w-5xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white rounded-lg shadow p-6 md:p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Application: {application.first_name} {application.last_name}
-              </h2>
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusBadge(
-                  application.status
-                )}`}
-              >
-                {application.status.replace('_', ' ')}
-              </span>
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Application: {application.first_name} {application.last_name}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">NSS Pin: {application.nss_number || 'N/A'}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsLetterModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#0F5132] text-white text-xs font-bold rounded-xl shadow hover:bg-[#0B3D26] transition cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span>Generate Appointment Letter</span>
+                </button>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusBadge(
+                    application.status
+                  )}`}
+                >
+                  {application.status.replace('_', ' ')}
+                </span>
+              </div>
             </div>
 
             {/* Personal Information */}
@@ -200,7 +218,7 @@ export default function ApplicationDetailPage() {
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Date of Birth</span>
-                  <p className="text-gray-900">{new Date(application.date_of_birth).toLocaleDateString()}</p>
+                  <p className="text-gray-900">{formatDate(application.date_of_birth)}</p>
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Gender</span>
@@ -281,9 +299,9 @@ export default function ApplicationDetailPage() {
                   <div>
                     <span className="text-sm text-gray-500">Service Period</span>
                     <p className="text-gray-900">
-                      {new Date(application.service_period_start).toLocaleDateString()} -{' '}
+                      {formatDate(application.service_period_start)} -{' '}
                       {application.service_period_end
-                        ? new Date(application.service_period_end).toLocaleDateString()
+                        ? formatDate(application.service_period_end)
                         : 'Ongoing'}
                     </p>
                   </div>
@@ -297,12 +315,12 @@ export default function ApplicationDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <span className="text-sm text-gray-500">Submitted</span>
-                  <p className="text-gray-900">{new Date(application.created_at).toLocaleString()}</p>
+                  <p className="text-gray-900">{formatDateTime(application.created_at)}</p>
                 </div>
                 {application.reviewed_at && (
                   <div>
                     <span className="text-sm text-gray-500">Reviewed At</span>
-                    <p className="text-gray-900">{new Date(application.reviewed_at).toLocaleString()}</p>
+                    <p className="text-gray-900">{formatDateTime(application.reviewed_at)}</p>
                   </div>
                 )}
                 {application.reviewer_name && (
@@ -356,6 +374,15 @@ export default function ApplicationDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Appointment Letter Generator Modal */}
+      {application && (
+        <AppointmentLetterModal
+          isOpen={isLetterModalOpen}
+          onClose={() => setIsLetterModalOpen(false)}
+          application={application}
+        />
+      )}
     </div>
   );
 }
