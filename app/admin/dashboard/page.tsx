@@ -8,6 +8,7 @@ import { LogOut, Home, Users, FileText, X, TrendingUp, Clock, CheckCircle, XCirc
 import toast from 'react-hot-toast';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import AppointmentLetterModal from '@/components/AppointmentLetterModal';
+import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 
 interface Application {
   id: number;
@@ -104,34 +105,33 @@ export default function AdminDashboard() {
   const [letterApplication, setLetterApplication] = useState<any>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
+    const validToken = getValidAuthToken();
+    const parsedUser = getStoredUser();
 
-    if (!token || !userStr) {
+    if (!validToken || !parsedUser) {
+      clearAuthSession();
       router.replace('/login');
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(userStr);
-      if (parsedUser.role !== 'admin') {
-        router.replace('/dashboard');
-        return;
-      }
-      setUser(parsedUser);
-      fetchApplications();
-    } catch (e) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      router.replace('/login');
+    if (parsedUser.role !== 'admin') {
+      router.replace('/dashboard');
+      return;
     }
+    setUser(parsedUser);
+    fetchApplications();
   }, [router]);
 
   const [allApplications, setAllApplications] = useState<Application[]>([]);
 
   const fetchApplications = async (status?: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getValidAuthToken();
+      if (!token) {
+        clearAuthSession();
+        router.replace('/login');
+        return;
+      }
       const url = status && status !== 'all'
         ? `/api/applications/all?status=${status}`
         : '/api/applications/all';
@@ -141,8 +141,12 @@ export default function AdminDashboard() {
       });
       const fetchedApplications = response.data.applications || [];
       setAllApplications(fetchedApplications);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching applications:', error);
+      if (error.response?.status === 401) {
+        clearAuthSession();
+        router.replace('/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -422,8 +426,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuthSession();
     router.replace('/login');
   };
 

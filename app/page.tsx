@@ -8,21 +8,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-
     const splashTimer = setTimeout(() => {
-      if (token && userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          if (user.role === 'admin') {
-            router.replace('/admin/dashboard');
-          } else {
-            router.replace('/dashboard');
-          }
-          return;
-        } catch (e) {}
-      }
       router.push('/login');
     }, 2000);
 

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { FileText } from 'lucide-react';
 import AppointmentLetterModal from '@/components/AppointmentLetterModal';
+import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 
 interface Application {
   id: number;
@@ -52,15 +53,15 @@ export default function ApplicationDetailPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
+    const token = getValidAuthToken();
+    const user = getStoredUser();
 
-    if (!token || !userStr) {
+    if (!token || !user) {
+      clearAuthSession();
       router.push('/login');
       return;
     }
 
-    const user = JSON.parse(userStr);
     if (user.role !== 'admin') {
       router.push('/dashboard');
       return;

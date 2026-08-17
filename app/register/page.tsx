@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getValidAuthToken, getStoredUser } from '@/lib/auth-client';
 import { ArrowLeft, Check, Upload, FileText, Image as ImageIcon, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { uploadFile } from '@/lib/file-upload';
 import toast from 'react-hot-toast';
@@ -95,21 +96,14 @@ export default function RegisterPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
+      const token = getValidAuthToken();
+      const user = getStoredUser();
 
-      if (token && userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          if (user.role === 'admin') {
-            router.replace('/admin/dashboard');
-            return;
-          } else {
-            router.replace('/dashboard');
-            return;
-          }
-        } catch (e) {
-          // Invalid user data, continue to registration
+      if (token && user) {
+        if (user.role === 'admin') {
+          router.replace('/admin/dashboard');
+        } else {
+          router.replace('/dashboard');
         }
       }
     }

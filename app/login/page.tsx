@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
+import { isTokenExpired, clearAuthSession } from '@/lib/auth-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,24 +20,15 @@ export default function LoginPage() {
     password: '',
   });
 
-  // Redirect to dashboard if user is already logged in
+  // Clean up any expired auth tokens when landing on login page
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role === 'admin') {
-          router.replace('/admin/dashboard');
-        } else {
-          router.replace('/dashboard');
-        }
-      } catch (e) {
-        // Invalid user data, continue to login
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token && isTokenExpired(token)) {
+        clearAuthSession();
       }
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

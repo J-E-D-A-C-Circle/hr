@@ -8,6 +8,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils';
 import { uploadFile } from '@/lib/file-upload';
+import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 
 const NAV = [
   { label: 'Dashboard', active: true },
@@ -96,32 +97,31 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
+    const validToken = getValidAuthToken();
+    const parsedUser = getStoredUser();
 
-    if (!token || !userStr) {
+    if (!validToken || !parsedUser) {
+      clearAuthSession();
       router.replace('/login');
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(userStr);
-      if (parsedUser.role === 'admin') {
-        router.replace('/admin/dashboard');
-        return;
-      }
-      setUser(parsedUser);
-      fetchApplication();
-    } catch (e) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      router.replace('/login');
+    if (parsedUser.role === 'admin') {
+      router.replace('/admin/dashboard');
+      return;
     }
+    setUser(parsedUser);
+    fetchApplication();
   }, [router]);
 
   const fetchApplication = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getValidAuthToken();
+      if (!token) {
+        clearAuthSession();
+        router.replace('/login');
+        return;
+      }
       const response = await axios.get(
         '/api/applications/my-application',
         {
@@ -129,8 +129,12 @@ export default function Dashboard() {
         }
       );
       setApplication(response.data.application);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching application:', error);
+      if (error.response?.status === 401) {
+        clearAuthSession();
+        router.replace('/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -461,8 +465,7 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuthSession();
     router.replace('/login');
   };
 

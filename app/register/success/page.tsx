@@ -6,27 +6,22 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 
+import { getValidAuthToken, getStoredUser } from '@/lib/auth-client';
+
 export default function RegisterSuccess() {
   const router = useRouter();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated with a valid token
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
+      const token = getValidAuthToken();
+      const user = getStoredUser();
 
-      if (token && userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          if (user.role === 'admin') {
-            router.replace('/admin/dashboard');
-            return;
-          } else {
-            router.replace('/dashboard');
-            return;
-          }
-        } catch (e) {
-          // Invalid user data, continue to success page
+      if (token && user) {
+        if (user.role === 'admin') {
+          router.replace('/admin/dashboard');
+        } else {
+          router.replace('/dashboard');
         }
       }
     }

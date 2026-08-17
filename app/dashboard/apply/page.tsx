@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { uploadFile } from '@/lib/file-upload';
+import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 import { Upload, ImageIcon, FileText, ShieldCheck } from 'lucide-react';
 
 const ghanianSchools = [
@@ -178,19 +179,17 @@ export default function ApplyPage() {
   ];
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const token = getValidAuthToken();
+    const user = getStoredUser();
+
+    if (!token || !user) {
+      clearAuthSession();
       router.push('/login');
       return;
     }
 
-    // Get user email for pre-filling default
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setFormData(prev => ({ ...prev, email: user.email }));
-      } catch (e) {}
+    if (user.email) {
+      setFormData(prev => ({ ...prev, email: user.email }));
     }
 
     // Fetch existing application if user previously submitted or saved draft

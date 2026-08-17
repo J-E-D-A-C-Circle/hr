@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 import { formatDate, formatDateTime } from '@/lib/utils';
+import { getValidAuthToken, clearAuthSession } from '@/lib/auth-client';
 
 interface Application {
   id: number;
@@ -40,8 +41,9 @@ export default function ViewApplicationPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = getValidAuthToken();
     if (!token) {
+      clearAuthSession();
       router.push('/login');
       return;
     }
@@ -51,7 +53,12 @@ export default function ViewApplicationPage() {
 
   const fetchApplication = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getValidAuthToken();
+      if (!token) {
+        clearAuthSession();
+        router.push('/login');
+        return;
+      }
       const response = await axios.get(
         '/api/applications/my-application',
         {
@@ -59,8 +66,12 @@ export default function ViewApplicationPage() {
         }
       );
       setApplication(response.data.application);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching application:', error);
+      if (error.response?.status === 401) {
+        clearAuthSession();
+        router.push('/login');
+      }
     } finally {
       setLoading(false);
     }

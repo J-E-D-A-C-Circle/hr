@@ -11,7 +11,7 @@ export interface JwtPayload {
 }
 
 export function generateToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
 }
 
 export function verifyToken(token: string): JwtPayload | null {

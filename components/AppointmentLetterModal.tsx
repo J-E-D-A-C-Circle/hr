@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, FileText, Sparkles, Check, RefreshCw, Eye, Edit3 } from 'lucide-react';
+import { X, FileText, Sparkles, Check, RefreshCw, Eye, Edit3, Printer } from 'lucide-react';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
 
 interface AppointmentLetterModalProps {
@@ -110,6 +110,142 @@ export default function AppointmentLetterModal({
     }
   };
 
+  const handlePrintLetter = () => {
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+    const logoPath = '/oop.png';
+    const displayRef = customRefNumber || `DVLA/HR/08/26/PLACMT/${(application.nss_number || String(application.id || '0127')).slice(-4)}`;
+    const displayYourRef = yourRef || '....................................';
+    const displayIssueDate = letterDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+    const displayApplicantName = applicantName || 'APPLICANT NAME';
+    const displayApplicantAddress = applicantAddress || 'ACCRA - GHANA';
+    const displaySubjectText = customSubject || 'NSS POSTING APPOINTMENT';
+    const displayBodyText = customBodyText;
+    const displaySignatoryName = signatoryName || 'EPHRAIM NII TAN SACKEY';
+    const displaySignatoryTitle = signatoryTitle || 'AG. DIRECTOR HR';
+    const displaySignatoryForTitle = signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
+
+    const ccListItems: string[] = typeof ccText === 'string'
+      ? ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
+      : ['Chief Executive', 'Deputy Chief Executives', 'Ag. Director, IT', 'Ag. Director Administration', 'Manager, HR (C&B)'];
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>DVLA Official Appointment Letter - ${displayApplicantName}</title>
+        <style>
+          @media print {
+            @page { margin: 0; size: A4 portrait; }
+            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Georgia', 'Times New Roman', serif; line-height: 1.5; color: #111827; background: #FDF3C0; padding: 40px; }
+          .letter-container { position: relative; max-width: 800px; margin: 0 auto; background-color: #FDF3C0; padding: 40px; border: 1px solid #fcd34d; border-radius: 8px; overflow: hidden; }
+          .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 380px; height: 380px; opacity: 0.07; pointer-events: none; z-index: 1; }
+          .content-z { position: relative; z-index: 10; }
+          .header-title { text-align: center; font-size: 20px; font-weight: 900; color: #008053; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+          .header-grid { display: flex; justify-content: space-between; align-items: center; font-family: Arial, sans-serif; font-size: 11px; color: #1f2937; margin-top: 10px; }
+          .header-left { text-align: left; }
+          .header-center { text-align: center; }
+          .header-right { text-align: right; }
+          .header-logo { width: 70px; height: 70px; object-fit: contain; }
+          .divider { border-top: 2px solid #008053; margin: 12px 0 24px 0; }
+          .ref-row { display: flex; justify-content: space-between; font-family: Arial, sans-serif; font-size: 13px; margin-bottom: 24px; }
+          .addressee { font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; }
+          .salutation { font-size: 13px; margin-bottom: 16px; }
+          .subject-title { font-size: 14px; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 2px; display: inline-block; margin-bottom: 20px; }
+          .body-text { font-size: 13px; line-height: 1.6; text-align: justify; margin-bottom: 28px; white-space: pre-line; }
+          .footer-block { margin-top: 30px; padding-top: 16px; border-top: 1px solid rgba(120, 53, 15, 0.2); }
+          .signatory-block { font-size: 12px; }
+          .signature-svg { width: 140px; height: 48px; margin: 8px 0; }
+          .signatory-name { font-weight: 900; text-transform: uppercase; font-size: 13px; }
+          .signatory-title { font-weight: bold; color: #1f2937; }
+          .cc-box { margin-top: 16px; font-size: 11px; }
+          .cc-box ul { list-style: none; padding-left: 0; margin-top: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="letter-container">
+          <img src="${logoPath}" alt="Watermark" class="watermark" />
+          <div class="content-z">
+            <div class="header-title">DRIVER AND VEHICLE LICENSING AUTHORITY</div>
+            <div class="header-grid">
+              <div class="header-left">
+                <div><strong>Tel:</strong> 0302 764 529</div>
+                <div><strong>Website:</strong> http://www.dvla.gov.gh</div>
+                <div><strong>Email:</strong> info@dvla.gov.gh</div>
+              </div>
+              <div class="header-center">
+                <img src="${logoPath}" alt="DVLA Logo" class="header-logo" />
+              </div>
+              <div class="header-right">
+                <div style="font-weight: bold; color: #008053;">Head Office Address:</div>
+                <div>1, Jawaharlal Nehru Road</div>
+                <div>P. O. Box 9379, KIA-Accra</div>
+              </div>
+            </div>
+            <div class="divider"></div>
+
+            <div class="ref-row">
+              <div>
+                <strong>My Ref:</strong>......<span style="font-family: monospace; font-weight: bold;">${displayRef}</span><br/>
+                <strong>Your Ref:</strong>......<span style="font-family: monospace; font-weight: bold;">${displayYourRef}</span>
+              </div>
+              <div style="text-align: right;">
+                <strong style="text-transform: uppercase;">${displayIssueDate}</strong><br/>
+                <span style="font-family: monospace; font-size: 11px; color: #6b7280;">............/............/20..........</span>
+              </div>
+            </div>
+
+            <div class="addressee">
+              <div>${displayApplicantName}</div>
+              <div style="color: #374151; font-weight: normal;">${displayApplicantAddress}</div>
+            </div>
+
+            <div class="salutation">${salutation}</div>
+
+            <div>
+              <h2 class="subject-title">${displaySubjectText}</h2>
+            </div>
+
+            <div class="body-text">
+              ${displayBodyText}
+            </div>
+
+            <div class="footer-block">
+              <div class="signatory-block">
+                <div>Yours faithfully,</div>
+                <div style="margin: 8px 0;">
+                  <svg class="signature-svg" viewBox="0 0 200 60" fill="none" stroke="#1a365d" stroke-width="2">
+                    <path d="M 10,45 Q 30,10 50,40 T 90,20 T 130,45 T 170,15" stroke-width="2.5" stroke-linecap="round" />
+                    <path d="M 25,35 Q 60,5 110,40 T 180,25" stroke-width="1.5" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="signatory-name">${displaySignatoryName}</div>
+                  <div class="signatory-title">${displaySignatoryTitle}</div>
+                  <div style="font-size: 11px; font-weight: bold; color: #4b5563; text-transform: uppercase;">${displaySignatoryForTitle}</div>
+                </div>
+                <div class="cc-box">
+                  <strong>Cc:</strong>
+                  <ul>
+                    ${ccListItems.map(item => `<li>&bull; ${item}</li>`).join('')}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+  };
+
   const handleTypeChange = (newType: 'TEMPORARY' | 'REPOSTING') => {
     setAppointmentType(newType as any);
     applyDefaultTemplate(newType);
@@ -199,31 +335,33 @@ export default function AppointmentLetterModal({
 
         {/* Appointment Category Selection Bar */}
         <div className="bg-emerald-950 text-white px-6 py-3 border-b border-emerald-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Letter Category:</span>
-            <div className="inline-flex p-1 bg-emerald-900 rounded-xl border border-emerald-700">
-              <button
-                type="button"
-                onClick={() => handleTypeChange('TEMPORARY')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  appointmentType === 'TEMPORARY'
-                    ? 'bg-amber-400 text-gray-950 shadow'
-                    : 'text-emerald-200 hover:text-white'
-                }`}
-              >
-                NSS Posting
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTypeChange('REPOSTING')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  appointmentType === 'REPOSTING'
-                    ? 'bg-red-500 text-white shadow'
-                    : 'text-emerald-200 hover:text-white'
-                }`}
-              >
-                Reposting Release
-              </button>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Category:</span>
+              <div className="inline-flex p-1 bg-emerald-900 rounded-xl border border-emerald-700">
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange('TEMPORARY')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    appointmentType === 'TEMPORARY'
+                      ? 'bg-amber-400 text-gray-950 shadow'
+                      : 'text-emerald-200 hover:text-white'
+                  }`}
+                >
+                  NSS Posting
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange('REPOSTING')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    appointmentType === 'REPOSTING'
+                      ? 'bg-red-500 text-white shadow'
+                      : 'text-emerald-200 hover:text-white'
+                  }`}
+                >
+                  Reposting Release
+                </button>
+              </div>
             </div>
           </div>
 
@@ -233,36 +371,39 @@ export default function AppointmentLetterModal({
               <button
                 type="button"
                 onClick={() => setActiveTab('form')}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
-                  activeTab === 'form' ? 'bg-white text-gray-950 shadow' : 'text-emerald-200 hover:text-white'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  activeTab === 'form'
+                    ? 'bg-white text-emerald-950 shadow'
+                    : 'text-emerald-200 hover:text-white'
                 }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>Edit Fields</span>
+                Edit Letter
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('preview')}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
-                  activeTab === 'preview' ? 'bg-white text-gray-950 shadow' : 'text-emerald-200 hover:text-white'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  activeTab === 'preview'
+                    ? 'bg-white text-emerald-950 shadow'
+                    : 'text-emerald-200 hover:text-white'
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Live Preview</span>
+                Live Preview
               </button>
             </div>
           </div>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+        <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
           {errorMsg && (
             <div className="mb-4 bg-red-50 border-l-4 border-red-600 p-3 rounded text-red-800 text-xs font-semibold">
               {errorMsg}
             </div>
           )}
 
-          {/* Grid Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Form Controls */}
@@ -509,21 +650,31 @@ export default function AppointmentLetterModal({
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            form="appointment-letter-form"
-            disabled={isSubmitting}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0F5132] hover:bg-[#0B3D26] transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-          >
-            {isSubmitting ? (
-              <span>Saving & Issuing Letter...</span>
-            ) : (
-              <>
-                <Check className="w-4 h-4 text-amber-400" />
-                <span>Save & Issue Official Appointment Letter</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handlePrintLetter}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black text-emerald-950 bg-amber-400 hover:bg-amber-300 transition shadow flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Printer className="w-4 h-4 text-emerald-950" />
+              <span>Print / Download Letter</span>
+            </button>
+            <button
+              type="submit"
+              form="appointment-letter-form"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0F5132] hover:bg-[#0B3D26] transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmitting ? (
+                <span>Saving & Issuing Letter...</span>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 text-amber-400" />
+                  <span>Save & Issue Official Appointment Letter</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
