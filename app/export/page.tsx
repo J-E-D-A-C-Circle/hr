@@ -139,6 +139,20 @@ export default function ExportPage() {
             <span>Export Criteria & Payment Format Selection</span>
           </h2>
 
+          {validationMonth.includes("(Supplementary)") && (
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs font-semibold flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>
+                  <strong>Supplementary List Mode Active:</strong> Filtering records specifically validated for <strong>"{validationMonth}"</strong>.
+                </span>
+              </div>
+              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 shrink-0">
+                Supplementary Payout
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -172,20 +186,24 @@ export default function ExportPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="August 2026" className="font-bold text-emerald-600 dark:text-emerald-400">
-                    Validated for August 2026 (Current Active Regular Month)
-                  </SelectItem>
-                  <SelectItem value="July 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
-                    ⚡ Validated for July 2026 (Supplementary List)
+                    Validated for August 2026 (Current Regular Payroll)
                   </SelectItem>
                   <SelectItem value="August 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
-                    ⚡ Validated for August 2026 (Supplementary List)
+                    August 2026 (Supplementary Payout List)
                   </SelectItem>
-                  <SelectItem value="June 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
-                    ⚡ Validated for June 2026 (Supplementary List)
+                  <SelectItem value="July 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
+                    July 2026 (Supplementary Payout List)
                   </SelectItem>
                   <SelectItem value="July 2026">Validated for July 2026 (Regular)</SelectItem>
+                  <SelectItem value="June 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
+                    June 2026 (Supplementary Payout List)
+                  </SelectItem>
                   <SelectItem value="June 2026">Validated for June 2026 (Regular)</SelectItem>
-                  <SelectItem value="May 2026">Validated for May 2026 (Regular)</SelectItem>
+                  <SelectItem value="May 2026">Validated for May 2026</SelectItem>
+                  <SelectItem value="April 2026">Validated for April 2026</SelectItem>
+                  <SelectItem value="March 2026">Validated for March 2026</SelectItem>
+                  <SelectItem value="February 2026">Validated for February 2026</SelectItem>
+                  <SelectItem value="January 2026">Validated for January 2026</SelectItem>
                   <SelectItem value="">All Active / Employed Staff (No Month Filter)</SelectItem>
                 </SelectContent>
               </Select>

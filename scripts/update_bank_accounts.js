@@ -130,6 +130,16 @@ async function updateBankAccountsAndNames() {
 
   console.log(`Database currently contains ${allStaff.length} staff records.`);
 
+  // Skip update if bank details are already populated and FORCE_UPDATE is not set
+  const populatedCount = await prisma.staff.count({
+    where: { NOT: { bank_account: null } },
+  });
+
+  if (populatedCount > 0 && process.env.FORCE_UPDATE !== "true") {
+    console.log(`Database already has ${populatedCount} staff records with bank details. Skipping automatic bank update script to preserve user edits.`);
+    return;
+  }
+
   let updatedByCodeCount = 0;
   let updatedByNameCount = 0;
   let bankNameMappedCount = 0;

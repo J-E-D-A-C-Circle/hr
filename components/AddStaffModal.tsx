@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { UserPlus, Calendar, Building, CreditCard, ShieldCheck, CheckCircle2, AlertCircle, Save, X, Hash } from "lucide-react";
-import { calculateEndDate, formatDateToISO, formatDateReadable } from "@/lib/status";
+import { calculateEndDate, formatDateForInput, parseFlexibleDate } from "@/lib/status";
+import DateInput from "@/components/DateInput";
 import {
   Select,
   SelectTrigger,
@@ -33,8 +34,8 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
     bank_branch: "",
     bank_account: "",
     salary: "",
-    start_date: formatDateToISO(new Date()),
-    end_date: formatDateToISO(calculateEndDate(new Date())),
+    start_date: formatDateForInput(new Date()),
+    end_date: formatDateForInput(calculateEndDate(new Date())),
   });
 
   const [loading, setLoading] = useState(false);
@@ -58,8 +59,8 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         bank_branch: "",
         bank_account: "",
         salary: "",
-        start_date: formatDateToISO(new Date()),
-        end_date: formatDateToISO(calculateEndDate(new Date())),
+        start_date: formatDateForInput(new Date()),
+        end_date: formatDateForInput(calculateEndDate(new Date())),
       });
       setError(null);
       setDuplicateCodeError(null);
@@ -68,10 +69,10 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
 
   useEffect(() => {
     if (formData.start_date) {
-      const startObj = new Date(formData.start_date);
-      if (!isNaN(startObj.getTime())) {
+      const startObj = parseFlexibleDate(formData.start_date);
+      if (startObj && !isNaN(startObj.getTime())) {
         const endObj = calculateEndDate(startObj);
-        setFormData((prev) => ({ ...prev, end_date: formatDateToISO(endObj) }));
+        setFormData((prev) => ({ ...prev, end_date: formatDateForInput(endObj) }));
       }
     }
   }, [formData.start_date]);
@@ -125,8 +126,8 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         bank_branch: "",
         bank_account: "",
         salary: "",
-        start_date: formatDateToISO(new Date()),
-        end_date: formatDateToISO(calculateEndDate(new Date())),
+        start_date: formatDateForInput(new Date()),
+        end_date: formatDateForInput(calculateEndDate(new Date())),
       });
 
       if (onSuccess) {
@@ -190,27 +191,25 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Contract Start Date <span className="text-rose-500">*</span>
+                  Contract Start Date (DD/MM/YYYY) <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   required
                   name="start_date"
                   value={formData.start_date}
-                  onChange={handleChange}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, start_date: val }))}
                   className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Contract End Date (Editable)
+                  Contract End Date (DD/MM/YYYY) (Editable)
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   name="end_date"
                   value={formData.end_date || ""}
-                  onChange={handleChange}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, end_date: val }))}
                   className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold"
                 />
               </div>
@@ -245,12 +244,11 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
                   <Calendar className="h-3.5 w-3.5 text-indigo-500" />
                   <span>Date of Birth (DD/MM/YYYY)</span>
                 </label>
-                <input
-                  type="text"
+                <DateInput
                   name="date_of_birth"
+                  value={formData.date_of_birth || ""}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, date_of_birth: val }))}
                   placeholder="DD/MM/YYYY (e.g. 25/08/1995)"
-                  value={formData.date_of_birth}
-                  onChange={handleChange}
                   className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                 />
               </div>

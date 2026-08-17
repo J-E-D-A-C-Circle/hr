@@ -92,6 +92,19 @@ export function parseFlexibleDate(dateVal: Date | string | null | undefined): Da
     }
   }
 
+  // Check if string matches YYYY-MM-DD or YYYY/MM/DD
+  const yyyymmddRegex = /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/;
+  const matchYyyy = trimmed.match(yyyymmddRegex);
+  if (matchYyyy) {
+    const year = parseInt(matchYyyy[1], 10);
+    const month = parseInt(matchYyyy[2], 10) - 1;
+    const day = parseInt(matchYyyy[3], 10);
+    const parsedDate = new Date(year, month, day);
+    if (!isNaN(parsedDate.getTime())) {
+      return parsedDate;
+    }
+  }
+
   // Fallback to standard JS Date parsing
   const fallbackDate = new Date(trimmed);
   return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
@@ -123,6 +136,39 @@ export function formatDateDDMMYYYY(date: Date | string | null | undefined): stri
   const year = d.getFullYear();
 
   return `${day}/${month}/${year}`;
+}
+
+/**
+ * Format date to DD/MM/YYYY format specifically for input field defaults (returns empty string if empty)
+ */
+export function formatDateForInput(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  const d = parseFlexibleDate(date);
+  if (!d) return typeof date === "string" ? date : "";
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Format date and time to DD/MM/YYYY HH:mm:ss format
+ */
+export function formatDateTimeDDMMYYYY(date: Date | string | null | undefined): string {
+  if (!date) return "N/A";
+  const d = parseFlexibleDate(date);
+  if (!d) return "N/A";
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
 /**

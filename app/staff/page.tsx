@@ -557,9 +557,15 @@ export default function StaffListPage() {
                               >
                                 NIA: {staff.nia_number || "N/A"}
                               </span>
-                              {staff.validations?.some((v: any) => v.month.includes("Supplementary")) && (
-                                <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold border border-amber-300 dark:border-amber-800 text-[10px] flex items-center gap-1">
-                                  ⚡ Supplementary Validated
+                              {staff.validations && staff.validations.length > 0 && (
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                    staff.validations[0].month.includes("(Supplementary)")
+                                      ? "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                                      : "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                  }`}
+                                >
+                                  ✓ {staff.validations[0].month}
                                 </span>
                               )}
                               {duplicateStaffIds.has(staff.id) && (

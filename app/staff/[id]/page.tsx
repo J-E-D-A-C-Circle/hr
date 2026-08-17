@@ -32,7 +32,8 @@ import {
   Clock,
   Hash,
 } from "lucide-react";
-import { formatDateReadable, formatDateToISO } from "@/lib/status";
+import { formatDateReadable, formatDateForInput, formatDateDDMMYYYY } from "@/lib/status";
+import DateInput from "@/components/DateInput";
 
 export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const router = useRouter();
@@ -74,9 +75,9 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
       setStaff(json.data);
       setEditForm({
         ...json.data,
-        date_of_birth: json.data.date_of_birth ? formatDateToISO(new Date(json.data.date_of_birth)) : "",
-        start_date: currentContract ? formatDateToISO(new Date(currentContract.start_date)) : "",
-        end_date: currentContract ? formatDateToISO(new Date(currentContract.end_date)) : "",
+        date_of_birth: json.data.date_of_birth ? formatDateForInput(json.data.date_of_birth) : "",
+        start_date: currentContract ? formatDateForInput(currentContract.start_date) : "",
+        end_date: currentContract ? formatDateForInput(currentContract.end_date) : "",
       });
     } catch (err: any) {
       setError(err.message);
@@ -313,11 +314,10 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                   <span>Date of Birth (DD/MM/YYYY)</span>
                 </label>
                 {isEditing ? (
-                  <input
-                    type="text"
+                  <DateInput
                     placeholder="DD/MM/YYYY (e.g. 25/08/1995)"
                     value={editForm.date_of_birth || ""}
-                    onChange={(e) => setEditForm({ ...editForm, date_of_birth: e.target.value })}
+                    onChange={(val) => setEditForm({ ...editForm, date_of_birth: val })}
                     className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                 ) : (
@@ -471,13 +471,12 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 <div>
                   <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
                     <Calendar className="h-3 w-3 text-indigo-500" />
-                    <span>Contract Start Date</span>
+                    <span>Contract Start Date (DD/MM/YYYY)</span>
                   </label>
                   {isEditing ? (
-                    <input
-                      type="date"
+                    <DateInput
                       value={editForm.start_date || ""}
-                      onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                      onChange={(val) => setEditForm({ ...editForm, start_date: val })}
                       className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white"
                     />
                   ) : (
@@ -490,14 +489,14 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 <div>
                   <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
                     <Calendar className="h-3 w-3 text-emerald-500" />
-                    <span>Contract End Date</span>
+                    <span>Contract End Date (DD/MM/YYYY)</span>
                   </label>
                   {isEditing ? (
-                    <input
-                      type="date"
+                    <DateInput
                       value={editForm.end_date || ""}
-                      onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
+                      onChange={(val) => setEditForm({ ...editForm, end_date: val })}
                       className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white"
+                      iconColor="text-emerald-500"
                     />
                   ) : (
                     <span className="font-semibold text-slate-900 dark:text-slate-100">

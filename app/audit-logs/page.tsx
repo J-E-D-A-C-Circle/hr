@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import { formatDateTimeDDMMYYYY } from "@/lib/status";
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -157,7 +158,7 @@ export default function AuditLogsPage() {
                       <td className="p-3.5 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                         <div className="flex items-center gap-1.5">
                           <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          <span>{new Date(log.created_at).toLocaleString("en-US")}</span>
+                          <span>{formatDateTimeDDMMYYYY(log.created_at)}</span>
                         </div>
                       </td>
 

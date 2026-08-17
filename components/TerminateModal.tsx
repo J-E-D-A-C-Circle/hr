@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { UserX, Calendar, AlertTriangle, X } from "lucide-react";
-import { formatDateToISO } from "@/lib/status";
+import { formatDateForInput } from "@/lib/status";
+import DateInput from "@/components/DateInput";
 
 interface TerminateModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface TerminateModalProps {
 }
 
 export default function TerminateModal({ isOpen, onClose, staff, onSuccess }: TerminateModalProps) {
-  const [terminationDate, setTerminationDate] = useState<string>(formatDateToISO(new Date()));
+  const [terminationDate, setTerminationDate] = useState<string>(formatDateForInput(new Date()));
   const [reason, setReason] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,17 +98,14 @@ export default function TerminateModal({ isOpen, onClose, staff, onSuccess }: Te
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Effective Termination Date
+              Effective Termination Date (DD/MM/YYYY)
             </label>
-            <div className="relative">
-              <input
-                type="date"
-                value={terminationDate}
-                onChange={(e) => setTerminationDate(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none"
-              />
-              <Calendar className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
-            </div>
+            <DateInput
+              value={terminationDate}
+              onChange={(val) => setTerminationDate(val)}
+              className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              iconColor="text-rose-500"
+            />
           </div>
 
           <div>

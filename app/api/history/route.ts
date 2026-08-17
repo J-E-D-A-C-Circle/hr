@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { calculateGhanaDeductions } from "@/lib/payroll";
+import { formatDateDDMMYYYY } from "@/lib/status";
 import * as XLSX from "xlsx";
 
 export async function GET(request: NextRequest) {
@@ -136,8 +137,8 @@ export async function GET(request: NextRequest) {
         "SSNIT Number": row.ssnit_no || "N/A",
         "Station / Location": row.department,
         "Role": row.role,
-        "Contract Start": new Date(row.contract_start).toISOString().split("T")[0],
-        "Contract End": new Date(row.contract_end).toISOString().split("T")[0],
+        "Contract Start": formatDateDDMMYYYY(row.contract_start),
+        "Contract End": formatDateDDMMYYYY(row.contract_end),
         "Renewal #": `#${row.renewal_number}`,
         "Basic Salary (GH₵)": row.salary.toFixed(2),
         "SSNIT Emp 5.5% (GH₵)": row.ssnit_employee_amount.toFixed(2),

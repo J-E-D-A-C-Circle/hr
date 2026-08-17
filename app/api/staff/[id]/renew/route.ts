@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { calculateEndDate } from "@/lib/status";
+import { calculateEndDate, formatDateDDMMYYYY } from "@/lib/status";
 import { logAuditEvent } from "@/lib/audit";
 
 export async function POST(
@@ -81,7 +81,7 @@ export async function POST(
       userName: body?.user_name || "HR Admin",
       userRole: body?.user_role || "HR Manager",
       action: "RENEW",
-      details: `Renewed Contract #${result.renewal_number} for ${staff?.full_name || "Staff"} (${staff?.staff_code || `#${staffId}`}) through ${newEndDate.toISOString().split("T")[0]}`,
+      details: `Renewed Contract #${result.renewal_number} for ${staff?.full_name || "Staff"} (${staff?.staff_code || `#${staffId}`}) through ${formatDateDDMMYYYY(newEndDate)}`,
       staffId,
     });
 

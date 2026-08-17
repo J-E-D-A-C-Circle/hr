@@ -19,7 +19,7 @@ export const TARGET_STAFF_FIELDS: MappedField[] = [
   { key: "insurance_provider", label: "Insurance Provider", required: false },
   { key: "insurance_policy_no", label: "Insurance Policy No.", required: false },
   { key: "insurance_premium", label: "Insurance Premium (GH₵)", required: false },
-  { key: "start_date", label: "Contract Start Date (YYYY-MM-DD)", required: true },
+  { key: "start_date", label: "Contract Start Date (DD/MM/YYYY)", required: true },
 ];
 
 /**
@@ -187,12 +187,7 @@ export function buildExportWorkbook(staffRecords: any[]): Buffer {
  * Builds Payroll Payment Workbook matching TEMP JULY.xlsx format
  */
 export function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Buffer {
-  const isSupplementary = monthStr.toLowerCase().includes("supplementary");
-  const cleanMonth = monthStr.replace(/\s*[\(\-]*\s*supplementary\s*[\)]*/i, "").trim().toUpperCase();
-  const formattedTitle = isSupplementary
-    ? `TEMPORARY STAFF SUPPLEMENTARY PAYROLL FOR ${cleanMonth}`
-    : `TEMPORARY STAFF PAYROLL FOR ${monthStr.toUpperCase()}`;
-  const titleHeader = [formattedTitle];
+  const titleHeader = [`TEMPORARY STAFF PAYROLL FOR ${monthStr.toUpperCase()}`];
   const colHeaders = [
     "Sr. No.",
     "EMPLOYEE ID",

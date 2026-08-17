@@ -20,13 +20,64 @@ function calculate6MonthEnd(startDate: Date): Date {
   return end;
 }
 
+function normalizeName(name: string): string {
+  if (!name) return "";
+  return String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getTokens(name: string): string[] {
+  return normalizeName(name).split(" ").filter(Boolean);
+}
+
 async function main() {
-  console.log("Seeding database with real staff data from TEMP JULY.xlsx...");
+  console.log("Seeding database with real staff data from TEMP JULY.xlsx and JUNE SSNIT.xlsx...");
 
   const filePath = path.join(__dirname, "..", "TEMP JULY.xlsx");
+  const ssnitFilePath = path.join(__dirname, "..", "JUNE SSNIT.xlsx");
+
   if (!fs.existsSync(filePath)) {
     console.log("TEMP JULY.xlsx not found, skipping real data seed.");
     return;
+  }
+
+  // Load SSNIT & NIA lookup map from JUNE SSNIT.xlsx if exists
+  const ssnitMap = new Map<string, { ssnit_no: string | null; nia_number: string | null }>();
+  
+  if (fs.existsSync(ssnitFilePath)) {
+    const ssnitWb = XLSX.readFile(ssnitFilePath);
+    const ssnitSheet = ssnitWb.Sheets[ssnitWb.SheetNames[0]];
+    const ssnitRows: any[][] = XLSX.utils.sheet_to_json(ssnitSheet, { header: 1 });
+
+    for (let i = 5; i < ssnitRows.length; i++) {
+      const row = ssnitRows[i];
+      if (!row || row.length < 4) continue;
+
+      const ssnitNo = row[1] ? String(row[1]).trim() : null;
+      const niaNo = row[2] ? String(row[2]).trim() : null;
+      const surname = row[3] ? String(row[3]).trim() : "";
+      const firstName = row[4] ? String(row[4]).trim() : "";
+      const otherName = row[5] ? String(row[5]).trim() : "";
+
+      if (!ssnitNo && !niaNo) continue;
+
+      const val = {
+        ssnit_no: ssnitNo && ssnitNo !== "N/A" ? ssnitNo : null,
+        nia_number: niaNo && niaNo !== "N/A" ? niaNo : null,
+      };
+
+      const norm1 = normalizeName(`${firstName} ${otherName} ${surname}`);
+      const norm2 = normalizeName(`${surname} ${firstName} ${otherName}`);
+      const norm3 = normalizeName(`${firstName} ${surname} ${otherName}`);
+
+      if (norm1) ssnitMap.set(norm1, val);
+      if (norm2) ssnitMap.set(norm2, val);
+      if (norm3) ssnitMap.set(norm3, val);
+    }
+    console.log(`Loaded ${ssnitMap.size} SSNIT & NIA lookup entries from JUNE SSNIT.xlsx`);
   }
 
   const workbook = XLSX.readFile(filePath);
@@ -37,6 +88,7 @@ async function main() {
   await prisma.staff.deleteMany();
 
   let insertedCount = 0;
+  let ssnitAssignedCount = 0;
 
   for (let i = 2; i < rows.length; i++) {
     const row = rows[i];
@@ -53,11 +105,32 @@ async function main() {
 
     const grossSalary = row[7] ? parseFloat(row[7]) : row[6] ? parseFloat(row[6]) : 1400.0;
 
+    // Match SSNIT & NIA
+    const normEmpName = normalizeName(empName);
+    let matchedSsnitNia = ssnitMap.get(normEmpName);
+
+    if (!matchedSsnitNia) {
+      const empTokens = getTokens(empName);
+      const empTokenSet = new Set(empTokens);
+
+      for (const [key, val] of ssnitMap.entries()) {
+        const keyTokens = getTokens(key);
+        if (keyTokens.length === empTokens.length && keyTokens.every(t => empTokenSet.has(t))) {
+          matchedSsnitNia = val;
+          break;
+        }
+      }
+    }
+
+    if (matchedSsnitNia) ssnitAssignedCount++;
+
     try {
       await prisma.staff.create({
         data: {
           staff_code: empId,
           full_name: empName,
+          ssnit_no: matchedSsnitNia?.ssnit_no || null,
+          nia_number: matchedSsnitNia?.nia_number || null,
           role: "Temporary Staff",
           department: location,
           salary: isNaN(grossSalary) ? 1400.0 : grossSalary,
@@ -81,7 +154,7 @@ async function main() {
     }
   }
 
-  console.log(`Successfully seeded ${insertedCount} real staff records from TEMP JULY.xlsx!`);
+  console.log(`Successfully seeded ${insertedCount} real staff records (${ssnitAssignedCount} with SSNIT/NIA) from TEMP JULY.xlsx & JUNE SSNIT.xlsx!`);
 }
 
 main()

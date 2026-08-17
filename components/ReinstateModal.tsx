@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { UserCheck, Calendar, DollarSign, ArrowRight, CheckCircle2, AlertCircle, X, Building } from "lucide-react";
-import { calculateEndDate, formatDateToISO, formatDateReadable } from "@/lib/status";
+import { calculateEndDate, formatDateForInput, formatDateReadable, parseFlexibleDate } from "@/lib/status";
+import DateInput from "@/components/DateInput";
 
 interface ReinstateModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ interface ReinstateModalProps {
 
 export default function ReinstateModal({ isOpen, onClose, staff, onSuccess }: ReinstateModalProps) {
   const [grossSalary, setGrossSalary] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>(formatDateToISO(new Date()));
+  const [startDate, setStartDate] = useState<string>(formatDateForInput(new Date()));
   const [computedEndDate, setComputedEndDate] = useState<string>("");
   const [role, setRole] = useState<string>("");
   const [department, setDepartment] = useState<string>("");
@@ -38,11 +39,15 @@ export default function ReinstateModal({ isOpen, onClose, staff, onSuccess }: Re
 
   useEffect(() => {
     if (startDate) {
-      const d = new Date(startDate);
-      if (!isNaN(d.getTime())) {
+      const d = parseFlexibleDate(startDate);
+      if (d && !isNaN(d.getTime())) {
         const endObj = calculateEndDate(d);
         setComputedEndDate(formatDateReadable(endObj));
+      } else {
+        setComputedEndDate("Invalid start date");
       }
+    } else {
+      setComputedEndDate("");
     }
   }, [startDate]);
 
@@ -149,23 +154,19 @@ export default function ReinstateModal({ isOpen, onClose, staff, onSuccess }: Re
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                New Contract Start Date <span className="text-rose-500">*</span>
+                New Contract Start Date (DD/MM/YYYY) <span className="text-rose-500">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  required
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
-                <Calendar className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
-              </div>
+              <DateInput
+                required
+                value={startDate}
+                onChange={(val) => setStartDate(val)}
+                className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                New End Date (+6 Mo)
+                New End Date (+6 Mo) (DD/MM/YYYY)
               </label>
               <div className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1.5 h-[38px]">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />

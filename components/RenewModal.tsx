@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { RefreshCw, Calendar, ArrowRight, CheckCircle2, AlertCircle, X } from "lucide-react";
-import { calculateEndDate, formatDateToISO, formatDateReadable } from "@/lib/status";
+import { calculateEndDate, formatDateForInput, parseFlexibleDate } from "@/lib/status";
+import DateInput from "@/components/DateInput";
 
 interface RenewModalProps {
   isOpen: boolean;
@@ -27,22 +28,24 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
 
   useEffect(() => {
     if (staff?.currentContract?.end_date) {
-      const oldEndDateStr = formatDateToISO(staff.currentContract.end_date);
+      const oldEndDateStr = formatDateForInput(staff.currentContract.end_date);
       setStartDate(oldEndDateStr);
 
-      const oldEndObj = new Date(staff.currentContract.end_date);
-      const newEndObj = calculateEndDate(oldEndObj);
-      setEndDate(formatDateToISO(newEndObj));
+      const oldEndObj = parseFlexibleDate(staff.currentContract.end_date);
+      if (oldEndObj) {
+        const newEndObj = calculateEndDate(oldEndObj);
+        setEndDate(formatDateForInput(newEndObj));
+      }
     }
   }, [staff]);
 
   const handleStartDateChange = (val: string) => {
     setStartDate(val);
     if (val) {
-      const d = new Date(val);
-      if (!isNaN(d.getTime())) {
+      const d = parseFlexibleDate(val);
+      if (d && !isNaN(d.getTime())) {
         const newEndObj = calculateEndDate(d);
-        setEndDate(formatDateToISO(newEndObj));
+        setEndDate(formatDateForInput(newEndObj));
       }
     }
   };
@@ -130,32 +133,25 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                New Start Date
+                New Start Date (DD/MM/YYYY)
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => handleStartDateChange(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-                <Calendar className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
-              </div>
+              <DateInput
+                value={startDate}
+                onChange={handleStartDateChange}
+                className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                New End Date (Editable)
+                New End Date (DD/MM/YYYY) (Editable)
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
-                <Calendar className="h-4 w-4 text-emerald-500 absolute left-3 top-2.5" />
-              </div>
+              <DateInput
+                value={endDate}
+                onChange={(val) => setEndDate(val)}
+                className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                iconColor="text-emerald-500"
+              />
             </div>
           </div>
 

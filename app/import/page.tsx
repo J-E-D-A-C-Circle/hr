@@ -74,7 +74,7 @@ export default function ImportExcelPage() {
         "Bank Name": "Chase Bank",
         "Account Number": "9988776655",
         "Monthly Wage": 4800,
-        "Contract Start": "2026-06-01",
+        "Contract Start": "01/06/2026",
       },
       {
         "Emp Code": "EMP-9002",
@@ -85,7 +85,7 @@ export default function ImportExcelPage() {
         "Bank Name": "Citibank",
         "Account Number": "1122334455",
         "Monthly Wage": 4100,
-        "Contract Start": "2026-03-15",
+        "Contract Start": "15/03/2026",
       },
     ];
 
