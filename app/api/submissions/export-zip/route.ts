@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     if (staffType && staffType !== 'ALL') {
       where.staffType = staffType;
     } else if (department && department !== 'ALL') {
-      if (['PERMANENT', 'CONTRACT', 'BOTH'].includes(department)) {
+      if (['PERMANENT', 'CONTRACT'].includes(department)) {
         where.staffType = department;
       } else {
         where.note = { contains: department };
@@ -112,8 +112,6 @@ export async function GET(request: Request) {
         'Month': monthName,
         'Year': sub.year,
         'Staff Category': staffTypeLabel,
-        'Employee Count': parsedNote.employeeCount || 'N/A',
-        'Total Payroll (GH₵)': parsedNote.payrollAmount || 'N/A',
         'Signer Name': parsedNote.signerName || 'N/A',
         'Status': sub.status,
         'File Name': sub.fileName,

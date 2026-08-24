@@ -227,7 +227,6 @@ export default function ReviewPage() {
               <SelectItem value="ALL">All Staff</SelectItem>
               <SelectItem value="PERMANENT">Permanent Staff</SelectItem>
               <SelectItem value="CONTRACT">Contract Staff</SelectItem>
-              <SelectItem value="BOTH">Both Permanent & Contract</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -449,14 +448,6 @@ export default function ReviewPage() {
                                 : 'Permanent Staff'}
                             </span>
                           </div>
-                          <div><span className="text-slate-500">Workers Covered:</span> <span className="font-normal text-slate-900">{parsedForm.employeeCount || 'N/A'} Staff</span></div>
-                          {parsedForm.permanentAmount && (
-                            <div><span className="text-slate-500">Permanent Staff Payroll:</span> <span className="font-normal text-slate-900">GH₵ {parseFloat(parsedForm.permanentAmount).toLocaleString()}</span></div>
-                          )}
-                          {parsedForm.contractAmount && (
-                            <div><span className="text-slate-500">Contract Staff Payroll:</span> <span className="font-normal text-slate-900">GH₵ {parseFloat(parsedForm.contractAmount).toLocaleString()}</span></div>
-                          )}
-                          <div><span className="text-slate-500">Total Payroll:</span> <span className="font-bold text-emerald-900">GH₵ {parseFloat(parsedForm.payrollAmount || '0').toLocaleString()}</span></div>
                           <div><span className="text-slate-500">Station Manager:</span> <span className="font-normal text-slate-900">{parsedForm.signerName || 'N/A'}</span></div>
                           {parsedForm.contextNote && <div><span className="text-slate-500">Notes:</span> <span className="italic text-slate-900">{parsedForm.contextNote}</span></div>}
                         </div>

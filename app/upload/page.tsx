@@ -74,11 +74,7 @@ export default function PublicValidationFormPage() {
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [staffType, setStaffType] = useState<'PERMANENT' | 'CONTRACT' | 'BOTH'>('PERMANENT');
-  const [employeeCount, setEmployeeCount] = useState<string>('');
-  const [payrollAmount, setPayrollAmount] = useState<string>('');
-  const [permanentAmount, setPermanentAmount] = useState<string>('');
-  const [contractAmount, setContractAmount] = useState<string>('');
+  const [staffType, setStaffType] = useState<'PERMANENT' | 'CONTRACT'>('PERMANENT');
   const [signerName, setSignerName] = useState<string>('');
   const [attested, setAttested] = useState<boolean>(false);
   const [note, setNote] = useState<string>('');
@@ -246,21 +242,10 @@ export default function PublicValidationFormPage() {
     return new File([pdfBlob], compiledFileName, { type: 'application/pdf' });
   };
 
-  // Calculate Total Payroll Amount
-  const getEffectivePayrollAmount = () => {
-    if (staffType === 'PERMANENT') return permanentAmount || payrollAmount;
-    if (staffType === 'CONTRACT') return contractAmount || payrollAmount;
-    const p = parseFloat(permanentAmount || '0') || 0;
-    const c = parseFloat(contractAmount || '0') || 0;
-    return (p + c).toString();
-  };
-
   // Perform Form Submission
   const processSubmission = async (fileToUpload: File) => {
     setSubmitting(true);
     setSubmitError(null);
-
-    const totalPayroll = getEffectivePayrollAmount();
 
     try {
       const formData = new FormData();
@@ -271,10 +256,6 @@ export default function PublicValidationFormPage() {
       formData.append('file', fileToUpload);
 
       const formPayload = {
-        employeeCount,
-        payrollAmount: totalPayroll,
-        permanentAmount,
-        contractAmount,
         staffType,
         signerName,
         uploadMode,
@@ -311,10 +292,8 @@ export default function PublicValidationFormPage() {
       return;
     }
 
-    const totalPayroll = getEffectivePayrollAmount();
-
-    if (!employeeCount || !totalPayroll || parseFloat(totalPayroll) <= 0 || !signerName) {
-      setSubmitError('Please fill out all required form fields with valid numbers.');
+    if (!signerName) {
+      setSubmitError('Please enter the station manager name.');
       return;
     }
 
@@ -387,14 +366,6 @@ export default function PublicValidationFormPage() {
                   {month}/{year}
                 </span>
               </div>
-              <div>
-                <span className="block text-slate-500">Covered Employees:</span>
-                <span className="text-slate-900 font-normal">{employeeCount} Staff</span>
-              </div>
-              <div>
-                <span className="block text-slate-500">Total Payroll:</span>
-                <span className="text-slate-900 font-normal">GH₵ {parseFloat(payrollAmount || '0').toLocaleString()}</span>
-              </div>
               <div className="col-span-2">
                 <span className="block text-slate-500">Document Scan:</span>
                 <span className="text-slate-900 font-normal truncate block">{submittedResponse.fileName}</span>
@@ -408,8 +379,6 @@ export default function PublicValidationFormPage() {
                 setSubmittedResponse(null);
                 setPdfFile(null);
                 setImagePages([]);
-                setEmployeeCount('');
-                setPayrollAmount('');
                 setAttested(false);
               }}
               className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
@@ -566,125 +535,23 @@ export default function PublicValidationFormPage() {
                 <SelectContent>
                   <SelectItem value="PERMANENT">Permanent Staff</SelectItem>
                   <SelectItem value="CONTRACT">Contract Staff</SelectItem>
-                  <SelectItem value="BOTH">Both Permanent & Contract Staff</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
               <label className="block text-xs font-normal text-slate-700 mb-1.5">
-                Number of Workers Covered *
+                Station Manager Name *
               </label>
               <input
-                type="number"
+                type="text"
                 required
-                min="1"
-                placeholder="e.g. 45"
-                value={employeeCount}
-                onChange={(e) => setEmployeeCount(e.target.value)}
+                placeholder="e.g. John Doe"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
                 className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
               />
             </div>
-          </div>
-
-          {/* Payroll Amount Fields based on Staff Type */}
-          {staffType === 'PERMANENT' && (
-            <div>
-              <label className="block text-xs font-normal text-slate-700 mb-1.5">
-                Total Monthly Payroll Amount (GH₵) *
-              </label>
-              <input
-                type="number"
-                required
-                step="0.01"
-                min="0"
-                placeholder="e.g. 125400.00"
-                value={permanentAmount || payrollAmount}
-                onChange={(e) => {
-                  setPermanentAmount(e.target.value);
-                  setPayrollAmount(e.target.value);
-                }}
-                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
-              />
-            </div>
-          )}
-
-          {staffType === 'CONTRACT' && (
-            <div>
-              <label className="block text-xs font-normal text-slate-700 mb-1.5">
-                Contract Staff Monthly Payroll Amount (GH₵) *
-              </label>
-              <input
-                type="number"
-                required
-                step="0.01"
-                min="0"
-                placeholder="e.g. 45000.00"
-                value={contractAmount || payrollAmount}
-                onChange={(e) => {
-                  setContractAmount(e.target.value);
-                  setPayrollAmount(e.target.value);
-                }}
-                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
-              />
-            </div>
-          )}
-
-          {staffType === 'BOTH' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1.5">
-                    Permanent Staff Payroll (GH₵) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    step="0.01"
-                    min="0"
-                    placeholder="e.g. 100000.00"
-                    value={permanentAmount}
-                    onChange={(e) => setPermanentAmount(e.target.value)}
-                    className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1.5">
-                    Contract Staff Payroll (GH₵) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    step="0.01"
-                    min="0"
-                    placeholder="e.g. 25400.00"
-                    value={contractAmount}
-                    onChange={(e) => setContractAmount(e.target.value)}
-                    className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
-                  />
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex justify-between items-center">
-                <span>Total Combined Payroll:</span>
-                <span className="font-bold">
-                  GH₵ {((parseFloat(permanentAmount || '0') || 0) + (parseFloat(contractAmount || '0') || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-normal text-slate-700 mb-1.5">
-              Station Manager Name *
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. John Doe"
-              value={signerName}
-              onChange={(e) => setSignerName(e.target.value)}
-              className="w-full rounded-xl bg-slate-50 border border-slate-300 p-2.5 text-xs font-normal text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition"
-            />
           </div>
 
           <div>

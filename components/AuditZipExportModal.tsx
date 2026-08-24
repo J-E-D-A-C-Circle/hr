@@ -213,7 +213,6 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
                 <SelectItem value="ALL">All Departments & Staff Types</SelectItem>
                 <SelectItem value="PERMANENT">Permanent Staff</SelectItem>
                 <SelectItem value="CONTRACT">Contract Staff</SelectItem>
-                <SelectItem value="BOTH">Both Permanent & Contract Staff</SelectItem>
                 <SelectItem value="LICENSING">Driver & Vehicle Licensing Dept</SelectItem>
                 <SelectItem value="OPERATIONS">Vehicle Inspection & Operations</SelectItem>
                 <SelectItem value="FINANCE">Finance & Accounts Dept</SelectItem>

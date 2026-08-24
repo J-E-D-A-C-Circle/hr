@@ -41,23 +41,21 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { id, name, code, regionId, headName, headEmail, active } = body;
 
-    if (!name || !regionId) {
-      return NextResponse.json({ error: 'Station name and region are required' }, { status: 400 });
+    if (!name || !regionId || !headName || !headEmail) {
+      return NextResponse.json({ error: 'Name, region, head name, and head email are required' }, { status: 400 });
     }
 
     const branchCode = code && code.trim() ? code.trim() : null;
-    const managerName = headName && headName.trim() ? headName.trim() : null;
-    const managerEmail = headEmail && headEmail.trim() ? headEmail.trim() : null;
 
     let branch;
     if (id) {
       branch = await prisma.branch.update({
         where: { id },
-        data: { name, code: branchCode, regionId, headName: managerName, headEmail: managerEmail, active: active ?? true },
+        data: { name, code: branchCode, regionId, headName, headEmail, active: active ?? true },
       });
     } else {
       branch = await prisma.branch.create({
-        data: { name, code: branchCode, regionId, headName: managerName, headEmail: managerEmail, active: active ?? true },
+        data: { name, code: branchCode, regionId, headName, headEmail, active: active ?? true },
       });
     }
 
