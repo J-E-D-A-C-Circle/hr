@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { calculateEndDate, formatDateDDMMYYYY } from "@/lib/status";
+import { calculateEndDate, formatDateDDMMYYYY, parseFlexibleDate } from "@/lib/status";
 import { logAuditEvent } from "@/lib/audit";
 
 export async function POST(
@@ -37,16 +37,16 @@ export async function POST(
     }
 
     // New start date is old contract's end date (or optional custom start date from request)
-    let newStartDate = new Date(currentContract.end_date);
+    let newStartDate = parseFlexibleDate(currentContract.end_date) || new Date();
     const body = await request.json().catch(() => ({}));
     if (body.custom_start_date) {
-      newStartDate = new Date(body.custom_start_date);
+      newStartDate = parseFlexibleDate(body.custom_start_date) || newStartDate;
     }
 
     let newEndDate = calculateEndDate(newStartDate);
     if (body.custom_end_date) {
-      const parsedCustomEnd = new Date(body.custom_end_date);
-      if (!isNaN(parsedCustomEnd.getTime())) {
+      const parsedCustomEnd = parseFlexibleDate(body.custom_end_date);
+      if (parsedCustomEnd) {
         newEndDate = parsedCustomEnd;
       }
     }

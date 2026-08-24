@@ -3,8 +3,16 @@ import { checkPasscode, createAdminSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { passcode } = body;
+    let passcode = "";
+    try {
+      const body = await request.json();
+      passcode = body?.passcode || "";
+    } catch (e) {
+      try {
+        const formData = await request.formData();
+        passcode = (formData.get("passcode") as string) || "";
+      } catch (err) {}
+    }
 
     if (!passcode || !checkPasscode(passcode)) {
       return NextResponse.json(
@@ -19,3 +27,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

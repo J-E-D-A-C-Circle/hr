@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { parseFlexibleDate } from "@/lib/status";
 
 export async function POST(
   request: NextRequest,
@@ -22,6 +23,8 @@ export async function POST(
       );
     }
 
+    const parsedTerminationDate = parseFlexibleDate(termination_date) || new Date();
+
     const currentContract = await prisma.contract.findFirst({
       where: {
         staff_id: staffId,
@@ -40,7 +43,7 @@ export async function POST(
       where: { id: currentContract.id },
       data: {
         is_terminated: true,
-        termination_date: new Date(termination_date),
+        termination_date: parsedTerminationDate,
         termination_reason: termination_reason.trim(),
       },
     });

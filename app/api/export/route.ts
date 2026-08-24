@@ -89,14 +89,14 @@ export async function GET(request: NextRequest) {
 
     if (exportType === "payroll") {
       const mStr = validationMonth || "August 2026";
-      excelBuffer = buildPayrollPaymentWorkbook(filtered, mStr);
+      excelBuffer = await buildPayrollPaymentWorkbook(filtered, mStr);
       filename = `Payroll_Payment_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else if (exportType === "ssnit") {
       const mStr = validationMonth || "August 2026";
-      excelBuffer = buildSsnitContributionWorkbook(filtered, mStr);
+      excelBuffer = await buildSsnitContributionWorkbook(filtered, mStr);
       filename = `SSNIT_Contribution_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else {
-      excelBuffer = buildExportWorkbook(filtered);
+      excelBuffer = await buildExportWorkbook(filtered);
       filename = `Staff_Export_${filter}_${dateStr}.xlsx`;
     }
 

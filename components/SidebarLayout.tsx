@@ -23,6 +23,7 @@ import {
   TrendingUp,
   PanelLeftClose,
   PanelLeftOpen,
+  Receipt,
 } from "lucide-react";
 
 interface SidebarLayoutProps {
@@ -77,6 +78,17 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   };
 
   useEffect(() => {
+    // Check active session status
+    if (pathname !== "/login") {
+      fetch("/api/auth/check")
+        .then((res) => {
+          if (!res.ok) {
+            router.push("/login");
+          }
+        })
+        .catch(() => {});
+    }
+
     // Fetch quick stats for sidebar badges
     fetch("/api/dashboard")
       .then((res) => res.json())
@@ -89,7 +101,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         }
       })
       .catch(() => {});
-  }, [pathname]);
+  }, [pathname, router]);
 
   // User Role State for Role-Based Access Control (RBAC)
   const [userRole, setUserRole] = useState<"HR Manager" | "Payroll Specialist" | "Auditor (Read Only)">("HR Manager");
@@ -139,9 +151,9 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       badge: null,
     },
     {
-      label: "Excel Import",
-      href: "/import",
-      icon: FileSpreadsheet,
+      label: "Staff Payslips",
+      href: "/payslip",
+      icon: Receipt,
       badge: null,
     },
     {

@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { calculateEndDate, computeContractStatus, computeDaysRemaining, formatDateReadable } from "./status";
 
 export interface MappedField {
@@ -141,141 +141,485 @@ export function validateMappedRows(
   });
 }
 
-/**
- * Generates an Excel workbook Buffer for Payroll export
- */
-export function buildExportWorkbook(staffRecords: any[]): Buffer {
-  const exportRows = staffRecords.map((item) => {
-    const currentContract = item.contracts?.find((c: any) => c.is_current) || item.contracts?.[0];
-    const status = computeContractStatus(currentContract);
-    const daysRemaining = currentContract ? computeDaysRemaining(currentContract.end_date) : 0;
+// =========================================================
+// GREEN THEME EXCEL STYLING UTILITIES
+// =========================================================
+const GREEN_THEME = {
+  headerBg: "FF064E3B",      // Deep Forest Emerald Green
+  headerFont: "FFFFFFFF",    // White
+  subHeaderBg: "FFD1FAE5",   // Soft Sage / Mint Green
+  subHeaderFont: "FF065F46", // Dark Emerald Text
+  altRowBg: "FFF0FDF4",      // Light Mint Tint
+  totalBg: "FFD1FAE5",       // Mint Green Total Row
+  totalFont: "FF064E3B",     // Bold Dark Green Text
+  borderColor: "FFD1D5DB",   // Light Gray Border
+  accentBorder: "FF047857",  // Emerald Border
+};
 
-    return {
-      "Staff Code": item.staff_code || `EMP-${item.id}`,
-      "Full Name": item.full_name,
-      "Gender": item.gender || "N/A",
-      "Email": item.email || "N/A",
-      "Date of Birth": item.date_of_birth ? formatDateReadable(item.date_of_birth) : "N/A",
-      "SSNIT Number": item.ssnit_no || "N/A",
-      "NIA Number (Ghana Card)": item.nia_number || "N/A",
-      "Station": item.department || "N/A",
-      "Role": item.role || "N/A",
-      "Phone": item.phone || "N/A",
-      "Bank Name": item.bank_name || "N/A",
-      "Bank Branch": item.bank_branch || "N/A",
-      "Bank Account No.": item.bank_account || "N/A",
-      "Monthly Salary (GH₵)": item.salary ? Number(item.salary).toFixed(2) : "0.00",
-      "Payment Status": item.payment_status || "paid",
-      "Contract Start Date": currentContract ? formatDateReadable(currentContract.start_date) : "N/A",
-      "Contract End Date": currentContract ? formatDateReadable(currentContract.end_date) : "N/A",
-      "Days Remaining": currentContract && !currentContract.is_terminated ? daysRemaining : "N/A",
-      "Contract Status": status,
-      "Renewal Count": currentContract ? currentContract.renewal_number : 1,
+const CURRENCY_FORMAT = '"GH₵"#,##0.00;("GH₵"#,##0.00);"-"';
+
+function applyAutoColumnWidths(worksheet: ExcelJS.Worksheet) {
+  worksheet.columns.forEach((column) => {
+    let maxLen = 14;
+    column.eachCell?.({ includeEmpty: true }, (cell) => {
+      const cellVal = cell.value !== undefined && cell.value !== null ? String(cell.value) : "";
+      if (cellVal.length > maxLen) {
+        maxLen = cellVal.length;
+      }
+    });
+    column.width = Math.min(Math.max(maxLen + 4, 14), 45);
+  });
+}
+
+/**
+ * Builds Standard Staff Directory Export Workbook with Green Styling
+ */
+export async function buildExportWorkbook(staffRecords: any[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "DVLA Temporary Staff HR Platform";
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet("Staff Directory");
+
+  // Title Banner Row
+  worksheet.mergeCells("A1:T1");
+  const titleCell = worksheet.getCell("A1");
+  titleCell.value = "DRIVER AND VEHICLE LICENSING AUTHORITY (DVLA) - STAFF DIRECTORY";
+  titleCell.font = { name: "Calibri", size: 14, bold: true, color: { argb: GREEN_THEME.headerFont } };
+  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.headerBg } };
+  titleCell.alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getRow(1).height = 36;
+
+  // Sub-banner info
+  worksheet.mergeCells("A2:T2");
+  const subCell = worksheet.getCell("A2");
+  subCell.value = `TOTAL RECORDS: ${staffRecords.length} | EXPORT DATE: ${new Date().toLocaleDateString("en-GB")}`;
+  subCell.font = { name: "Calibri", size: 10, bold: true, color: { argb: GREEN_THEME.subHeaderFont } };
+  subCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.subHeaderBg } };
+  subCell.alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getRow(2).height = 24;
+
+  // Headers
+  const colHeaders = [
+    "Staff Code",
+    "Full Name",
+    "Gender",
+    "Email",
+    "Date of Birth",
+    "SSNIT Number",
+    "NIA Number (Ghana Card)",
+    "Station / Department",
+    "Role / Position",
+    "Phone Number",
+    "Bank Name",
+    "Bank Branch",
+    "Bank Account No.",
+    "Monthly Salary",
+    "Payment Status",
+    "Contract Start Date",
+    "Contract End Date",
+    "Days Remaining",
+    "Contract Status",
+    "Renewal Count",
+  ];
+
+  const headerRow = worksheet.addRow(colHeaders);
+  headerRow.height = 28;
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF047857" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = {
+      top: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      bottom: { style: "medium", color: { argb: GREEN_THEME.headerBg } },
+      left: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      right: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
     };
   });
 
-  const worksheet = XLSX.utils.json_to_sheet(exportRows);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Monthly Payroll");
+  let totalSalary = 0;
 
-  // Write as buffer
-  const buf = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-  return buf;
-}
-
-/**
- * Builds Payroll Payment Workbook matching TEMP JULY.xlsx format
- */
-export function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Buffer {
-  const titleHeader = [`TEMPORARY STAFF PAYROLL FOR ${monthStr.toUpperCase()}`];
-  const colHeaders = [
-    "Sr. No.",
-    "EMPLOYEE ID",
-    "EMPLOYEE NAME",
-    "LOCATION",
-    "START DATE",
-    "END DATE",
-    "BASIC",
-    "GROSS SALARY",
-    "N0. OF MONTHS",
-    "TOTAL GROSS SALARY",
-    "NSSF(5.5%)",
-    "NSSF(13%)",
-    "TOTAL PAY COST",
-    "TOTAL TAXABLE AMOUNT",
-    "INCOME TAX",
-    "TOTAL DEDUCTION",
-    "NET PAY",
-  ];
-
-  const dataRows = staffRecords.map((item, idx) => {
+  // Data rows
+  staffRecords.forEach((item, idx) => {
     const currentContract = item.contracts?.find((c: any) => c.is_current) || item.contracts?.[0];
-    const basic = item.salary ? Number(item.salary) : 1400.00;
-    const gross = basic;
-    const months = 1;
-    const totalGross = gross * months;
+    const status = computeContractStatus(currentContract);
+    const daysRemaining = currentContract ? computeDaysRemaining(currentContract.end_date) : 0;
+    const salary = item.salary ? Number(item.salary) : 0;
+    totalSalary += salary;
 
-    const nssf55 = Math.round(totalGross * 0.055 * 100) / 100;
-    const nssf13 = Math.round(totalGross * 0.13 * 100) / 100;
-    const totalPayCost = Math.round((totalGross + nssf13) * 100) / 100;
-    const totalTaxable = Math.round((totalGross - nssf55) * 100) / 100;
-    const incomeTax = 122.28; // Standard GRA PAYE bracket tax
-    const totalDeduction = Math.round((nssf55 + incomeTax) * 100) / 100;
-    const netPay = Math.round((totalGross - totalDeduction) * 100) / 100;
-
-    return [
-      idx + 1,
+    const rowValues = [
       item.staff_code || `EMP-${item.id}`,
       item.full_name,
-      item.department || "General",
+      item.gender || "N/A",
+      item.email || "N/A",
+      item.date_of_birth ? formatDateReadable(item.date_of_birth) : "N/A",
+      item.ssnit_no || "N/A",
+      item.nia_number || "N/A",
+      item.department || "N/A",
+      item.role || "N/A",
+      item.phone || "N/A",
+      item.bank_name || "N/A",
+      item.bank_branch || "N/A",
+      item.bank_account || "N/A",
+      salary,
+      (item.payment_status || "paid").toUpperCase(),
       currentContract ? formatDateReadable(currentContract.start_date) : "N/A",
       currentContract ? formatDateReadable(currentContract.end_date) : "N/A",
-      basic,
-      gross,
-      months,
-      totalGross,
-      nssf55,
-      nssf13,
-      totalPayCost,
-      totalTaxable,
-      incomeTax,
-      totalDeduction,
-      netPay,
+      currentContract && !currentContract.is_terminated ? daysRemaining : "N/A",
+      status,
+      currentContract ? currentContract.renewal_number : 1,
     ];
+
+    const dataRow = worksheet.addRow(rowValues);
+    dataRow.height = 22;
+
+    const isAlt = idx % 2 === 1;
+
+    dataRow.eachCell((cell, colIndex) => {
+      cell.font = { name: "Calibri", size: 10 };
+      cell.border = {
+        top: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        bottom: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        left: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        right: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+      };
+
+      if (isAlt) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.altRowBg } };
+      }
+
+      // Column specific formatting
+      if (colIndex === 14) {
+        // Salary column
+        (cell as any).numFmt = CURRENCY_FORMAT;
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+        cell.font = { name: "Calibri", size: 10, bold: true };
+      } else if ([1, 3, 5, 6, 7, 15, 16, 17, 18, 19, 20].includes(colIndex)) {
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      } else {
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      }
+    });
   });
 
-  const sheetData = [titleHeader, colHeaders, ...dataRows];
-  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "PAYROLL PAYMENT");
+  // Summary Row at Bottom
+  const totalRowValues = Array(20).fill("");
+  totalRowValues[0] = "TOTALS / SUMMARY";
+  totalRowValues[13] = totalSalary;
 
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const summaryRow = worksheet.addRow(totalRowValues);
+  summaryRow.height = 26;
+  summaryRow.eachCell((cell, colIndex) => {
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: GREEN_THEME.totalFont } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.totalBg } };
+    cell.border = {
+      top: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      bottom: { style: "double", color: { argb: GREEN_THEME.accentBorder } },
+      left: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+      right: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+    };
+
+    if (colIndex === 14) {
+      (cell as any).numFmt = CURRENCY_FORMAT;
+      cell.alignment = { horizontal: "right", vertical: "middle" };
+    } else {
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    }
+  });
+
+  applyAutoColumnWidths(worksheet);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
+export const ACH_BANK_LOOKUP: Record<string, { bankCode: string; locationCode: string }> = {
+  "STANDARD CHARTERED": { bankCode: "02", locationCode: "020101" },
+  "ABSA": { bankCode: "03", locationCode: "030105" },
+  "BARCLAYS": { bankCode: "03", locationCode: "030105" },
+  "GCB": { bankCode: "04", locationCode: "040101" },
+  "GHANA COMMERCIAL BANK": { bankCode: "04", locationCode: "040101" },
+  "NIB": { bankCode: "05", locationCode: "050131" },
+  "NATIONAL INVESTMENT BANK": { bankCode: "05", locationCode: "050131" },
+  "UBA": { bankCode: "06", locationCode: "060101" },
+  "UNITED BANK FOR AFRICA": { bankCode: "06", locationCode: "060101" },
+  "RURAL BANKS": { bankCode: "07", locationCode: "070615" },
+  "RURAL BANK": { bankCode: "07", locationCode: "070615" },
+  "ADB": { bankCode: "08", locationCode: "080100" },
+  "AGRICULTURAL DEVELOPMENT BANK": { bankCode: "08", locationCode: "080100" },
+  "SOCIETE GENERALE": { bankCode: "09", locationCode: "090115" },
+  "SOCIETE GENERAL": { bankCode: "09", locationCode: "090115" },
+  "UMB": { bankCode: "10", locationCode: "100101" },
+  "UNIVERSAL MERCHANT BANK": { bankCode: "10", locationCode: "100101" },
+  "HFC": { bankCode: "11", locationCode: "110104" },
+  "REPUBLIC": { bankCode: "11", locationCode: "110104" },
+  "HFC/REPUBLIC": { bankCode: "11", locationCode: "110104" },
+  "ZENITH": { bankCode: "12", locationCode: "120105" },
+  "ZENITH BANK": { bankCode: "12", locationCode: "120105" },
+  "ECOBANK": { bankCode: "13", locationCode: "130101" },
+  "CAL": { bankCode: "14", locationCode: "140100" },
+  "CAL BANK": { bankCode: "14", locationCode: "140100" },
+  "FIRST ATLANTIC": { bankCode: "17", locationCode: "170114" },
+  "FIRST ATLANTIC BANK": { bankCode: "17", locationCode: "170114" },
+  "PRUDENTIAL": { bankCode: "18", locationCode: "180109" },
+  "PRUDENTIAL BANK": { bankCode: "18", locationCode: "180109" },
+  "STANBIC": { bankCode: "19", locationCode: "190101" },
+  "STANBIC BANK": { bankCode: "19", locationCode: "190101" },
+  "FBN": { bankCode: "20", locationCode: "200113" },
+  "BANK OF AFRICA": { bankCode: "21", locationCode: "210601" },
+  "GT": { bankCode: "23", locationCode: "230101" },
+  "GT BANK": { bankCode: "23", locationCode: "230101" },
+  "GUARANTY TRUST BANK": { bankCode: "23", locationCode: "230101" },
+  "FIDELITY": { bankCode: "24", locationCode: "240100" },
+  "FIDELITY BANK": { bankCode: "24", locationCode: "240100" },
+  "ACCESS": { bankCode: "28", locationCode: "280100" },
+  "ACCESS BANK": { bankCode: "28", locationCode: "280100" },
+  "FIRST NATIONAL BANK": { bankCode: "33", locationCode: "330102" },
+  "FNB": { bankCode: "33", locationCode: "330102" },
+  "CBG": { bankCode: "34", locationCode: "340102" },
+  "CONSOLIDATED BANK": { bankCode: "34", locationCode: "340102" },
+  "CONSOLIDATED BANK GHANA": { bankCode: "34", locationCode: "340102" },
+};
+
+export function getAchBankDetails(bankName: string, bankBranch?: string): { bankCode: string; locationCode: string } {
+  if (!bankName) return { bankCode: "00", locationCode: "000000" };
+
+  const norm = bankName.toUpperCase().replace(/[^A-Z0-9]/g, " ").trim();
+
+  for (const key of Object.keys(ACH_BANK_LOOKUP)) {
+    if (norm.includes(key) || key.includes(norm)) {
+      const match = ACH_BANK_LOOKUP[key];
+      let loc = match.locationCode;
+      if (bankBranch) {
+        const digits = bankBranch.replace(/[^0-9]/g, "");
+        if (digits.length >= 6) {
+          loc = digits;
+        }
+      }
+      return { bankCode: match.bankCode, locationCode: loc };
+    }
+  }
+
+  // Fallback checks
+  if (norm.includes("GCB") || norm.includes("COMMERCIAL")) return { bankCode: "04", locationCode: "040101" };
+  if (norm.includes("ECOBANK")) return { bankCode: "13", locationCode: "130101" };
+  if (norm.includes("ABSA") || norm.includes("BARCLAYS")) return { bankCode: "03", locationCode: "030105" };
+  if (norm.includes("STANBIC")) return { bankCode: "19", locationCode: "190101" };
+  if (norm.includes("ADB")) return { bankCode: "08", locationCode: "080100" };
+  if (norm.includes("FIDELITY")) return { bankCode: "24", locationCode: "240100" };
+  if (norm.includes("CBG") || norm.includes("CONSOLIDATED")) return { bankCode: "34", locationCode: "340102" };
+  if (norm.includes("CAL")) return { bankCode: "14", locationCode: "140100" };
+  if (norm.includes("GT")) return { bankCode: "23", locationCode: "230101" };
+  if (norm.includes("ACCESS")) return { bankCode: "28", locationCode: "280100" };
+  if (norm.includes("ZENITH")) return { bankCode: "12", locationCode: "120105" };
+  if (norm.includes("UBA")) return { bankCode: "06", locationCode: "060101" };
+  if (norm.includes("PRUDENTIAL")) return { bankCode: "18", locationCode: "180109" };
+
+  return { bankCode: "00", locationCode: "000000" };
 }
 
 /**
- * Builds SSNIT Contribution Report Workbook matching JUNE SSNIT.xlsx format
+ * Builds Payroll Payment Workbook matching exact GIFMIS / Oracle Financials Payment Schema:
+ * LINE_NUMBER | AMOUNT | ATTRIBUTE_CATEGORY | ATTRIBUTE1 | ATTRIBUTE2 | ATTRIBUTE3 | ATTRIBUTE4 | ATTRIBUTE5 | DESCRIPTION
  */
-export function buildSsnitContributionWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Buffer {
-  const header1 = ["NEW FORMAT FOR CONTRIBUTION REPORT SUBMISSION"];
-  const header2 = ["ESTABLISHMENT NAME:…", "", "DRIVER AND VEHICLE LICENSING AUTHORITY"];
-  const header3 = ["ER NO:…201606660…………………………………………………………………………………………………"];
-  const header4 = [`MONTH: ${monthStr.toUpperCase()}..`, "", "", "CONTACT NUMBERS:………………………………………………………", "0244975955 AND '0244772715", "", "CATEGORY……………ALL…………………………."];
+export async function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "DVLA Temporary Staff HR Platform";
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet("PAYROLL PAYMENT");
+
+  // Exact 9 Column Headers matching GIFMIS Oracle Financials Format
+  const colHeaders = [
+    "LINE_NUMBER",
+    "AMOUNT",
+    "ATTRIBUTE_CATEGORY",
+    "ATTRIBUTE1",
+    "ATTRIBUTE2",
+    "ATTRIBUTE3",
+    "ATTRIBUTE4",
+    "ATTRIBUTE5",
+    "DESCRIPTION",
+  ];
+
+  const headerRow = worksheet.addRow(colHeaders);
+  headerRow.height = 28;
+
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF047857" } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = {
+      top: { style: "medium", color: { argb: GREEN_THEME.headerBg } },
+      bottom: { style: "medium", color: { argb: GREEN_THEME.headerBg } },
+      left: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      right: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+    };
+  });
+
+  let totalAmount = 0;
+  const descText = `TEMP STAFF-ALLOWANCE ${monthStr.toUpperCase()}`;
+
+  staffRecords.forEach((item, idx) => {
+    const basic = item.salary ? Number(item.salary) : 1400.00;
+    const ssnitEmployee = Math.round(basic * 0.055 * 100) / 100;
+    const graPaye = 122.28;
+    const totalDeduction = Math.round((ssnitEmployee + graPaye) * 100) / 100;
+    const netPay = Math.round((basic - totalDeduction) * 100) / 100;
+
+    totalAmount += netPay;
+
+    const ach = getAchBankDetails(item.bank_name, item.bank_branch);
+
+    const rowValues = [
+      idx + 1,                                  // LINE_NUMBER
+      netPay,                                  // AMOUNT
+      "Non Employee",                          // ATTRIBUTE_CATEGORY
+      item.staff_code || `EMP-${item.id}`,     // ATTRIBUTE1 (Staff Code)
+      (item.full_name || "").toUpperCase(),    // ATTRIBUTE2 (Staff Full Name)
+      ach.bankCode,                             // ATTRIBUTE3 (Bank Code)
+      ach.locationCode,                        // ATTRIBUTE4 (Location Code)
+      item.bank_account || "N/A",              // ATTRIBUTE5 (Bank Account Number)
+      descText,                                // DESCRIPTION
+    ];
+
+    const dataRow = worksheet.addRow(rowValues);
+    dataRow.height = 22;
+    const isAlt = idx % 2 === 1;
+
+    dataRow.eachCell((cell, colIdx) => {
+      cell.font = { name: "Calibri", size: 10 };
+      cell.border = {
+        top: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        bottom: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        left: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        right: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+      };
+
+      if (isAlt) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.altRowBg } };
+      }
+
+      if (colIdx === 2) {
+        // AMOUNT
+        (cell as any).numFmt = "#,##0.00";
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+        cell.font = { name: "Calibri", size: 10, bold: true };
+      } else if ([1, 3, 4, 6, 7, 8].includes(colIdx)) {
+        // LINE_NUMBER, ATTRIBUTE_CATEGORY, ATTRIBUTE1, ATTRIBUTE3 (BANK), ATTRIBUTE4 (LOCATION), ATTRIBUTE5 (ACCOUNT NO)
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        if ([6, 7, 8].includes(colIdx)) {
+          (cell as any).numFmt = "@";
+        }
+      } else {
+        // ATTRIBUTE2 (NAME), DESCRIPTION
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      }
+    });
+  });
+
+  // Summary Totals Row
+  const totalsRowValues = [
+    "TOTALS",
+    totalAmount,
+    `TOTAL STAFF: ${staffRecords.length}`,
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ];
+
+  const totalRow = worksheet.addRow(totalsRowValues);
+  totalRow.height = 28;
+
+  totalRow.eachCell((cell, colIdx) => {
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: GREEN_THEME.totalFont } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.totalBg } };
+    cell.border = {
+      top: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      bottom: { style: "double", color: { argb: GREEN_THEME.accentBorder } },
+      left: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+      right: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+    };
+
+    if (colIdx === 2) {
+      (cell as any).numFmt = "#,##0.00";
+      cell.alignment = { horizontal: "right", vertical: "middle" };
+    } else {
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    }
+  });
+
+  applyAutoColumnWidths(worksheet);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
+/**
+ * Builds SSNIT Contribution Report Workbook with Green Theme
+ */
+export async function buildSsnitContributionWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "DVLA Temporary Staff HR Platform";
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet("SSNIT CONTRIBUTION");
+
+  // Header 1
+  worksheet.mergeCells("A1:L1");
+  const title1 = worksheet.getCell("A1");
+  title1.value = "NEW FORMAT FOR CONTRIBUTION REPORT SUBMISSION";
+  title1.font = { name: "Calibri", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+  title1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.headerBg } };
+  title1.alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getRow(1).height = 32;
+
+  // Header 2
+  worksheet.mergeCells("A2:L2");
+  const title2 = worksheet.getCell("A2");
+  title2.value = `ESTABLISHMENT: DRIVER AND VEHICLE LICENSING AUTHORITY (DVLA) | ER NO: 201606660 | MONTH: ${monthStr.toUpperCase()}`;
+  title2.font = { name: "Calibri", size: 10, bold: true, color: { argb: GREEN_THEME.subHeaderFont } };
+  title2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.subHeaderBg } };
+  title2.alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getRow(2).height = 24;
+
   const colHeaders = [
     "S/NO.",
-    "SSNIT NUMBER ",
-    "NIA NUMBER ",
-    "SURNAME ",
-    "FIRST NAME ",
-    "OTHER NAME ",
-    "OPTION CODE   (PNDCL 247/ACT 766)",
-    "HAZARDOUS (Y/N)",
-    "BASIC SALARY ",
+    "SSNIT NUMBER",
+    "NIA NUMBER",
+    "SURNAME",
+    "FIRST NAME",
+    "OTHER NAME",
+    "OPTION CODE",
+    "HAZARDOUS",
+    "BASIC SALARY",
     "SSNIT - TIER 1 (13.5%)",
     "PETRA - TIER 2 (5%)",
     "GRA - PAYE DED.",
   ];
 
-  const dataRows = staffRecords.map((item, idx) => {
+  const headerRow = worksheet.addRow(colHeaders);
+  headerRow.height = 28;
+
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF047857" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = {
+      top: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      bottom: { style: "medium", color: { argb: GREEN_THEME.headerBg } },
+      left: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      right: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+    };
+  });
+
+  let sumBasic = 0;
+  let sumTier1 = 0;
+  let sumTier2 = 0;
+  let sumGraPaye = 0;
+
+  staffRecords.forEach((item, idx) => {
     const nameParts = (item.full_name || "").trim().split(/\s+/);
     let firstName = "";
     let surname = "";
@@ -297,26 +641,252 @@ export function buildSsnitContributionWorkbook(staffRecords: any[], monthStr: st
     const tier2 = Math.round(basic * 0.05 * 100) / 100;
     const graPaye = 122.28;
 
-    return [
+    sumBasic += basic;
+    sumTier1 += tier1;
+    sumTier2 += tier2;
+    sumGraPaye += graPaye;
+
+    const rowValues = [
       idx + 1,
-      item.ssnit_no || "",
-      item.nia_number || "",
+      item.ssnit_no || "N/A",
+      item.nia_number || "N/A",
       surname,
       firstName,
       otherName,
       "ACT 766",
-      "",
+      "N",
       basic,
       tier1,
       tier2,
       graPaye,
     ];
+
+    const dataRow = worksheet.addRow(rowValues);
+    dataRow.height = 22;
+    const isAlt = idx % 2 === 1;
+
+    dataRow.eachCell((cell, colIdx) => {
+      cell.font = { name: "Calibri", size: 10 };
+      cell.border = {
+        top: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        bottom: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        left: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        right: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+      };
+
+      if (isAlt) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.altRowBg } };
+      }
+
+      if ([9, 10, 11, 12].includes(colIdx)) {
+        (cell as any).numFmt = CURRENCY_FORMAT;
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+      } else if ([1, 2, 3, 7, 8].includes(colIdx)) {
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      } else {
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      }
+    });
   });
 
-  const sheetData = [header1, header2, header3, header4, colHeaders, ...dataRows];
-  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "SSNIT CONTRIBUTION");
+  // Totals Row
+  const totalsRowValues = [
+    "TOTALS",
+    "",
+    `TOTAL STAFF: ${staffRecords.length}`,
+    "",
+    "",
+    "",
+    "",
+    "",
+    sumBasic,
+    sumTier1,
+    sumTier2,
+    sumGraPaye,
+  ];
 
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const totalRow = worksheet.addRow(totalsRowValues);
+  totalRow.height = 28;
+
+  totalRow.eachCell((cell, colIdx) => {
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: GREEN_THEME.totalFont } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.totalBg } };
+    cell.border = {
+      top: { style: "thin", color: { argb: GREEN_THEME.accentBorder } },
+      bottom: { style: "double", color: { argb: GREEN_THEME.accentBorder } },
+      left: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+      right: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+    };
+
+    if ([9, 10, 11, 12].includes(colIdx)) {
+      (cell as any).numFmt = CURRENCY_FORMAT;
+      cell.alignment = { horizontal: "right", vertical: "middle" };
+    } else {
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    }
+  });
+
+  applyAutoColumnWidths(worksheet);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
+/**
+ * Builds Individual Staff Payslip Excel Workbook with Green Theme
+ */
+export async function buildSinglePayslipWorkbook(staffRecord: any, monthStr: string = "August 2026"): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "DVLA Temporary Staff HR Platform";
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet("PAYSLIP");
+
+  const currentContract = staffRecord.contracts?.find((c: any) => c.is_current) || staffRecord.contracts?.[0];
+  const basic = staffRecord.salary ? Number(staffRecord.salary) : 1400.00;
+  const ssnitTier1 = Math.round(basic * 0.135 * 100) / 100;
+  const petraTier2 = Math.round(basic * 0.05 * 100) / 100;
+  const ssnitEmployee = Math.round(basic * 0.055 * 100) / 100;
+  const graPaye = 122.28;
+  const totalDeductions = Math.round((ssnitEmployee + graPaye) * 100) / 100;
+  const netPay = Math.round((basic - totalDeductions) * 100) / 100;
+
+  // Header Banner 1
+  worksheet.mergeCells("A1:E1");
+  const title1 = worksheet.getCell("A1");
+  title1.value = "DRIVER AND VEHICLE LICENSING AUTHORITY (DVLA)";
+  title1.font = { name: "Calibri", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+  title1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.headerBg } };
+  title1.alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getRow(1).height = 34;
+
+  // Header Banner 2
+  worksheet.mergeCells("A2:E2");
+  const title2 = worksheet.getCell("A2");
+  title2.value = `OFFICIAL SALARY PAYSLIP - ${monthStr.toUpperCase()}`;
+  title2.font = { name: "Calibri", size: 12, bold: true, color: { argb: GREEN_THEME.subHeaderFont } };
+  title2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.subHeaderBg } };
+  title2.alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getRow(2).height = 24;
+
+  // Blank row 3
+  worksheet.getRow(3).height = 10;
+
+  // Employee Profile Grid (Rows 4-9)
+  const profileData = [
+    ["EMPLOYEE DETAILS", "", "", "", ""],
+    ["Staff Code / ID:", staffRecord.staff_code || `EMP-${staffRecord.id}`, "", "Pay Period:", monthStr],
+    ["Full Name:", staffRecord.full_name, "", "Department / Station:", staffRecord.department || "N/A"],
+    ["SSNIT Number:", staffRecord.ssnit_no || "N/A", "", "Role / Designation:", staffRecord.role || "Temporary Staff"],
+    ["Ghana Card (NIA):", staffRecord.nia_number || "N/A", "", "Bank Name:", staffRecord.bank_name || "N/A"],
+    ["Bank Account No:", staffRecord.bank_account || "N/A", "", "Bank Branch:", staffRecord.bank_branch || "N/A"],
+  ];
+
+  profileData.forEach((rowVals, rIdx) => {
+    const rowNum = rIdx + 4;
+    const row = worksheet.getRow(rowNum);
+    row.values = rowVals;
+
+    if (rIdx === 0) {
+      worksheet.mergeCells(`A${rowNum}:E${rowNum}`);
+      const c = worksheet.getCell(`A${rowNum}`);
+      c.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF047857" } };
+      c.alignment = { horizontal: "left", vertical: "middle" };
+      row.height = 24;
+    } else {
+      row.height = 20;
+      const cA = worksheet.getCell(`A${rowNum}`);
+      const cD = worksheet.getCell(`D${rowNum}`);
+      cA.font = { name: "Calibri", size: 10, bold: true };
+      cD.font = { name: "Calibri", size: 10, bold: true };
+    }
+  });
+
+  // Blank row 10
+  worksheet.getRow(10).height = 10;
+
+  // Earnings & Deductions Table Header (Row 11)
+  worksheet.getRow(11).values = ["PAY ELEMENTS", "EARNINGS (GH₵)", "", "DEDUCTIONS", "AMOUNT (GH₵)"];
+  worksheet.mergeCells("A11:B11");
+  worksheet.mergeCells("D11:E11");
+  const h11 = worksheet.getRow(11);
+  h11.height = 26;
+  h11.eachCell((cell) => {
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF047857" } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
+
+  // Financial Rows (Rows 12-16)
+  const finRows = [
+    ["Basic Salary", basic, "", "SSNIT Employee (5.5%)", ssnitEmployee],
+    ["", "", "", "GRA PAYE Tax", graPaye],
+    ["", "", "", "SSNIT Employer (13%)", ssnitTier1],
+    ["", "", "", "Petra Tier 2 (5%)", petraTier2],
+    ["GROSS EARNINGS", basic, "", "TOTAL DEDUCTIONS", totalDeductions],
+  ];
+
+  finRows.forEach((rVals, rIdx) => {
+    const rowNum = rIdx + 12;
+    const row = worksheet.getRow(rowNum);
+    row.values = rVals;
+    row.height = 22;
+
+    const isGrossTotal = rIdx === 4;
+
+    row.eachCell((cell, colIdx) => {
+      cell.font = { name: "Calibri", size: 10, bold: isGrossTotal };
+      cell.border = {
+        top: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        bottom: { style: isGrossTotal ? "medium" : "thin", color: { argb: GREEN_THEME.borderColor } },
+        left: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+        right: { style: "thin", color: { argb: GREEN_THEME.borderColor } },
+      };
+
+      if (isGrossTotal) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.altRowBg } };
+      }
+
+      if ([2, 5].includes(colIdx) && cell.value !== "") {
+        (cell as any).numFmt = CURRENCY_FORMAT;
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+      }
+    });
+  });
+
+  // Blank row 17
+  worksheet.getRow(17).height = 10;
+
+  // NET PAY Row (Row 18)
+  worksheet.mergeCells("A18:C18");
+  worksheet.mergeCells("D18:E18");
+  const netRow = worksheet.getRow(18);
+  netRow.values = ["NET TAKE-HOME PAY (GH₵):", "", "", netPay, ""];
+  netRow.height = 32;
+
+  const netLabel = worksheet.getCell("A18");
+  netLabel.font = { name: "Calibri", size: 12, bold: true, color: { argb: GREEN_THEME.totalFont } };
+  netLabel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.totalBg } };
+  netLabel.alignment = { horizontal: "right", vertical: "middle" };
+
+  const netVal = worksheet.getCell("D18");
+  netVal.font = { name: "Calibri", size: 14, bold: true, color: { argb: "FF047857" } };
+  netVal.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_THEME.totalBg } };
+  (netVal as any).numFmt = CURRENCY_FORMAT;
+  netVal.alignment = { horizontal: "right", vertical: "middle" };
+  netVal.border = {
+    top: { style: "medium", color: { argb: GREEN_THEME.accentBorder } },
+    bottom: { style: "double", color: { argb: GREEN_THEME.accentBorder } },
+  };
+
+  // Signatures Row (Row 21)
+  worksheet.getRow(20).height = 15;
+  worksheet.getRow(21).values = ["Prepared By: ___________________", "", "", "Employee Signature: ___________________", ""];
+  worksheet.getRow(21).height = 24;
+  worksheet.getCell("A21").font = { name: "Calibri", size: 10, italic: true };
+  worksheet.getCell("D21").font = { name: "Calibri", size: 10, italic: true };
+
+  applyAutoColumnWidths(worksheet);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }

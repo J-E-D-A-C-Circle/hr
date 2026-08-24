@@ -59,11 +59,10 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                    isActive
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${isActive
                       ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60"
-                  }`}
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
@@ -93,11 +92,10 @@ export default function Navbar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap ${
-                isActive
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap ${isActive
                   ? "text-indigo-600 font-semibold dark:text-indigo-400"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-              }`}
+                }`}
             >
               <Icon className="h-4 w-4" />
               <span>{item.label}</span>

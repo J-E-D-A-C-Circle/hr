@@ -31,13 +31,17 @@ import {
   AlertCircle,
   Clock,
   Hash,
+  Trash2,
 } from "lucide-react";
 import { formatDateReadable, formatDateForInput, formatDateDDMMYYYY } from "@/lib/status";
 import DateInput from "@/components/DateInput";
+import ConfirmModal from "@/components/ConfirmModal";
+import Toast from "@/components/Toast";
 
 export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const router = useRouter();
-  const [id, setId] = useState<string>("");
+  const unwrappedParams = typeof (params as any)?.then === "function" ? use(params as Promise<{ id: string }>) : (params as { id: string });
+  const id = unwrappedParams?.id || "";
 
   const [staff, setStaff] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,13 +57,30 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [showTerminateModal, setShowTerminateModal] = useState(false);
 
-  useEffect(() => {
-    Promise.resolve(params).then((unwrapped: any) => {
-      if (unwrapped?.id) {
-        setId(String(unwrapped.id));
-      }
-    });
-  }, [params]);
+  // Delete confirm & Toast state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error" | "warning" | "info"; message: string } | null>(null);
+
+  const handleDeleteStaffProfile = async () => {
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/staff/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to delete staff profile");
+      setToast({ type: "success", message: `Staff profile #${id} (${staff?.full_name}) deleted successfully.` });
+      setTimeout(() => {
+        router.push("/staff");
+      }, 1200);
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Failed to delete profile" });
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const fetchStaffDetails = async (targetId: string) => {
     if (!targetId) return;
@@ -215,6 +236,13 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 >
                   <UserX className="h-3.5 w-3.5" />
                   <span>Terminate</span>
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Profile</span>
                 </button>
               </>
             )}
@@ -670,6 +698,25 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         staff={staff}
         onSuccess={() => fetchStaffDetails(id as string)}
       />
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteStaffProfile}
+        title={`Delete Staff Profile #${id}`}
+        message={`Are you sure you want to PERMANENTLY delete the staff profile for ${staff?.full_name}? All associated contract records will be removed. This action cannot be undone.`}
+        confirmText="Delete Staff Profile"
+        variant="danger"
+        loading={deleteLoading}
+      />
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </SidebarLayout>
   );
 }

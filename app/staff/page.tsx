@@ -41,6 +41,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
+import ConfirmModal from "@/components/ConfirmModal";
+import Toast from "@/components/Toast";
 
 export default function StaffListPage() {
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -66,6 +68,51 @@ export default function StaffListPage() {
   const [selectedStaffIds, setSelectedStaffIds] = useState<number[]>([]);
   const [bulkRenewing, setBulkRenewing] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+
+  // Custom ConfirmModal & Toast state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    variant: "danger" | "warning" | "primary";
+    action: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    variant: "danger",
+    action: async () => {},
+  });
+
+  const [toast, setToast] = useState<{ type: "success" | "error" | "warning" | "info"; message: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const requestDeleteStaffFromTable = (staffItem: any) => {
+    setConfirmModal({
+      isOpen: true,
+      title: `Delete Staff Record #${staffItem.id}`,
+      message: `Are you sure you want to PERMANENTLY delete ${staffItem.full_name} (${staffItem.staff_code || `EMP-${staffItem.id}`})? All associated contract history will be removed.`,
+      confirmText: "Delete Staff Record",
+      variant: "danger",
+      action: async () => {
+        setDeleteLoading(true);
+        try {
+          const res = await fetch(`/api/staff/${staffItem.id}`, { method: "DELETE" });
+          const json = await res.json();
+          if (!res.ok || !json.success) throw new Error(json.error || "Failed to delete staff record");
+          setToast({ type: "success", message: `Staff record #${staffItem.id} (${staffItem.full_name}) deleted successfully.` });
+          fetchStaff();
+        } catch (err: any) {
+          setToast({ type: "error", message: err.message || "Failed to delete record." });
+        } finally {
+          setDeleteLoading(false);
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -107,37 +154,43 @@ export default function StaffListPage() {
   const duplicateStaffIds = useMemo(() => {
     const set = new Set<number>();
     const seenCodes = new Map<string, number>();
-    const seenNames = new Map<string, number>();
     const seenSsnit = new Map<string, number>();
+    const seenNia = new Map<string, number>();
 
     staffList.forEach((s) => {
       if (s.staff_code) {
         const code = s.staff_code.trim().toLowerCase();
-        if (seenCodes.has(code)) {
-          set.add(s.id);
-          set.add(seenCodes.get(code)!);
-        } else {
-          seenCodes.set(code, s.id);
-        }
-      }
-
-      if (s.full_name) {
-        const name = s.full_name.trim().toLowerCase();
-        if (seenNames.has(name)) {
-          set.add(s.id);
-          set.add(seenNames.get(name)!);
-        } else {
-          seenNames.set(name, s.id);
+        if (code && code !== "n/a" && code !== "none") {
+          if (seenCodes.has(code)) {
+            set.add(s.id);
+            set.add(seenCodes.get(code)!);
+          } else {
+            seenCodes.set(code, s.id);
+          }
         }
       }
 
       if (s.ssnit_no) {
         const ssnit = s.ssnit_no.trim().toLowerCase();
-        if (seenSsnit.has(ssnit)) {
-          set.add(s.id);
-          set.add(seenSsnit.get(ssnit)!);
-        } else {
-          seenSsnit.set(ssnit, s.id);
+        if (ssnit && ssnit !== "n/a" && ssnit !== "none" && ssnit !== "-") {
+          if (seenSsnit.has(ssnit)) {
+            set.add(s.id);
+            set.add(seenSsnit.get(ssnit)!);
+          } else {
+            seenSsnit.set(ssnit, s.id);
+          }
+        }
+      }
+
+      if (s.nia_number) {
+        const nia = s.nia_number.trim().toLowerCase();
+        if (nia && nia !== "n/a" && nia !== "none" && nia !== "-" && nia !== "gha-") {
+          if (seenNia.has(nia)) {
+            set.add(s.id);
+            set.add(seenNia.get(nia)!);
+          } else {
+            seenNia.set(nia, s.id);
+          }
         }
       }
     });
@@ -704,6 +757,15 @@ export default function StaffListPage() {
                                 <span>Reinstate</span>
                               </button>
                             )}
+
+                            {/* Delete Staff Record Button */}
+                            <button
+                              onClick={() => requestDeleteStaffFromTable(staff)}
+                              title="Permanently Delete Staff Record"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -814,6 +876,25 @@ export default function StaffListPage() {
         onClose={() => setMergeTarget(null)}
         onSuccess={() => fetchStaff()}
       />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.action}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
+        loading={deleteLoading}
+      />
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </SidebarLayout>
   );
 }

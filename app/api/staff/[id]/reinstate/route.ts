@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { calculateEndDate } from "@/lib/status";
+import { calculateEndDate, parseFlexibleDate } from "@/lib/status";
 
 export async function POST(
   request: NextRequest,
@@ -39,7 +39,7 @@ export async function POST(
     const lastContract = staff.contracts[0] || null;
     const nextRenewalNumber = lastContract ? lastContract.renewal_number + 1 : 1;
 
-    const startDateObj = new Date(new_start_date);
+    const startDateObj = parseFlexibleDate(new_start_date) || new Date();
     const endDateObj = calculateEndDate(startDateObj);
     const grossSalaryNum = new_gross_salary ? parseFloat(new_gross_salary) : staff.salary;
 
