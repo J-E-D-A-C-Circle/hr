@@ -18,36 +18,84 @@ export async function GET(request: NextRequest) {
     const targetStart = new Date(targetYear, targetMonth - 1, 1);
     const targetEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59);
 
-    // Fetch all staff with their contracts
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const monthLabel = monthNames[targetMonth - 1] || `Month ${targetMonth}`;
+    const targetMonthStr = `${monthLabel} ${targetYear}`;
+
+    // Fetch validations for target month
+    const monthValidations = await prisma.staffValidation.findMany({
+      where: {
+        month: {
+          contains: targetMonthStr,
+        },
+      },
+      select: {
+        staff_id: true,
+      },
+    });
+
+    const validatedStaffIds = new Set(monthValidations.map((v) => v.staff_id));
+    const hasMonthValidations = validatedStaffIds.size > 0;
+
+    // Fetch all staff with their contracts and validations
     const allStaff = await prisma.staff.findMany({
       include: {
         contracts: {
           orderBy: { start_date: "asc" },
         },
+        validations: {
+          orderBy: { validated_at: "desc" },
+        },
       },
       orderBy: { full_name: "asc" },
     });
 
+    // Filter staff strictly validated for target month (if validations exist)
+    const validatedStaffList = allStaff.filter((staff) => {
+      if (hasMonthValidations) {
+        return validatedStaffIds.has(staff.id);
+      }
+      // Fallback: check if staff has any validation matching month string or active status
+      return staff.validations.some((v) => v.month.toLowerCase().includes(monthLabel.toLowerCase()));
+    });
+
     let additionsInMonthCount = 0;
-    let expiredInMonthCount = 0;
+    let renewalsInMonthCount = 0;
+    let validationOnHoldCount = 0;
+    let juneSupplementaryCount = 0;
+
+    // Expirations/Terminations across ALL staff records in DB for target month
+    const expiredInMonthCount = allStaff.filter((staff: any) => {
+      return staff.contracts.some((c: any) => {
+        if (c.is_terminated) {
+          if (!c.termination_date) return true;
+          const tDate = new Date(c.termination_date);
+          return tDate.getFullYear() === targetYear && tDate.getMonth() + 1 === targetMonth;
+        }
+        const cEnd = new Date(c.end_date);
+        return cEnd.getFullYear() === targetYear && cEnd.getMonth() + 1 === targetMonth;
+      });
+    }).length;
 
     const periodStaffList: any[] = [];
     let totalGrossSalary = 0;
     let totalSsnitPool = 0;
+    let totalEmployerNSSF13 = 0;
+    let totalCostOfEmployment = 0;
     let totalNetSalary = 0;
     let paidCount = 0;
 
-    allStaff.forEach((staff: any) => {
-      // Find contract active during target month
+    validatedStaffList.forEach((staff: any) => {
       const activeContractInMonth = staff.contracts.find((c: any) => {
         const cStart = new Date(c.start_date);
         const cEnd = new Date(c.end_date);
-
         const wasTerminated = c.is_terminated && c.termination_date && new Date(c.termination_date) < targetStart;
         if (wasTerminated) return false;
-
         return cStart <= targetEnd && cEnd >= targetStart;
-      });
+      }) || staff.contracts[0] || null;
 
       // Track additions in month
       const addedInMonth = staff.contracts.some((c: any) => {
@@ -56,44 +104,49 @@ export async function GET(request: NextRequest) {
       });
       if (addedInMonth) additionsInMonthCount++;
 
-      // Track expirations in month
-      const expiredInMonth = staff.contracts.some((c: any) => {
-        const cEnd = new Date(c.end_date);
-        return cEnd.getFullYear() === targetYear && cEnd.getMonth() + 1 === targetMonth;
-      });
-      if (expiredInMonth) expiredInMonthCount++;
+      // Track renewals in month
+      const renewedInMonth = staff.contracts.some((c: any) => c.renewal_number > 1);
+      if (renewedInMonth) renewalsInMonthCount++;
 
-      if (activeContractInMonth) {
-        const isPaid = (staff.payment_status || "paid") === "paid";
-        const salary = staff.salary ? Number(staff.salary) : 0;
-        const deductions = calculateGhanaDeductions(salary, isPaid);
-
-        if (isPaid) {
-          paidCount++;
-          totalGrossSalary += salary;
-          totalSsnitPool += deductions.ssnit_employee_amount + deductions.ssnit_employer_amount;
-          totalNetSalary += deductions.net_take_home_salary;
-        }
-
-        periodStaffList.push({
-          id: staff.id,
-          staff_code: staff.staff_code || `EMP-${staff.id}`,
-          full_name: staff.full_name,
-          ssnit_no: staff.ssnit_no || null,
-          department: staff.department || "General Office",
-          role: staff.role || "Temporary Staff",
-          salary,
-          payment_status: staff.payment_status || "paid",
-          unpaid_reason: staff.unpaid_reason || null,
-          contract_start: activeContractInMonth.start_date,
-          contract_end: activeContractInMonth.end_date,
-          renewal_number: activeContractInMonth.renewal_number,
-          ssnit_employee_amount: deductions.ssnit_employee_amount,
-          paye_tax_amount: deductions.paye_tax_amount,
-          total_employee_deductions: deductions.total_employee_deductions,
-          net_take_home_salary: deductions.net_take_home_salary,
-        });
+      if (staff.payment_status === "unpaid" || staff.payment_status === "hold") {
+        validationOnHoldCount++;
       }
+
+      if ((staff.unpaid_reason || "").toLowerCase().includes("supplementary")) {
+        juneSupplementaryCount++;
+      }
+
+      const isPaid = (staff.payment_status || "paid") === "paid";
+      const salary = staff.salary ? Number(staff.salary) : 1400.00;
+      const deductions = calculateGhanaDeductions(salary, isPaid);
+      const nssf13 = Math.round(salary * 0.13 * 100) / 100;
+      const payCost = Math.round((salary + nssf13) * 100) / 100;
+
+      paidCount++;
+      totalGrossSalary += salary;
+      totalEmployerNSSF13 += nssf13;
+      totalCostOfEmployment += payCost;
+      totalSsnitPool += deductions.ssnit_employee_amount + deductions.ssnit_employer_amount;
+      totalNetSalary += deductions.net_take_home_salary;
+
+      periodStaffList.push({
+        id: staff.id,
+        staff_code: staff.staff_code || `EMP-${staff.id}`,
+        full_name: staff.full_name,
+        ssnit_no: staff.ssnit_no || null,
+        department: staff.department || "General Office",
+        role: staff.role || "Temporary Staff",
+        salary,
+        payment_status: staff.payment_status || "paid",
+        unpaid_reason: staff.unpaid_reason || null,
+        contract_start: activeContractInMonth?.start_date || new Date(),
+        contract_end: activeContractInMonth?.end_date || new Date(),
+        renewal_number: activeContractInMonth?.renewal_number || 1,
+        ssnit_employee_amount: deductions.ssnit_employee_amount,
+        paye_tax_amount: deductions.paye_tax_amount,
+        total_employee_deductions: deductions.total_employee_deductions,
+        net_take_home_salary: deductions.net_take_home_salary,
+      });
     });
 
     // Filter by search query if provided
@@ -109,24 +162,51 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    const monthLabel = monthNames[targetMonth - 1] || `Month ${targetMonth}`;
+    const totalAttrition = expiredInMonthCount + validationOnHoldCount;
+    const currentTotal = periodStaffList.length;
+    const basePrevMonth = Math.max(0, currentTotal - additionsInMonthCount - juneSupplementaryCount + totalAttrition);
+    const totalBase = basePrevMonth + juneSupplementaryCount;
+
+    // Helper for date formatting DD/MM/YYYY
+    const prevMonthIdx = targetMonth === 1 ? 11 : targetMonth - 2;
+    const prevMonthYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+    const prevMonthLabel = monthNames[prevMonthIdx];
+
+    const prevMonthLastDay = new Date(targetYear, targetMonth - 1, 0).getDate();
+    const currentMonthLastDay = new Date(targetYear, targetMonth, 0).getDate();
+
+    const prevMonthEndDateStr = `${String(prevMonthLastDay).padStart(2, "0")}/${String(prevMonthIdx + 1).padStart(2, "0")}/${prevMonthYear}`;
+    const currentMonthEndDateStr = `${String(currentMonthLastDay).padStart(2, "0")}/${String(targetMonth).padStart(2, "0")}/${targetYear}`;
 
     const metrics = {
       targetYear,
       targetMonth,
       monthLabel,
-      totalStaffStrength: periodStaffList.length,
+      totalValidatedStaffStrength: currentTotal,
+      totalStaffStrength: currentTotal,
       filteredCount: filteredList.length,
       additionsInMonth: additionsInMonthCount,
       expiredInMonth: expiredInMonthCount,
       paidCount,
       totalGrossSalary,
+      totalEmployerNSSF13,
+      totalCostOfEmployment,
       totalSsnitPool,
       totalNetSalary,
+      reconciliation: {
+        basePrevMonth,
+        juneSupplementary: juneSupplementaryCount,
+        totalBase,
+        additions: additionsInMonthCount,
+        renewals: renewalsInMonthCount,
+        expiredTerminated: expiredInMonthCount,
+        validationOnHold: validationOnHoldCount,
+        totalAttrition,
+        currentTotal,
+        prevMonthLabel,
+        prevMonthEndDateStr,
+        currentMonthEndDateStr,
+      },
     };
 
     if (format === "excel") {

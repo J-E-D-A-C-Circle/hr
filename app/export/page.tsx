@@ -34,6 +34,8 @@ export default function ExportPage() {
   const [validationMonth, setValidationMonth] = useState("August 2026");
   const [search, setSearch] = useState("");
   const [previewData, setPreviewData] = useState<any[]>([]);
+  const [summaryOverview, setSummaryOverview] = useState<any>(null);
+  const [reconciliation, setReconciliation] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   // Pagination State (25 items per page)
@@ -79,6 +81,8 @@ export default function ExportPage() {
       const json = await res.json();
       if (res.ok && json.success) {
         setPreviewData(json.data);
+        setSummaryOverview(json.summaryOverview || null);
+        setReconciliation(json.reconciliation || null);
       }
     } catch (err: any) {
       console.error("Preview fetch error:", err);
@@ -113,7 +117,7 @@ export default function ExportPage() {
               <span>Monthly Payroll & Statutory Export</span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Extract validated staff payment lists in <strong>Monthly Payroll Payment</strong> format or <strong>SSNIT Statutory Contribution</strong> format
+              Extract validated staff payment lists in <strong>Monthly Payroll Computation</strong>, <strong>Monthly Payroll Payment</strong>, or <strong>SSNIT Statutory Contribution</strong> formats
             </p>
           </div>
 
@@ -123,7 +127,9 @@ export default function ExportPage() {
           >
             <FileSpreadsheet className="h-4 w-4" />
             <span>
-              {exportType === "payroll"
+              {exportType === "computation"
+                ? "Download Monthly Computation Excel (.xlsx)"
+                : exportType === "payroll"
                 ? "Download Payroll Payment Excel (.xlsx)"
                 : exportType === "ssnit"
                 ? "Download SSNIT Contribution Excel (.xlsx)"
@@ -163,6 +169,9 @@ export default function ExportPage() {
                   <SelectValue placeholder="Select Payment Format" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="computation">
+                    Monthly Payroll Computation Format (TEMP COMPUTATION)
+                  </SelectItem>
                   <SelectItem value="payroll">
                     Monthly Payroll Payment Format
                   </SelectItem>
@@ -262,6 +271,8 @@ export default function ExportPage() {
             </div>
           </div>
         </div>
+
+
 
         {/* Live Export Preview Table */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">

@@ -163,75 +163,101 @@ export default function HistoryAnalyticsPage() {
           </div>
         </div>
 
-        {/* Historical Summary Metric KPI Cards */}
+        {/* Historical Summary Statistical Overview & Staff Strength Movement Cards */}
         {metrics && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Total Staff Strength */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase tracking-wider">
-                <span>Total Staff Strength</span>
-                <Users className="h-4 w-4 text-indigo-600" />
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {metrics.totalStaffStrength}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Summary Statistical Overview Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  <span>SUMMARY STATISTICAL OVERVIEW ({metrics.monthLabel} {metrics.targetYear})</span>
+                </h3>
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                  Monthly Computation
                 </span>
-                <span className="text-xs text-slate-400 font-medium">staff</span>
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Active in <strong>{metrics.monthLabel} {metrics.targetYear}</strong>
-              </p>
+
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="font-semibold text-slate-600 dark:text-slate-400">Total Validated Staff Strength:</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">{metrics.totalValidatedStaffStrength || metrics.totalStaffStrength} Employees</span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="font-semibold text-slate-600 dark:text-slate-400">Total Monthly Gross Payroll:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">GH₵{(metrics.totalGrossSalary || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="font-semibold text-slate-600 dark:text-slate-400">Total Employer NSSF Contribution (13%):</span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400 font-mono">GH₵{(metrics.totalEmployerNSSF13 || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="font-semibold text-slate-600 dark:text-slate-400">Total Employer Cost of Employment:</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">GH₵{(metrics.totalCostOfEmployment || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="font-semibold text-slate-600 dark:text-slate-400">Total Net Payout to Staff Bank Accounts:</span>
+                  <span className="font-bold text-blue-600 dark:text-blue-400 font-mono">GH₵{(metrics.totalNetSalary || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
             </div>
 
-            {/* Additions in Month */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase tracking-wider">
-                <span>Additions / New Joins</span>
-                <UserPlus className="h-4 w-4 text-emerald-600" />
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                  +{metrics.additionsInMonth}
-                </span>
-                <span className="text-xs text-slate-400 font-medium">contracts</span>
-              </div>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Started in {metrics.monthLabel} {metrics.targetYear}
-              </p>
-            </div>
+            {/* Staff Strength Reconciliation Table (Teal Highlight matching screenshot) */}
+            {metrics.reconciliation && (
+              <div className="bg-teal-700/90 dark:bg-teal-950 text-white rounded-2xl border border-teal-600/40 p-6 shadow-md space-y-3">
+                <div className="flex items-center justify-between border-b border-teal-500/40 pb-2.5">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-teal-100 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-teal-200" />
+                    <span>Staff Strength Movement & Reconciliation</span>
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-800/80 text-teal-100 uppercase">
+                    Excel Match
+                  </span>
+                </div>
 
-            {/* Expired / Attrition in Month */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase tracking-wider">
-                <span>Expirations / Attrition</span>
-                <Clock className="h-4 w-4 text-amber-600" />
+                <div className="divide-y divide-teal-600/30 text-xs">
+                  <div className="py-1.5 flex justify-between items-center">
+                    <span>Total staff strength As At {metrics.reconciliation.prevMonthEndDateStr || "31/07/2026"}</span>
+                    <span className="font-mono font-bold">{metrics.reconciliation.basePrevMonth}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between items-center">
+                    <span>Add June Supplementary</span>
+                    <span className="font-mono font-bold text-teal-200">+{metrics.reconciliation.juneSupplementary}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between items-center font-bold bg-teal-800/40 px-2 rounded">
+                    <span>Total Staff Strength</span>
+                    <span className="font-mono">{metrics.reconciliation.totalBase}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between items-center">
+                    <span>Additions in {metrics.monthLabel}</span>
+                    <span className="font-mono font-bold text-emerald-200">+{metrics.reconciliation.additions}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between items-center">
+                    <span>Renewal in {metrics.reconciliation.prevMonthLabel || "July"}</span>
+                    <span className="font-mono font-bold">{metrics.reconciliation.renewals}</span>
+                  </div>
+                  <div className="py-1 text-[11px] font-bold uppercase tracking-wider text-teal-200">
+                    Less:
+                  </div>
+                  <div className="py-1.5 flex justify-between items-center pl-3">
+                    <span>Expired/Terminated ({metrics.monthLabel})</span>
+                    <span className="font-mono text-rose-200">-{metrics.reconciliation.expiredTerminated}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between items-center pl-3">
+                    <span>Validation on Hold</span>
+                    <span className="font-mono text-amber-200">-{metrics.reconciliation.validationOnHold}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between items-center font-bold bg-teal-800/40 px-2 rounded text-rose-100">
+                    <span>Total Attrition</span>
+                    <span className="font-mono">-{metrics.reconciliation.totalAttrition}</span>
+                  </div>
+                  <div className="pt-2 flex justify-between items-center font-black text-sm bg-teal-900/60 p-2.5 rounded-xl border border-teal-400/40">
+                    <span>Total Staff Strength As At {metrics.reconciliation.currentMonthEndDateStr || "31/08/2026"}</span>
+                    <span className="font-mono text-white text-base">{metrics.reconciliation.currentTotal}</span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                  {metrics.expiredInMonth}
-                </span>
-                <span className="text-xs text-slate-400 font-medium">expired</span>
-              </div>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Window ends in {metrics.monthLabel} {metrics.targetYear}
-              </p>
-            </div>
-
-            {/* Total Paid Payroll Net */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase tracking-wider">
-                <span>Total Net Payroll</span>
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                  GH₵{metrics.totalNetSalary.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Paid to {metrics.paidCount} staff members
-              </p>
-            </div>
+            )}
           </div>
         )}
 

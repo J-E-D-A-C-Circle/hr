@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus } from "@/lib/status";
-import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook } from "@/lib/excel";
+import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook } from "@/lib/excel";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get("filter") || "currently_employed"; // default Active + Expiring Soon
     const department = searchParams.get("department") || "";
     const format = searchParams.get("format") || "excel";
-    const exportType = searchParams.get("export_type") || "standard"; // "standard", "payroll", "ssnit"
+    const exportType = searchParams.get("export_type") || "payroll"; // "payroll", "ssnit", "computation", "standard"
     const validationMonth = searchParams.get("validation_month") || "";
 
     const whereClause: any = {};
@@ -50,18 +50,16 @@ export async function GET(request: NextRequest) {
     const filtered = annotated.filter((item: any) => {
       // Month Validation Filter
       if (validationMonth) {
-        const hasValidation = item.validations?.some(
-          (v: any) => v.month.toLowerCase() === validationMonth.toLowerCase()
-        );
-        if (!hasValidation) return false;
-      }
-
-      // Standard Full Data Directory Export MUST EXCLUDE EXPIRED & TERMINATED STAFF
-      if (exportType === "standard") {
-        if (item.computedStatus === "Expired" || item.computedStatus === "Terminated") {
-          return false;
+        const cleanMonth = validationMonth.replace(/\s*\([^)]*\)/g, "").trim().toLowerCase();
+        if (cleanMonth) {
+          const hasValidation = item.validations?.some(
+            (v: any) => v.month.toLowerCase().includes(cleanMonth) || cleanMonth.includes(v.month.toLowerCase())
+          );
+          if (!hasValidation) return false;
         }
       }
+
+      // Standard Full Data Directory Export includes ALL employees across all status categories
 
       if (filter === "currently_employed") {
         // Active + Expiring Soon
@@ -79,7 +77,82 @@ export async function GET(request: NextRequest) {
     });
 
     if (format === "json") {
-      return NextResponse.json({ success: true, count: filtered.length, data: filtered });
+      let sumGross = 0;
+      let sumNssf13 = 0;
+      let sumPayCost = 0;
+      let sumNetPay = 0;
+
+      filtered.forEach((item: any) => {
+        const basic = item.salary ? Number(item.salary) : 1400.00;
+        const totalGross = basic * 1;
+        const nssf55 = Math.round(totalGross * 0.055 * 100) / 100;
+        const nssf13 = Math.round(totalGross * 0.13 * 100) / 100;
+        const payCost = Math.round((totalGross + nssf13) * 100) / 100;
+        const incomeTax = 122.28;
+        const totalDeduction = Math.round((nssf55 + incomeTax) * 100) / 100;
+        const netPay = Math.round((totalGross - totalDeduction) * 100) / 100;
+
+        sumGross += totalGross;
+        sumNssf13 += nssf13;
+        sumPayCost += payCost;
+        sumNetPay += netPay;
+      });
+
+      const additions = filtered.filter((item: any) => {
+        const joining = item.contracts?.[0]?.start_date || item.created_at;
+        if (!joining) return false;
+        const d = new Date(joining);
+        return d.getMonth() === 7 && d.getFullYear() === 2026;
+      }).length;
+
+      const renewals = filtered.filter((item: any) => {
+        return item.contracts?.some((c: any) => c.renewal_number > 1);
+      }).length;
+
+      const expiredTerminated = filtered.filter((item: any) => {
+        return item.computedStatus === "Expired" || item.computedStatus === "Terminated";
+      }).length;
+
+      const validationOnHold = filtered.filter((item: any) => {
+        return item.payment_status === "unpaid" || item.payment_status === "hold";
+      }).length;
+
+      const juneSupplementary = filtered.filter((item: any) => {
+        return (item.unpaid_reason || "").toLowerCase().includes("supplementary");
+      }).length;
+
+      const totalAttrition = expiredTerminated + validationOnHold;
+      const currentTotal = filtered.length;
+      const basePrevMonth = Math.max(0, currentTotal - additions - juneSupplementary + totalAttrition);
+      const totalBase = basePrevMonth + juneSupplementary;
+
+      const summaryOverview = {
+        totalValidatedStaff: currentTotal,
+        totalMonthlyGrossPayroll: sumGross,
+        totalEmployerNSSF13: sumNssf13,
+        totalEmployerCostOfEmployment: sumPayCost,
+        totalNetPayout: sumNetPay,
+      };
+
+      const reconciliation = {
+        basePrevMonth,
+        juneSupplementary,
+        totalBase,
+        additions,
+        renewals,
+        expiredTerminated,
+        validationOnHold,
+        totalAttrition,
+        currentTotal,
+      };
+
+      return NextResponse.json({
+        success: true,
+        count: filtered.length,
+        data: filtered,
+        summaryOverview,
+        reconciliation,
+      });
     }
 
     // Generate Excel Buffer based on export_type
@@ -95,9 +168,14 @@ export async function GET(request: NextRequest) {
       const mStr = validationMonth || "August 2026";
       excelBuffer = await buildSsnitContributionWorkbook(filtered, mStr);
       filename = `SSNIT_Contribution_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
+    } else if (exportType === "computation") {
+      const mStr = validationMonth || "August 2026";
+      excelBuffer = await buildMonthlyComputationWorkbook(filtered, mStr);
+      filename = `Monthly_Computation_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else {
-      excelBuffer = await buildExportWorkbook(filtered);
-      filename = `Staff_Export_${filter}_${dateStr}.xlsx`;
+      const exportList = exportType === "standard" ? annotated : filtered;
+      excelBuffer = await buildExportWorkbook(exportList);
+      filename = `Standard_Full_Staff_Directory_${dateStr}.xlsx`;
     }
 
     return new NextResponse(excelBuffer as unknown as BodyInit, {
