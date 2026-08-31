@@ -185,8 +185,8 @@ export async function getPanelMonitorData() {
       orderBy: { updatedAt: 'desc' },
     });
 
-    const monitoredCandidates = applications.map((app) => {
-      const scores = app.panelScores.map((s) => s.totalScore);
+    const monitoredCandidates = applications.map((app: any) => {
+      const scores = app.panelScores.map((s: any) => s.totalScore);
       const judgeCount = scores.length;
       
       let averageScore = 0;
@@ -197,13 +197,13 @@ export async function getPanelMonitorData() {
       let isWildDivergence = false;
 
       if (judgeCount > 0) {
-        averageScore = scores.reduce((a, b) => a + b, 0) / judgeCount;
+        averageScore = scores.reduce((a: number, b: number) => a + b, 0) / judgeCount;
         minScore = Math.min(...scores);
         maxScore = Math.max(...scores);
         scoreDelta = maxScore - minScore;
 
         if (judgeCount > 1) {
-          const variance = scores.reduce((sum, score) => sum + Math.pow(score - averageScore, 2), 0) / judgeCount;
+          const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - averageScore, 2), 0) / judgeCount;
           stdDev = Math.sqrt(variance);
           // Wild divergence trigger: delta > 20 points OR stdDev > 12
           isWildDivergence = scoreDelta >= 20 || stdDev >= 12;

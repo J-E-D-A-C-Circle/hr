@@ -1,0 +1,228 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum StaffStatus {
+  ACTIVE
+  PROBATION
+  ON_LEAVE
+  TERMINATED
+}
+
+enum LetterType {
+  APPOINTMENT
+  PROMOTION
+  CONFIRMATION
+  TRANSFER
+  WARNING
+  LEAVE_APPROVAL
+  CONTRACT_RENEWAL
+}
+
+enum LetterStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ISSUED
+  ACKNOWLEDGED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  INTERVIEWED
+  SELECTED
+  REJECTED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PORTAL_ALERT
+}
+
+model Staff {
+  id               String           @id @default(cuid())
+  staffId          String           @unique
+  fullName         String
+  department       String
+  jobTitle         String
+  email            String           @unique
+  phone            String
+  appointmentDate  String
+  status           StaffStatus      @default(ACTIVE)
+  salaryGrade      String?
+  reportingOfficer String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  letters          LetterDocument[]
+
+  @@map("hr_staff")
+}
+
+model LetterTemplate {
+  id          String           @id @default(cuid())
+  title       String
+  type        LetterType
+  description String?          @db.Text
+  content     String           @db.Text
+  version     Int              @default(1)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  letters     LetterDocument[]
+
+  @@map("hr_letter_templates")
+}
+
+model LetterDocument {
+  id               String             @id @default(cuid())
+  staffId          String
+  staff            Staff              @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  templateId       String?
+  template         LetterTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  verificationCode String             @unique @default(cuid())
+  title            String
+  letterType       LetterType
+  content          String             @db.Text
+  salutation       String?            @default("Dear Sir/Madam,")
+  customRefNumber  String?
+  effectiveDate    String?
+  salaryGrade      String?
+  probationPeriod  String?
+  status           LetterStatus       @default(DRAFT)
+  qrCodeData       String?            @db.Text
+  digitalSignature String?            @db.LongText
+  signatoryName    String?
+  signatoryTitle   String?
+  signedAt         DateTime?
+  issuedAt         DateTime?
+  acknowledgedAt   DateTime?
+  acknowledgmentIp String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  approvalWorkflows ApprovalWorkflow[]
+
+  @@map("hr_letter_documents")
+}
+
+model ApprovalWorkflow {
+  id           String         @id @default(cuid())
+  letterId     String
+  letter       LetterDocument @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  stepNumber   Int
+  approverRole String
+  approverName String
+  status       String         @default("PENDING") // PENDING, APPROVED, REJECTED
+  comments     String?        @db.Text
+  decidedAt    DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@map("hr_approval_workflows")
+}
+
+model Vacancy {
+  id                 String                 @id @default(cuid())
+  title              String
+  department         String
+  type               String                 @default("PERMANENT")
+  description        String                 @db.Text
+  requirements       String                 @db.Text
+  minYearsExperience Int                    @default(2)
+  requiredDegree     String                 @default("Bachelor Degree")
+  status             String                 @default("OPEN")
+  closingDate        String
+  createdAt          DateTime               @default(now())
+  applications       CandidateApplication[]
+
+  @@map("hr_vacancies")
+}
+
+model CandidateApplication {
+  id               String              @id @default(cuid())
+  applicationNo    String              @unique
+  vacancyId        String
+  vacancy          Vacancy             @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  fullName         String
+  email            String
+  phone            String
+  qualification    String
+  experienceYears  Int
+  skills           String
+  cvFileName       String?
+  cvSummary        String?             @db.Text
+  screeningScore   Float               @default(0)
+  isShortlisted    Boolean             @default(false)
+  status           ApplicationStatus   @default(APPLIED)
+  createdAt        DateTime            @default(now())
+  interviews       InterviewSchedule[]
+  evaluations      PanelEvaluation[]
+
+  @@map("hr_candidate_applications")
+}
+
+model InterviewSchedule {
+  id            String               @id @default(cuid())
+  applicationId String
+  application   CandidateApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheduledDate String
+  timeSlot      String
+  mode          String               @default("VIRTUAL_ZOOM")
+  meetingUrl    String?
+  panelMembers  String
+  notes         String?              @db.Text
+  createdAt     DateTime             @default(now())
+
+  @@map("hr_interview_schedules")
+}
+
+model PanelEvaluation {
+  id                  String               @id @default(cuid())
+  applicationId       String
+  application         CandidateApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  panelistName        String
+  panelistRole        String
+  communicationScore  Float
+  technicalScore      Float
+  experienceScore     Float
+  problemSolvingScore Float
+  totalScore          Float
+  comments            String?              @db.Text
+  createdAt           DateTime             @default(now())
+
+  @@map("hr_panel_evaluations")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  actorName  String
+  actorRole  String
+  targetId   String?
+  targetType String?
+  details    String?  @db.Text
+  ipAddress  String?  @default("127.0.0.1")
+  createdAt  DateTime @default(now())
+
+  @@map("hr_audit_logs")
+}
+
+model Notification {
+  id             String              @id @default(cuid())
+  recipientEmail String
+  recipientRole  String
+  channel        NotificationChannel @default(PORTAL_ALERT)
+  subject        String
+  message        String              @db.Text
+  isRead         Boolean             @default(false)
+  createdAt      DateTime            @default(now())
+
+  @@map("hr_notifications")
+}

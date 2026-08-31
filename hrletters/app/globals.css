@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────
+   DESIGN TOKENS — Light Mode (default)
+───────────────────────────────────────── */
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --color-bg:        #F9FAFB;
+  --color-surface:   #FFFFFF;
+  --color-border:    #EBEBEB;
+  --color-border-subtle: #F5F5F5;
+
+  --color-text-1:    #111827;
+  --color-text-2:    #374151;
+  --color-text-3:    #6B7280;
+  --color-text-4:    #9CA3AF;
+
+  --color-accent:    #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-accent-subtle: #EFF6FF;
+
+  --radius-card:   12px;
+  --radius-btn:    8px;
+  --radius-input:  8px;
+  --radius-badge:  6px;
+
+  --shadow-xs:  0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-sm:  0 1px 3px 0 rgba(0,0,0,0.10), 0 1px 2px -1px rgba(0,0,0,0.10);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.10);
+}
+
+/* ─────────────────────────────────────────
+   DESIGN TOKENS — Dark Mode
+───────────────────────────────────────── */
+.dark {
+  --color-bg:        #0A0F1E;
+  --color-surface:   #0F1629;
+  --color-border:    #1A2740;
+  --color-border-subtle: #131E35;
+
+  --color-text-1:    #F1F5F9;
+  --color-text-2:    #CBD5E1;
+  --color-text-3:    #64748B;
+  --color-text-4:    #475569;
+
+  --color-accent:    #3B82F6;
+  --color-accent-hover: #2563EB;
+  --color-accent-subtle: rgba(59,130,246,0.08);
+
+  --shadow-xs:  0 1px 2px 0 rgba(0,0,0,0.3);
+  --shadow-sm:  0 1px 3px 0 rgba(0,0,0,0.4), 0 1px 2px -1px rgba(0,0,0,0.3);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+}
+
+/* ─────────────────────────────────────────
+   BASE RESET
+───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text-1);
+  line-height: 1.5;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ─────────────────────────────────────────
+   SCROLLBAR — minimal & tasteful
+───────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-4); }
+
+/* ─────────────────────────────────────────
+   UTILITY CLASSES
+───────────────────────────────────────── */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: none;
+}
+
+/* ── Globally thin all Tailwind `border` utility lines ── */
+*, *::before, *::after {
+  --tw-border-opacity: 1;
+}
+
+/* Override default Tailwind border width to be hair-thin */
+[class*="border"] {
+  border-width: 1px;
+}
+
+.input-base {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  color: var(--color-text-1);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.5rem 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  outline: none;
+}
+.input-base::placeholder { color: var(--color-text-4); font-weight: 400; }
+.input-base:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
+/* ─────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.18s ease both;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+.skeleton {
+  background: var(--color-border);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────
+   PRINT STYLES
+───────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  html, body {
+    background: #FDF3C0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body * { visibility: hidden; }
+  #official-letterhead,
+  #official-letterhead * { visibility: visible; }
+  #official-letterhead {
+    position: absolute;
+    top: 0; left: 0;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 16mm 18mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background-color: #FDF3C0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

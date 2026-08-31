@@ -49,3 +49,5 @@ services:
 
 volumes:
   recruitment_mysql_data:
+    external: true
+    name: drap_mysql_data
