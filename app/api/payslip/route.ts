@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildSinglePayslipWorkbook } from "@/lib/excel";
+import { getCurrentMonthYearString } from "@/lib/status";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const staffId = searchParams.get("staff_id");
-    const month = searchParams.get("month") || "August 2026";
+    const month = searchParams.get("month") || getCurrentMonthYearString();
     const format = searchParams.get("format") || "excel"; // "excel" or "json"
 
     if (!staffId) {

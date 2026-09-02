@@ -100,7 +100,10 @@ export default function HistoryAnalyticsPage() {
     { value: "12", label: "December" },
   ];
 
-  const yearOptions = ["2023", "2024", "2025", "2026", "2027"];
+  const yearOptions = Array.from(
+    { length: Math.max(5, currentYear - 2023 + 2) },
+    (_, i) => String(2023 + i)
+  );
 
   return (
     <SidebarLayout>

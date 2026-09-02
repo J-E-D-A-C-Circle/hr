@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { CheckCircle2, X, Calendar, UserCheck, ShieldAlert, AlertCircle, FileText, BookmarkPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getCurrentMonthYearString, getRecentMonthOptions } from "@/lib/status";
 
 interface ValidateStaffModalProps {
   isOpen: boolean;
@@ -12,17 +13,8 @@ interface ValidateStaffModalProps {
 }
 
 export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }: ValidateStaffModalProps) {
-  const currentMonthStr = "August 2026";
-  const monthOptions = [
-    "August 2026",
-    "July 2026",
-    "June 2026",
-    "May 2026",
-    "April 2026",
-    "March 2026",
-    "February 2026",
-    "January 2026",
-  ];
+  const currentMonthStr = getCurrentMonthYearString();
+  const monthOptions = getRecentMonthOptions(12);
 
   const [selectedBaseMonth, setSelectedBaseMonth] = useState<string>(currentMonthStr);
   const [isSupplementary, setIsSupplementary] = useState<boolean>(false);

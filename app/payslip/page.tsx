@@ -27,12 +27,15 @@ import {
   DollarSign,
   ArrowRight,
 } from "lucide-react";
-import { formatDateReadable } from "@/lib/status";
+import { formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } from "@/lib/status";
 
 export default function PayslipPage() {
+  const currentMonthStr = getCurrentMonthYearString();
+  const recentMonths = getRecentMonthOptions(12);
+
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
-  const [month, setMonth] = useState<string>("August 2026");
+  const [month, setMonth] = useState<string>(currentMonthStr);
   const [search, setSearch] = useState<string>("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [loading, setLoading] = useState<boolean>(true);
@@ -343,14 +346,22 @@ export default function PayslipPage() {
                   <SelectValue placeholder="Select Month" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="August 2026" className="font-bold text-emerald-600">August 2026 (Current)</SelectItem>
-                  <SelectItem value="August 2026 (Supplementary)" className="font-bold text-amber-600">August 2026 (Supplementary)</SelectItem>
-                  <SelectItem value="July 2026">July 2026</SelectItem>
-                  <SelectItem value="July 2026 (Supplementary)">July 2026 (Supplementary)</SelectItem>
-                  <SelectItem value="June 2026">June 2026</SelectItem>
-                  <SelectItem value="May 2026">May 2026</SelectItem>
-                  <SelectItem value="April 2026">April 2026</SelectItem>
-                  <SelectItem value="March 2026">March 2026</SelectItem>
+                  {recentMonths.map((m, idx) => {
+                    const isCurrent = idx === 0;
+                    return (
+                      <React.Fragment key={m}>
+                        <SelectItem
+                          value={m}
+                          className={isCurrent ? "font-bold text-emerald-600 dark:text-emerald-400" : "font-medium"}
+                        >
+                          {m} {isCurrent ? "(Current)" : ""}
+                        </SelectItem>
+                        <SelectItem value={`${m} (Supplementary)`} className="font-bold text-amber-600 dark:text-amber-400">
+                          {m} (Supplementary)
+                        </SelectItem>
+                      </React.Fragment>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

@@ -178,3 +178,28 @@ export function formatDateReadable(date: Date | string | null | undefined): stri
   if (!date) return "N/A";
   return formatDateDDMMYYYY(date);
 }
+
+/**
+ * Returns formatted "Month YYYY" string (e.g. "September 2026") for current or given reference date
+ */
+export function getCurrentMonthYearString(refDate: Date = new Date()): string {
+  const monthName = refDate.toLocaleString("en-US", { month: "long" });
+  const year = refDate.getFullYear();
+  return `${monthName} ${year}`;
+}
+
+/**
+ * Returns array of "Month YYYY" strings starting from refDate back count months
+ */
+export function getRecentMonthOptions(count: number = 12, refDate: Date = new Date()): string[] {
+  const options: string[] = [];
+  const current = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+  for (let i = 0; i < count; i++) {
+    const d = new Date(current.getFullYear(), current.getMonth() - i, 1);
+    const monthName = d.toLocaleString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    options.push(`${monthName} ${year}`);
+  }
+  return options;
+}
+

@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { calculateEndDate, computeContractStatus, computeDaysRemaining, formatDateReadable } from "./status";
+import { calculateEndDate, computeContractStatus, computeDaysRemaining, formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } from "./status";
 
 export interface MappedField {
   key: string;
@@ -440,7 +440,7 @@ export function getAchBankDetails(bankName: string, bankBranch?: string): { bank
  * Builds Payroll Payment Workbook matching exact GIFMIS / Oracle Financials Payment Schema:
  * LINE_NUMBER | AMOUNT | ATTRIBUTE_CATEGORY | ATTRIBUTE1 | ATTRIBUTE2 | ATTRIBUTE3 | ATTRIBUTE4 | ATTRIBUTE5 | DESCRIPTION
  */
-export async function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Promise<Buffer> {
+export async function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr: string = getCurrentMonthYearString()): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "DVLA Temporary Staff HR Platform";
   workbook.created = new Date();
@@ -578,7 +578,7 @@ export async function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr:
 /**
  * Builds SSNIT Contribution Report Workbook with Green Theme
  */
-export async function buildSsnitContributionWorkbook(staffRecords: any[], monthStr: string = "August 2026"): Promise<Buffer> {
+export async function buildSsnitContributionWorkbook(staffRecords: any[], monthStr: string = getCurrentMonthYearString()): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "DVLA Temporary Staff HR Platform";
   workbook.created = new Date();
@@ -753,7 +753,7 @@ export async function buildSsnitContributionWorkbook(staffRecords: any[], monthS
 /**
  * Builds Individual Staff Payslip Excel Workbook with Green Theme
  */
-export async function buildSinglePayslipWorkbook(staffRecord: any, monthStr: string = "August 2026"): Promise<Buffer> {
+export async function buildSinglePayslipWorkbook(staffRecord: any, monthStr: string = getCurrentMonthYearString()): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "DVLA Temporary Staff HR Platform";
   workbook.created = new Date();
@@ -917,7 +917,7 @@ export async function buildSinglePayslipWorkbook(staffRecord: any, monthStr: str
  */
 export async function buildMonthlyComputationWorkbook(
   staffRecords: any[],
-  monthStr: string = "August 2026"
+  monthStr: string = getCurrentMonthYearString()
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "DVLA Temporary Staff HR Platform";
@@ -1178,12 +1178,25 @@ export async function buildMonthlyComputationWorkbook(
   const reconStartRow = sumStartRow + statItems.length + 2;
   const tealBg = "FF5AA5B8"; // Teal/Blue highlight matching the screenshot
 
+  // Parse target month & year from monthStr (e.g. "September 2026" or "September 2026 (Supplementary)")
+  const cleanMonthStr = (monthStr || getCurrentMonthYearString()).replace(/\s*\([^)]*\)/g, "").trim();
+  const monthParts = cleanMonthStr.split(" ");
+  const targetMonthName = monthParts[0] || "September";
+  const targetYearVal = parseInt(monthParts[1] || String(new Date().getFullYear()), 10);
+
+  const monthNamesList = [
+    "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december"
+  ];
+  const targetMonthIndex = monthNamesList.indexOf(targetMonthName.toLowerCase());
+  const effectiveMonthIdx = targetMonthIndex === -1 ? new Date().getMonth() : targetMonthIndex;
+
   // Calculate dynamic staff movement numbers
   const additions = staffRecords.filter(item => {
     const joining = item.contracts?.[0]?.start_date || item.created_at;
     if (!joining) return false;
     const d = new Date(joining);
-    return d.getMonth() === 7 && d.getFullYear() === 2026; // August 2026
+    return d.getMonth() === effectiveMonthIdx && d.getFullYear() === targetYearVal;
   }).length;
 
   const renewals = staffRecords.filter(item => {
@@ -1195,7 +1208,7 @@ export async function buildMonthlyComputationWorkbook(
       if (c.is_terminated) return true;
       if (!c.end_date) return false;
       const eDate = new Date(c.end_date);
-      return eDate.getFullYear() === 2026 && eDate.getMonth() === 7;
+      return eDate.getFullYear() === targetYearVal && eDate.getMonth() === effectiveMonthIdx;
     }) || item.computedStatus === "Expired" || item.computedStatus === "Terminated";
   }).length;
 
@@ -1212,20 +1225,26 @@ export async function buildMonthlyComputationWorkbook(
   const basePrevMonth = Math.max(0, currentTotal - additions - juneSupplementary + totalAttrition);
   const totalBase = basePrevMonth + juneSupplementary;
 
-  const targetMonthName = monthStr.split(" ")[0] || "August";
-  const targetYearVal = monthStr.split(" ")[1] || "2026";
+  const prevMonthIndex = effectiveMonthIdx === 0 ? 11 : effectiveMonthIdx - 1;
+  const prevMonthYear = effectiveMonthIdx === 0 ? targetYearVal - 1 : targetYearVal;
+  const prevMonthNameCap = monthNamesList[prevMonthIndex].charAt(0).toUpperCase() + monthNamesList[prevMonthIndex].slice(1);
+  const prevMonthLastDay = new Date(targetYearVal, effectiveMonthIdx, 0).getDate();
+  const currentMonthLastDay = new Date(targetYearVal, effectiveMonthIdx + 1, 0).getDate();
+
+  const prevMonthNumStr = String(prevMonthIndex + 1).padStart(2, "0");
+  const targetMonthNumStr = String(effectiveMonthIdx + 1).padStart(2, "0");
 
   const reconItems = [
-    [`Total staff strength As At 31/07/${targetYearVal}`, basePrevMonth],
-    ["Add June Supplementary", juneSupplementary],
+    [`Total staff strength As At ${prevMonthLastDay}/${prevMonthNumStr}/${prevMonthYear}`, basePrevMonth],
+    ["Add Supplementary", juneSupplementary],
     ["Total Staff Strength", totalBase],
     [`Additions in ${targetMonthName}`, additions],
-    ["Renewal in July", renewals],
+    [`Renewal in ${prevMonthNameCap}`, renewals],
     ["Less", ""],
     [`Expired/Terminated (${targetMonthName})`, expiredTerminated],
     ["Validation on Hold", validationOnHold],
     ["Total Attrition", totalAttrition],
-    [`Total Staff Strength As At 31/08/${targetYearVal}`, currentTotal],
+    [`Total Staff Strength As At ${currentMonthLastDay}/${targetMonthNumStr}/${targetYearVal}`, currentTotal],
   ];
 
   reconItems.forEach((rItem, rIdx) => {
@@ -1265,4 +1284,159 @@ export async function buildMonthlyComputationWorkbook(
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
 }
+
+/**
+ * Builds Petra Tier 2 Contribution Schedule Workbook (PETRA.xlsx) for January 2026 till date
+ */
+export async function buildPetraTier2Workbook(
+  staffRecords: any[],
+  monthStr: string = ""
+): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "DVLA Temporary Staff HR Platform";
+  workbook.created = new Date();
+
+  // Styling Palette
+  const headerFill = {
+    type: "pattern" as const,
+    pattern: "solid" as const,
+    fgColor: { argb: "1E3A8A" } // Deep Royal Blue
+  };
+  const headerFont = {
+    name: "Calibri",
+    size: 11,
+    bold: true,
+    color: { argb: "FFFFFF" }
+  };
+  const thinBorder = {
+    top: { style: "thin" as const, color: { argb: "CBD5E1" } },
+    left: { style: "thin" as const, color: { argb: "CBD5E1" } },
+    bottom: { style: "thin" as const, color: { argb: "CBD5E1" } },
+    right: { style: "thin" as const, color: { argb: "CBD5E1" } }
+  };
+  const zebraFill = {
+    type: "pattern" as const,
+    pattern: "solid" as const,
+    fgColor: { argb: "F8FAFC" }
+  };
+
+  const addMonthSheet = (sheetName: string, records: any[]) => {
+    const ws = workbook.addWorksheet(sheetName);
+    const colHeaders = [
+      "S/No.",
+      "Staff ID",
+      "Ghana Card No.",
+      "Last Name",
+      "First Name",
+      "Middle Name",
+      "SSNIT Number",
+      "Basic Salary (GHS)",
+      "Tier 2 Contribution (5%)"
+    ];
+
+    const headerRow = ws.addRow(colHeaders);
+    headerRow.height = 28;
+    headerRow.eachCell((cell) => {
+      cell.fill = headerFill;
+      cell.font = headerFont;
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = thinBorder;
+    });
+
+    let sumBasic = 0;
+    let sumTier2 = 0;
+
+    records.forEach((item: any, idx: number) => {
+      const nameParts = (item.full_name || "").trim().split(/\s+/);
+      let firstName = "";
+      let surname = "";
+      let otherName = "";
+
+      if (nameParts.length === 1) {
+        surname = nameParts[0];
+      } else if (nameParts.length === 2) {
+        surname = nameParts[0];
+        firstName = nameParts[1];
+      } else if (nameParts.length >= 3) {
+        surname = nameParts[0];
+        firstName = nameParts[1];
+        otherName = nameParts.slice(2).join(" ");
+      }
+
+      const basic = item.salary ? Number(item.salary) : 1400.00;
+      const tier2 = Math.round(basic * 0.05 * 100) / 100;
+      sumBasic += basic;
+      sumTier2 += tier2;
+
+      const rowValues = [
+        idx + 1,
+        item.staff_code || `TEMP-${item.id}`,
+        item.nia_number || "N/A",
+        surname,
+        firstName,
+        otherName,
+        item.ssnit_no || "N/A",
+        basic,
+        tier2
+      ];
+
+      const dataRow = ws.addRow(rowValues);
+      dataRow.height = 20;
+      const isAlt = idx % 2 === 1;
+
+      dataRow.eachCell((cell, colIdx) => {
+        cell.fill = isAlt ? zebraFill : { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF" } };
+        cell.border = thinBorder;
+        cell.font = { name: "Calibri", size: 10, color: { argb: "1E293B" } };
+
+        if (colIdx === 1) {
+          cell.alignment = { vertical: "middle", horizontal: "center" };
+        } else if ([8, 9].includes(colIdx)) {
+          (cell as any).numFmt = "#,##0.00";
+          cell.alignment = { vertical: "middle", horizontal: "right" };
+        } else {
+          cell.alignment = { vertical: "middle", horizontal: "left" };
+        }
+      });
+    });
+
+    const totalRowValues = ["TOTAL", "", "", "", "", "", "", sumBasic, sumTier2];
+    const totalRow = ws.addRow(totalRowValues);
+    totalRow.height = 24;
+    totalRow.eachCell((cell, colIdx) => {
+      cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "0F172A" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "E2E8F0" } };
+      cell.border = {
+        top: { style: "thin", color: { argb: "475569" } },
+        bottom: { style: "double", color: { argb: "475569" } }
+      };
+
+      if ([8, 9].includes(colIdx)) {
+        (cell as any).numFmt = "#,##0.00";
+        cell.alignment = { vertical: "middle", horizontal: "right" };
+      } else {
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      }
+    });
+
+    applyAutoColumnWidths(ws);
+  };
+
+  if (monthStr && monthStr.trim()) {
+    const cleanMonth = monthStr.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+    const currentYearVal = new Date().getFullYear();
+    const sheetTitle = cleanMonth.includes(",") ? cleanMonth : `${cleanMonth}, ${currentYearVal}`;
+    addMonthSheet(sheetTitle, staffRecords);
+  } else {
+    const recentMonths = getRecentMonthOptions(8);
+    recentMonths.forEach((m) => {
+      const parts = m.toUpperCase().split(" ");
+      addMonthSheet(`${parts[0]}, ${parts[1]}`, staffRecords);
+    });
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
 

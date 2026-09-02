@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { computeContractStatus } from "@/lib/status";
-import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook } from "@/lib/excel";
+import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
+import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook } from "@/lib/excel";
 
 export async function GET(request: NextRequest) {
   try {
@@ -160,16 +160,20 @@ export async function GET(request: NextRequest) {
     let filename: string;
     const dateStr = new Date().toISOString().split("T")[0];
 
-    if (exportType === "payroll") {
-      const mStr = validationMonth || "August 2026";
+    if (exportType === "petra") {
+      const mStr = validationMonth || getCurrentMonthYearString();
+      excelBuffer = await buildPetraTier2Workbook(filtered, mStr);
+      filename = `PETRA_${mStr ? mStr.replace(/[^a-zA-Z0-9]/g, "_") : "Monthly_Schedules"}_${dateStr}.xlsx`;
+    } else if (exportType === "payroll") {
+      const mStr = validationMonth || getCurrentMonthYearString();
       excelBuffer = await buildPayrollPaymentWorkbook(filtered, mStr);
       filename = `Payroll_Payment_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else if (exportType === "ssnit") {
-      const mStr = validationMonth || "August 2026";
+      const mStr = validationMonth || getCurrentMonthYearString();
       excelBuffer = await buildSsnitContributionWorkbook(filtered, mStr);
       filename = `SSNIT_Contribution_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else if (exportType === "computation") {
-      const mStr = validationMonth || "August 2026";
+      const mStr = validationMonth || getCurrentMonthYearString();
       excelBuffer = await buildMonthlyComputationWorkbook(filtered, mStr);
       filename = `Monthly_Computation_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else {

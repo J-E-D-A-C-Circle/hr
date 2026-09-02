@@ -25,13 +25,16 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { formatDateReadable } from "@/lib/status";
+import { formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } from "@/lib/status";
 
 export default function ExportPage() {
+  const currentMonthStr = getCurrentMonthYearString();
+  const recentMonths = getRecentMonthOptions(12);
+
   const [filter, setFilter] = useState("currently_employed");
   const [department, setDepartment] = useState("");
   const [exportType, setExportType] = useState("payroll");
-  const [validationMonth, setValidationMonth] = useState("August 2026");
+  const [validationMonth, setValidationMonth] = useState(currentMonthStr);
   const [search, setSearch] = useState("");
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [summaryOverview, setSummaryOverview] = useState<any>(null);
@@ -127,7 +130,9 @@ export default function ExportPage() {
           >
             <FileSpreadsheet className="h-4 w-4" />
             <span>
-              {exportType === "computation"
+              {exportType === "petra"
+                ? "Download Petra Tier 2 Excel (PETRA.xlsx)"
+                : exportType === "computation"
                 ? "Download Monthly Computation Excel (.xlsx)"
                 : exportType === "payroll"
                 ? "Download Payroll Payment Excel (.xlsx)"
@@ -169,6 +174,9 @@ export default function ExportPage() {
                   <SelectValue placeholder="Select Payment Format" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="petra" className="font-bold text-indigo-600 dark:text-indigo-400">
+                    Petra Tier 2 Contribution Format (PETRA.xlsx)
+                  </SelectItem>
                   <SelectItem value="computation">
                     Monthly Payroll Computation Format (TEMP COMPUTATION)
                   </SelectItem>
@@ -194,25 +202,29 @@ export default function ExportPage() {
                   <SelectValue placeholder="All Validated & Active Staff" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="August 2026" className="font-bold text-emerald-600 dark:text-emerald-400">
-                    Validated for August 2026 (Current Regular Payroll)
-                  </SelectItem>
-                  <SelectItem value="August 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
-                    August 2026 (Supplementary Payout List)
-                  </SelectItem>
-                  <SelectItem value="July 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
-                    July 2026 (Supplementary Payout List)
-                  </SelectItem>
-                  <SelectItem value="July 2026">Validated for July 2026 (Regular)</SelectItem>
-                  <SelectItem value="June 2026 (Supplementary)" className="font-bold text-amber-600 dark:text-amber-400">
-                    June 2026 (Supplementary Payout List)
-                  </SelectItem>
-                  <SelectItem value="June 2026">Validated for June 2026 (Regular)</SelectItem>
-                  <SelectItem value="May 2026">Validated for May 2026</SelectItem>
-                  <SelectItem value="April 2026">Validated for April 2026</SelectItem>
-                  <SelectItem value="March 2026">Validated for March 2026</SelectItem>
-                  <SelectItem value="February 2026">Validated for February 2026</SelectItem>
-                  <SelectItem value="January 2026">Validated for January 2026</SelectItem>
+                  {recentMonths.map((m, idx) => {
+                    const isCurrent = idx === 0;
+                    return (
+                      <React.Fragment key={m}>
+                        <SelectItem
+                          value={m}
+                          className={
+                            isCurrent
+                              ? "font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40"
+                              : "font-medium text-slate-700 dark:text-slate-300"
+                          }
+                        >
+                          Validated for {m} {isCurrent ? "(Current Regular Payroll)" : "(Regular)"}
+                        </SelectItem>
+                        <SelectItem
+                          value={`${m} (Supplementary)`}
+                          className="font-bold text-amber-600 dark:text-amber-400"
+                        >
+                          {m} (Supplementary Payout List)
+                        </SelectItem>
+                      </React.Fragment>
+                    );
+                  })}
                   <SelectItem value="">All Active / Employed Staff (No Month Filter)</SelectItem>
                 </SelectContent>
               </Select>
