@@ -80,7 +80,7 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/staff?add=true"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition"
             >
               <UserPlus className="h-4 w-4" />
               <span>Add Staff</span>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/staff/${item.id}`}
-                          className="font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 text-sm"
+                          className="font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 text-sm"
                         >
                           {item.full_name}
                         </Link>
@@ -283,7 +283,7 @@ export default function DashboardPage() {
                           },
                         })
                       }
-                      className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition"
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
                       <span>Renew Contract (+6 Mo)</span>
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                   className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
                 >
                   <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{dept}</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
                     {count}
                   </span>
                 </div>

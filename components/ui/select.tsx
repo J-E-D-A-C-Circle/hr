@@ -14,7 +14,7 @@ export const SelectTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
-    className={`flex h-10 w-full items-center justify-between rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-medium transition ${className || ""}`}
+    className={`flex h-10 w-full items-center justify-between rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-medium transition ${className || ""}`}
     {...props}
   >
     {children}
@@ -86,12 +86,12 @@ export const SelectItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
-    className={`relative flex w-full cursor-pointer select-none items-center rounded-xl py-2 pl-8 pr-3 text-xs font-semibold outline-none focus:bg-indigo-50 focus:text-indigo-700 dark:focus:bg-indigo-950/60 dark:focus:text-indigo-300 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${className || ""}`}
+    className={`relative flex w-full cursor-pointer select-none items-center rounded-xl py-2 pl-8 pr-3 text-xs font-semibold outline-none focus:bg-emerald-50 focus:text-emerald-700 dark:focus:bg-emerald-950/60 dark:focus:text-emerald-300 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${className || ""}`}
     {...props}
   >
     <span className="absolute left-2.5 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400 font-bold" />
+        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 font-bold" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

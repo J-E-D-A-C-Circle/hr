@@ -159,7 +159,7 @@ export function PaymentStatusModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50"
             >
               {loading ? "Saving..." : "Save Payment Status"}
             </button>

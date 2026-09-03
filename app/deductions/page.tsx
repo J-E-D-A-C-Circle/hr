@@ -155,7 +155,7 @@ export default function DeductionsPage() {
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              <Calculator className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              <Calculator className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               <span>Statutory SSNIT & Payroll Deductions</span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -166,7 +166,7 @@ export default function DeductionsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowAddStaffModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
             >
               <UserPlus className="h-4 w-4" />
               <span>Add Staff</span>
@@ -184,11 +184,11 @@ export default function DeductionsPage() {
         {/* CMS Configuration Card: SSNIT Percentage Manager */}
         <form
           onSubmit={handleSaveCmsRates}
-          className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 shadow-xs space-y-4"
+          className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 shadow-xs space-y-4"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
-              <h2 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+              <h2 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                 <Percent className="h-4 w-4" />
                 <span>SSNIT Statutory Percentage CMS</span>
               </h2>
@@ -200,7 +200,7 @@ export default function DeductionsPage() {
             <button
               type="submit"
               disabled={savingCms}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 self-start sm:self-auto transition disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 self-start sm:self-auto transition disabled:opacity-50"
             >
               {savingCms ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               <span>Save CMS Rates</span>
@@ -265,10 +265,10 @@ export default function DeductionsPage() {
         {summary && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {/* SSNIT Pool */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-800 shadow-sm">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 shadow-sm">
               <div className="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase tracking-wider">
                 <span>SSNIT Monthly Pool</span>
-                <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold text-[10px]">
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
                   {(cmsRates.ssnit_employee_rate + cmsRates.ssnit_employer_rate).toFixed(1)}% Combined
                 </span>
               </div>
@@ -341,7 +341,7 @@ export default function DeductionsPage() {
                   placeholder="Search name, code, SSNIT no..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
                 <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
@@ -420,7 +420,7 @@ export default function DeductionsPage() {
                           <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             <span>{item.staff_code}</span>
                             {item.ssnit_no && (
-                              <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
                                 SSNIT: {item.ssnit_no}
                               </span>
                             )}

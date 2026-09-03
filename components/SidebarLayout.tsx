@@ -184,7 +184,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       {/* Mobile Top App Bar */}
       <div className="md:hidden sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
             <Building2 className="h-5 w-5" />
           </div>
           <span className="font-black text-slate-900 dark:text-white text-base tracking-tight">
@@ -199,7 +199,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             aria-label="Toggle Theme"
             className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
-            {theme === "dark" ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-indigo-600" />}
+            {theme === "dark" ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-emerald-600" />}
           </button>
 
           <button
@@ -232,7 +232,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           }`}
         >
           <Link href="/dashboard" className={`flex items-center gap-3 group ${collapsed ? "justify-center" : ""}`} title="TempStaff Home">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform shrink-0">
+            <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-emerald-500 via-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform shrink-0">
               <Building2 className="h-6 w-6" />
             </div>
             {!collapsed && (
@@ -256,7 +256,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             title={collapsed ? "Expand Sidebar (Ctrl+\\)" : "Collapse Sidebar (Ctrl+\\)"}
             className="hidden md:flex p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
           >
-            {collapsed ? <PanelLeftOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> : <PanelLeftClose className="h-5 w-5" />}
+            {collapsed ? <PanelLeftOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
         </div>
 
@@ -313,7 +313,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                   collapsed ? "justify-center p-3" : "justify-between px-3.5 py-2.5"
                 } ${
                   isActive
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-bold"
+                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 font-bold"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
                 }`}
               >
@@ -322,7 +322,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                     className={`h-4 w-4 transition-transform group-hover:scale-110 shrink-0 ${
                       isActive
                         ? "text-white"
-                        : "text-slate-400 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-white"
+                        : "text-slate-400 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-white"
                     }`}
                   />
                   {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
@@ -356,7 +356,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               title={`Switch to ${theme === "light" ? "Dark" : "Light"} Mode`}
               className="w-full p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center hover:scale-105 transition"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-indigo-600" />}
+              {theme === "dark" ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-emerald-600" />}
             </button>
           ) : (
             <div className="p-1 rounded-xl bg-slate-200/70 dark:bg-slate-800 flex items-center text-xs">
@@ -385,7 +385,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                <Moon className="h-3.5 w-3.5 text-indigo-400" />
+                <Moon className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Dark</span>
               </button>
             </div>
@@ -396,7 +396,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             <div className="flex flex-col items-center gap-2 p-2 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
               <div
                 title={`Active Session: ${userRole}`}
-                className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center font-bold text-xs shadow-xs"
+                className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-xs"
               >
                 {userRole.substring(0, 2).toUpperCase()}
               </div>
@@ -412,14 +412,14 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                     {userRole.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="leading-tight overflow-hidden">
                     <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                       Active Session
                     </span>
-                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 block truncate">
+                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block truncate">
                       {userRole}
                     </span>
                   </div>
@@ -443,7 +443,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                     onClick={() => handleRoleChange("HR Manager")}
                     className={`py-1 rounded-lg transition ${
                       userRole === "HR Manager"
-                        ? "bg-indigo-600 text-white shadow-xs"
+                        ? "bg-emerald-600 text-white shadow-xs"
                         : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
@@ -454,7 +454,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                     onClick={() => handleRoleChange("Payroll Specialist")}
                     className={`py-1 rounded-lg transition ${
                       userRole === "Payroll Specialist"
-                        ? "bg-blue-600 text-white shadow-xs"
+                        ? "bg-teal-600 text-white shadow-xs"
                         : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
@@ -489,7 +489,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
               className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
-              {collapsed ? <PanelLeftOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> : <PanelLeftClose className="h-5 w-5" />}
+              {collapsed ? <PanelLeftOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> : <PanelLeftClose className="h-5 w-5" />}
             </button>
 
             <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
@@ -509,7 +509,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             {/* RBAC Active Role Indicator Pill */}
             <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold">
               <span className="text-slate-400">Role:</span>
-              <span className={userRole === "HR Manager" ? "text-indigo-600 dark:text-indigo-400" : userRole === "Payroll Specialist" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}>
+              <span className={userRole === "HR Manager" ? "text-emerald-600 dark:text-emerald-400" : userRole === "Payroll Specialist" ? "text-teal-600 dark:text-teal-400" : "text-amber-600 dark:text-amber-400"}>
                 {userRole}
               </span>
             </div>

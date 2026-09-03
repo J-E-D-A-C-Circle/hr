@@ -138,7 +138,7 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
           {/* Employee Summary Card */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 text-[11px]">
+              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 text-[11px]">
                 {staff.staff_code || `EMP-${staff.id}`}
               </span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
@@ -158,7 +158,7 @@ export default function ValidateStaffModal({ isOpen, onClose, staff, onSuccess }
           {/* Month Selection */}
           <div className="space-y-1.5">
             <label className="font-semibold text-slate-700 dark:text-slate-300 block flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+              <Calendar className="h-3.5 w-3.5 text-emerald-500" />
               <span>Select Payment Validation Month</span>
             </label>
             <Select

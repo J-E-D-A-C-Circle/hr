@@ -151,7 +151,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         {/* Header */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
+            <div className="h-10 w-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
               <UserPlus className="h-5 w-5" />
             </div>
             <div>
@@ -182,8 +182,8 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
           )}
 
           {/* Section 1: Initial Contract Window */}
-          <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+          <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
               <span>1. Contract Window (Auto 6-Month Calculation - Editable)</span>
             </h4>
@@ -219,7 +219,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
           {/* Section 2: Personal & Role Details */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Building className="h-4 w-4 text-indigo-500" />
+              <Building className="h-4 w-4 text-emerald-500" />
               <span>2. Employee & SSNIT Details</span>
             </h4>
 
@@ -241,7 +241,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
 
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+                  <Calendar className="h-3.5 w-3.5 text-emerald-500" />
                   <span>Date of Birth (DD/MM/YYYY)</span>
                 </label>
                 <DateInput
@@ -314,7 +314,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
 
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                  <Hash className="h-3.5 w-3.5 text-indigo-600" />
+                  <Hash className="h-3.5 w-3.5 text-emerald-600" />
                   <span>SSNIT Number</span>
                 </label>
                 <input
@@ -465,7 +465,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-xl shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
+              className="px-6 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
               <span>{loading ? "Enrolling Staff..." : "Save Staff & Contract"}</span>

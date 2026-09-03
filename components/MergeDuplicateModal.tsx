@@ -304,7 +304,7 @@ export default function MergeDuplicateModal({
                     <div
                       className={`p-4 rounded-2xl border-2 transition space-y-2.5 relative ${
                         isStaffPrimary
-                          ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-500/60"
+                          ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/60"
                           : "bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/50"
                       }`}
                     >
@@ -313,8 +313,8 @@ export default function MergeDuplicateModal({
                           onClick={() => setPrimaryRecordId(staff.id)}
                           className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase tracking-wider ${
                             isStaffPrimary
-                              ? "bg-indigo-600 text-white"
-                              : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-600 hover:text-white"
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-600 hover:text-white"
                           }`}
                         >
                           {isStaffPrimary ? "✓ Keep as Primary" : "Set as Primary"}
@@ -346,7 +346,7 @@ export default function MergeDuplicateModal({
                       </h4>
                       <div className="space-y-1 font-mono text-[11px] text-slate-600 dark:text-slate-400">
                         <div>Code: <strong className="text-slate-900 dark:text-white">{staff.staff_code || `EMP-${staff.id}`}</strong></div>
-                        <div>SSNIT: <strong className="text-indigo-600 dark:text-indigo-400">{staff.ssnit_no || "N/A"}</strong></div>
+                        <div>SSNIT: <strong className="text-emerald-600 dark:text-emerald-400">{staff.ssnit_no || "N/A"}</strong></div>
                         <div>NIA: <strong className="text-emerald-600 dark:text-emerald-400">{staff.nia_number || "N/A"}</strong></div>
                         <div>Station: <strong>{staff.department || "N/A"}</strong></div>
                         <div>Bank: <strong>{staff.bank_name ? `${staff.bank_name} (${staff.bank_account || ""})` : "N/A"}</strong></div>
@@ -358,7 +358,7 @@ export default function MergeDuplicateModal({
                     <div
                       className={`p-4 rounded-2xl border-2 transition space-y-2.5 relative ${
                         !isStaffPrimary
-                          ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-500/60"
+                          ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/60"
                           : "bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/50"
                       }`}
                     >
@@ -367,8 +367,8 @@ export default function MergeDuplicateModal({
                           onClick={() => setPrimaryRecordId(secondaryStaff.id)}
                           className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase tracking-wider ${
                             !isStaffPrimary
-                              ? "bg-indigo-600 text-white"
-                              : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-600 hover:text-white"
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-600 hover:text-white"
                           }`}
                         >
                           {!isStaffPrimary ? "✓ Keep as Primary" : "Set as Primary"}
@@ -400,7 +400,7 @@ export default function MergeDuplicateModal({
                       </h4>
                       <div className="space-y-1 font-mono text-[11px] text-slate-600 dark:text-slate-400">
                         <div>Code: <strong className="text-slate-900 dark:text-white">{secondaryStaff.staff_code || `EMP-${secondaryStaff.id}`}</strong></div>
-                        <div>SSNIT: <strong className="text-indigo-600 dark:text-indigo-400">{secondaryStaff.ssnit_no || "N/A"}</strong></div>
+                        <div>SSNIT: <strong className="text-emerald-600 dark:text-emerald-400">{secondaryStaff.ssnit_no || "N/A"}</strong></div>
                         <div>NIA: <strong className="text-emerald-600 dark:text-emerald-400">{secondaryStaff.nia_number || "N/A"}</strong></div>
                         <div>Station: <strong>{secondaryStaff.department || "N/A"}</strong></div>
                         <div>Bank: <strong>{secondaryStaff.bank_name ? `${secondaryStaff.bank_name} (${secondaryStaff.bank_account || ""})` : "N/A"}</strong></div>
@@ -463,7 +463,7 @@ export default function MergeDuplicateModal({
                 <button
                   onClick={requestMergeRecords}
                   disabled={loading}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <GitMerge className="h-4 w-4" />
                   <span>{loading ? "Merging..." : `Combine into Record #${primaryObject.id}`}</span>

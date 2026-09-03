@@ -46,9 +46,9 @@ export default function Toast({
       badge: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
     },
     info: {
-      bg: "bg-indigo-900/90 dark:bg-indigo-950/95 border-indigo-500/50 text-indigo-100",
-      icon: <Info className="h-5 w-5 text-indigo-400 shrink-0" />,
-      badge: "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30",
+      bg: "bg-emerald-900/90 dark:bg-emerald-950/95 border-emerald-500/50 text-emerald-100",
+      icon: <Info className="h-5 w-5 text-emerald-400 shrink-0" />,
+      badge: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30",
     },
   }[type];
 

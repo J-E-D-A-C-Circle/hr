@@ -94,7 +94,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
         </button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
+          <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
             <RefreshCw className="h-5 w-5" />
           </div>
           <div>
@@ -124,7 +124,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-500">Contract Cycle:</span>
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                 Renewal #{nextRenewalNumber} (Previous: #{currentRenewalNumber})
               </span>
             </div>
@@ -138,7 +138,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
               <DateInput
                 value={startDate}
                 onChange={handleStartDateChange}
-                className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -172,7 +172,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
             type="button"
             onClick={handleRenew}
             disabled={loading}
-            className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-xl shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
+            className="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
           >
             {loading ? (
               <RefreshCw className="h-4 w-4 animate-spin" />

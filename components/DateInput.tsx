@@ -120,7 +120,7 @@ export default function DateInput({
         type="button"
         onClick={openPicker}
         disabled={disabled}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition cursor-pointer"
+        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer"
         title="Open calendar date picker"
       >
         <Calendar className={`h-4 w-4 ${iconColor}`} />

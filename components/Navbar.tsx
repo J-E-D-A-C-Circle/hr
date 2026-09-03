@@ -30,7 +30,7 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo & System Title */}
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
               <Building2 className="h-5 w-5" />
             </div>
             <div>
@@ -38,7 +38,7 @@ export default function Navbar() {
                 <span className="font-bold text-slate-900 dark:text-white text-base leading-tight tracking-tight">
                   TempStaff Pro
                 </span>
-                <span className="px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-md border border-indigo-200 dark:border-indigo-800/50">
+                <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-md border border-emerald-200 dark:border-emerald-800/50">
                   6-Mo Rolling
                 </span>
               </div>
@@ -93,7 +93,7 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap ${isActive
-                  ? "text-indigo-600 font-semibold dark:text-indigo-400"
+                  ? "text-emerald-600 font-semibold dark:text-emerald-400"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
                 }`}
             >

@@ -169,7 +169,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
       <SidebarLayout>
         <div className="flex flex-col items-center justify-center p-12 space-y-4">
           <p className="text-rose-600 text-sm font-semibold">{error || "Staff profile not found"}</p>
-          <Link href="/staff" className="text-xs text-indigo-600 underline font-semibold">
+          <Link href="/staff" className="text-xs text-emerald-600 underline font-semibold">
             Return to Staff Directory
           </Link>
         </div>
@@ -225,7 +225,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
               <>
                 <button
                   onClick={() => setShowRenewModal(true)}
-                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   <span>Renew Contract</span>
@@ -252,7 +252,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         {/* Top Profile Overview Banner */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-700 text-white flex items-center justify-center font-black text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-emerald-700 text-white flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-500/20 shrink-0">
               {staff.full_name.charAt(0)}
             </div>
             <div>
@@ -271,7 +271,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                   {staff.staff_code || `EMP-${staff.id}`}
                 </span>
                 {staff.ssnit_no && (
-                  <span className="font-mono bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                  <span className="font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                     SSNIT: {staff.ssnit_no}
                   </span>
                 )}
@@ -304,7 +304,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                   Cycle Number
                 </span>
-                <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
                   Renewal #{currentContract.renewal_number}
                 </span>
               </div>
@@ -317,7 +317,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
           {/* Card 1: Staff Details */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <User className="h-4 w-4 text-indigo-500" />
+              <User className="h-4 w-4 text-emerald-500" />
               <span>Personal & Employment</span>
             </h2>
 
@@ -338,7 +338,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
               <div>
                 <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
-                  <Calendar className="h-3 w-3 text-indigo-500" />
+                  <Calendar className="h-3 w-3 text-emerald-500" />
                   <span>Date of Birth (DD/MM/YYYY)</span>
                 </label>
                 {isEditing ? (
@@ -419,7 +419,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
               <div>
                 <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
-                  <Hash className="h-3 w-3 text-indigo-500" />
+                  <Hash className="h-3 w-3 text-emerald-500" />
                   <span>SSNIT Number</span>
                 </label>
                 {isEditing ? (
@@ -431,7 +431,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                     className="w-full p-2 border rounded-lg bg-slate-50 dark:bg-slate-950 font-mono font-bold text-slate-900 dark:text-white"
                   />
                 ) : (
-                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{staff.ssnit_no || "N/A (Not Provided)"}</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{staff.ssnit_no || "N/A (Not Provided)"}</span>
                 )}
               </div>
 
@@ -498,7 +498,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-400 block mb-0.5 flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-indigo-500" />
+                    <Calendar className="h-3 w-3 text-emerald-500" />
                     <span>Contract Start Date (DD/MM/YYYY)</span>
                   </label>
                   {isEditing ? (
@@ -610,7 +610,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <History className="h-5 w-5 text-indigo-600" />
+              <History className="h-5 w-5 text-emerald-600" />
               <span>Full Contract History & Audit Log</span>
             </h2>
             <span className="text-xs text-slate-400 font-medium">
@@ -628,7 +628,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                   key={contract.id}
                   className={`p-4 sm:p-5 rounded-2xl border transition ${
                     isCurrent
-                      ? "border-indigo-300 dark:border-indigo-800/80 bg-indigo-50/30 dark:bg-indigo-950/20"
+                      ? "border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/30 dark:bg-emerald-950/20"
                       : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20"
                   }`}
                 >
@@ -639,7 +639,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                       </span>
 
                       {isCurrent && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-600 text-white rounded-md uppercase">
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-600 text-white rounded-md uppercase">
                           Current Active Contract
                         </span>
                       )}

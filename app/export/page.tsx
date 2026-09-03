@@ -146,7 +146,7 @@ export default function ExportPage() {
         {/* Filter Controls */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <Filter className="h-4 w-4 text-indigo-500" />
+            <Filter className="h-4 w-4 text-emerald-500" />
             <span>Export Criteria & Payment Format Selection</span>
           </h2>
 
@@ -174,7 +174,7 @@ export default function ExportPage() {
                   <SelectValue placeholder="Select Payment Format" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="petra" className="font-bold text-indigo-600 dark:text-indigo-400">
+                  <SelectItem value="petra" className="font-bold text-emerald-600 dark:text-emerald-400">
                     Petra Tier 2 Contribution Format (PETRA.xlsx)
                   </SelectItem>
                   <SelectItem value="computation">
@@ -290,7 +290,7 @@ export default function ExportPage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-3">
             <div className="flex items-center gap-3">
-              <Eye className="h-5 w-5 text-indigo-500" />
+              <Eye className="h-5 w-5 text-emerald-500" />
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   Export Data Live Preview

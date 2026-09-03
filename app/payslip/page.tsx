@@ -454,7 +454,7 @@ export default function PayslipPage() {
 
                 <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
                   <span className="text-slate-500 dark:text-slate-400 font-medium">SSNIT Number:</span>
-                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{currentStaff.ssnit_no || "N/A"}</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{currentStaff.ssnit_no || "N/A"}</span>
                 </div>
 
                 <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">

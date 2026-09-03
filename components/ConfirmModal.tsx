@@ -42,8 +42,8 @@ export default function ConfirmModal({
       icon: <Unlink className="h-5 w-5" />,
     },
     primary: {
-      iconBg: "bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-800",
-      btnBg: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20",
+      iconBg: "bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800",
+      btnBg: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20",
       icon: <GitMerge className="h-5 w-5" />,
     },
   }[variant];

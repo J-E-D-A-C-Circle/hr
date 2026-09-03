@@ -112,7 +112,7 @@ export default function HistoryAnalyticsPage() {
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              <TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               <span>History & Payroll Analytics</span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -157,7 +157,7 @@ export default function HistoryAnalyticsPage() {
             <div className="self-end pb-0.5">
               <button
                 onClick={handleExportExcel}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
               >
                 <FileSpreadsheet className="h-4 w-4" />
                 <span>Export Report (.xlsx)</span>
@@ -192,7 +192,7 @@ export default function HistoryAnalyticsPage() {
                 </div>
                 <div className="py-2.5 flex justify-between items-center">
                   <span className="font-semibold text-slate-600 dark:text-slate-400">Total Employer NSSF Contribution (13%):</span>
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400 font-mono">GH₵{(metrics.totalEmployerNSSF13 || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">GH₵{(metrics.totalEmployerNSSF13 || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="py-2.5 flex justify-between items-center">
                   <span className="font-semibold text-slate-600 dark:text-slate-400">Total Employer Cost of Employment:</span>
@@ -283,7 +283,7 @@ export default function HistoryAnalyticsPage() {
                 placeholder="Search historical name, code, SSNIT..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
               <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             </div>
@@ -326,7 +326,7 @@ export default function HistoryAnalyticsPage() {
                         <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                           <span>{item.staff_code}</span>
                           {item.ssnit_no && (
-                            <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
                               SSNIT: {item.ssnit_no}
                             </span>
                           )}
