@@ -147,13 +147,25 @@ export default function DashboardPage() {
                 <Clock className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                {loading ? "..." : counts["Expiring Soon"]}
-              </span>
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                Requires Renewal Action
-              </span>
+            <div className="mt-4 flex items-baseline justify-between gap-2">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+                  {loading ? "..." : counts["Expiring Soon"]}
+                </span>
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  Requires Renewal Action
+                </span>
+              </div>
+              <a
+                href="/api/export?filter=expiring&export_type=expiring"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-[11px] font-bold shadow-xs transition"
+                title="Download Excel sheet of expiring staff"
+              >
+                <Download className="h-3 w-3" />
+                <span>Export Excel</span>
+              </a>
             </div>
           </div>
 
@@ -215,13 +227,24 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <Link
-              href="/staff?status=expiring soon"
-              className="text-xs font-bold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 shrink-0"
-            >
-              <span>View All Expiring</span>
-              <ChevronRight className="h-4 w-4" />
-            </Link>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href="/api/export?filter=expiring&export_type=expiring"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-bold shadow-xs transition"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>Export Expiring Excel</span>
+              </a>
+              <Link
+                href="/staff?status=expiring soon"
+                className="text-xs font-bold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1"
+              >
+                <span>View All</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
 
           <div className="divide-y divide-slate-200 dark:divide-slate-800 overflow-x-auto">

@@ -130,7 +130,9 @@ export default function ExportPage() {
           >
             <FileSpreadsheet className="h-4 w-4" />
             <span>
-              {exportType === "petra"
+              {exportType === "expiring"
+                ? "Download Expiring Staff Excel (.xlsx)"
+                : exportType === "petra"
                 ? "Download Petra Tier 2 Excel (PETRA.xlsx)"
                 : exportType === "computation"
                 ? "Download Monthly Computation Excel (.xlsx)"
@@ -174,6 +176,9 @@ export default function ExportPage() {
                   <SelectValue placeholder="Select Payment Format" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="expiring" className="font-bold text-amber-600 dark:text-amber-400">
+                    Expiring Soon Staff Directory (≤30 Days)
+                  </SelectItem>
                   <SelectItem value="petra" className="font-bold text-emerald-600 dark:text-emerald-400">
                     Petra Tier 2 Contribution Format (PETRA.xlsx)
                   </SelectItem>

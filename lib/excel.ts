@@ -174,7 +174,7 @@ function applyAutoColumnWidths(worksheet: ExcelJS.Worksheet) {
 /**
  * Builds Standard Staff Directory Export Workbook with Green Styling
  */
-export async function buildExportWorkbook(staffRecords: any[]): Promise<Buffer> {
+export async function buildExportWorkbook(staffRecords: any[], customTitle?: string): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "DVLA Temporary Staff HR Platform";
   workbook.created = new Date();
@@ -328,24 +328,28 @@ export async function buildExportWorkbook(staffRecords: any[]): Promise<Buffer> 
     applyAutoColumnWidths(worksheet);
   };
 
-  // 1. All Staff Master Sheet (Contains ALL Employees in database)
-  addDirectorySheet("All Staff Master", "Full Staff Directory (All Employees)", staffRecords);
+  if (customTitle) {
+    addDirectorySheet(customTitle, customTitle, staffRecords);
+  } else {
+    // 1. All Staff Master Sheet (Contains ALL Employees in database)
+    addDirectorySheet("All Staff Master", "Full Staff Directory (All Employees)", staffRecords);
 
-  // 2. Active Employees Sheet
-  const activeRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Active");
-  addDirectorySheet("Active Employees", "Active Staff Directory", activeRecords);
+    // 2. Active Employees Sheet
+    const activeRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Active");
+    addDirectorySheet("Active Employees", "Active Staff Directory", activeRecords);
 
-  // 3. Expiring Soon Sheet
-  const expiringRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Expiring Soon");
-  addDirectorySheet("Expiring Soon", "Expiring Contracts (Within 30 Days)", expiringRecords);
+    // 3. Expiring Soon Sheet
+    const expiringRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Expiring Soon");
+    addDirectorySheet("Expiring Soon", "Expiring Contracts (Within 30 Days)", expiringRecords);
 
-  // 4. Expired Contracts Sheet
-  const expiredRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Expired");
-  addDirectorySheet("Expired Contracts", "Expired Contracts Directory", expiredRecords);
+    // 4. Expired Contracts Sheet
+    const expiredRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Expired");
+    addDirectorySheet("Expired Contracts", "Expired Contracts Directory", expiredRecords);
 
-  // 5. Terminated Staff Sheet
-  const terminatedRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Terminated");
-  addDirectorySheet("Terminated Staff", "Terminated Staff Directory", terminatedRecords);
+    // 5. Terminated Staff Sheet
+    const terminatedRecords = staffRecords.filter(r => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Terminated");
+    addDirectorySheet("Terminated Staff", "Terminated Staff Directory", terminatedRecords);
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);

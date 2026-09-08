@@ -39,6 +39,8 @@ import {
   AlertCircle,
   GitMerge,
   Trash2,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -349,13 +351,24 @@ export default function StaffListPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => setShowAddStaffModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition self-start sm:self-auto"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Add New Staff</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/api/export?filter=expiring&export_type=expiring"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-bold shadow-md shadow-amber-600/20 transition self-start sm:self-auto"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export Expiring Staff (.xlsx)</span>
+            </a>
+            <button
+              onClick={() => setShowAddStaffModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition self-start sm:self-auto"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Add New Staff</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter & Search Toolbar */}

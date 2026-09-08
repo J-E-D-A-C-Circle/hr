@@ -160,7 +160,11 @@ export async function GET(request: NextRequest) {
     let filename: string;
     const dateStr = new Date().toISOString().split("T")[0];
 
-    if (exportType === "petra") {
+    if (exportType === "expiring" || filter === "expiring") {
+      const expiringList = annotated.filter((item: any) => item.computedStatus === "Expiring Soon");
+      excelBuffer = await buildExportWorkbook(expiringList, "Expiring Soon Staff");
+      filename = `Expiring_Soon_Staff_Directory_${dateStr}.xlsx`;
+    } else if (exportType === "petra") {
       const mStr = validationMonth || getCurrentMonthYearString();
       excelBuffer = await buildPetraTier2Workbook(filtered, mStr);
       filename = `PETRA_${mStr ? mStr.replace(/[^a-zA-Z0-9]/g, "_") : "Monthly_Schedules"}_${dateStr}.xlsx`;
@@ -177,7 +181,7 @@ export async function GET(request: NextRequest) {
       excelBuffer = await buildMonthlyComputationWorkbook(filtered, mStr);
       filename = `Monthly_Computation_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else {
-      const exportList = exportType === "standard" ? annotated : filtered;
+      const exportList = (exportType === "standard" && (filter === "all" || !filter)) ? annotated : filtered;
       excelBuffer = await buildExportWorkbook(exportList);
       filename = `Standard_Full_Staff_Directory_${dateStr}.xlsx`;
     }
