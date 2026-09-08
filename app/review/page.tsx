@@ -71,11 +71,58 @@ export default function ReviewPage() {
   // Selected Submission for Split View
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
 
+  // Multi-select bulk state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
   // Review action modal state
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejecting, setRejecting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === submissions.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(submissions.map((s) => s.id));
+    }
+  };
+
+  const toggleSelectId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkAction = async (action: 'APPROVE' | 'REJECT') => {
+    if (selectedIds.length === 0) return;
+    setBulkActionLoading(true);
+    try {
+      const res = await fetch('/api/submissions/bulk-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionIds: selectedIds,
+          action,
+          reviewerNotes: action === 'REJECT' ? 'Batch review action' : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSelectedIds([]);
+        loadSubmissions();
+      } else {
+        alert(data.error || 'Failed to process bulk review');
+      }
+    } catch (e) {
+      alert('Network error executing bulk review action');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -290,11 +337,43 @@ export default function ReviewPage() {
         <div className="lg:col-span-5 space-y-3">
           <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm">
             <div className="p-4 bg-emerald-900 text-white flex items-center justify-between border-b border-emerald-800">
-              <span className="text-xs font-semibold uppercase tracking-wider">
-                Submissions Queue ({submissions.length})
-              </span>
-              <span className="text-xs text-emerald-200/80 font-normal">Click to preview document</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={submissions.length > 0 && selectedIds.length === submissions.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-emerald-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  title="Select All Submissions"
+                />
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Submissions Queue ({submissions.length})
+                </span>
+              </div>
+              <span className="text-xs text-emerald-200/80 font-normal">Click item to preview</span>
             </div>
+
+            {/* Batch Actions Toolbar */}
+            {selectedIds.length > 0 && (
+              <div className="p-3 bg-emerald-800 text-white flex items-center justify-between text-xs border-b border-emerald-700 animate-fadeIn">
+                <span className="font-semibold">{selectedIds.length} station(s) selected</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleBulkAction('APPROVE')}
+                    disabled={bulkActionLoading}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-xs transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Approve Selected ({selectedIds.length})</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedIds([])}
+                    className="px-2.5 py-1.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 font-medium transition cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
 
             {loading ? (
               <div className="py-16 text-center text-xs font-bold text-slate-600">Loading submission queue...</div>
@@ -304,6 +383,7 @@ export default function ReviewPage() {
               <div className="divide-y divide-slate-200 max-h-[680px] overflow-y-auto">
                 {submissions.map((sub) => {
                   const isSelected = selectedSub?.id === sub.id;
+                  const isChecked = selectedIds.includes(sub.id);
                   let parsedNote: any = {};
                   try {
                     if (sub.note && sub.note.startsWith('{')) {
@@ -323,35 +403,44 @@ export default function ReviewPage() {
                           : 'hover:bg-slate-50'
                       }`}
                     >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-slate-900">{sub.branch.name}</span>
-                          <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                            {sub.branch.code}
-                          </span>
-                          {/* Staff Category Badge */}
-                          <span
-                            className={`px-2 py-0.5 text-[10px] font-medium rounded-md border ${
-                              staffCategory === 'CONTRACT'
-                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      <div className="flex items-center gap-3 space-y-0">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onClick={(e) => toggleSelectId(sub.id, e)}
+                          onChange={() => {}}
+                          className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600 cursor-pointer shrink-0"
+                        />
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-slate-900">{sub.branch.name}</span>
+                            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              {sub.branch.code}
+                            </span>
+                            {/* Staff Category Badge */}
+                            <span
+                              className={`px-2 py-0.5 text-[10px] font-medium rounded-md border ${
+                                staffCategory === 'CONTRACT'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : staffCategory === 'BOTH'
+                                  ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                  : 'bg-teal-50 text-teal-800 border-teal-200'
+                              }`}
+                            >
+                              {staffCategory === 'CONTRACT'
+                                ? 'Contract Staff'
                                 : staffCategory === 'BOTH'
-                                ? 'bg-purple-50 text-purple-800 border-purple-200'
-                                : 'bg-teal-50 text-teal-800 border-teal-200'
-                            }`}
-                          >
-                            {staffCategory === 'CONTRACT'
-                              ? 'Contract Staff'
-                              : staffCategory === 'BOTH'
-                              ? 'Permanent & Contract'
-                              : 'Permanent Staff'}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-normal flex items-center gap-2">
-                          <span>{sub.branch.region.name}</span>
-                          <span>•</span>
-                          <span>
-                            {sub.month}/{sub.year} Cycle
-                          </span>
+                                ? 'Permanent & Contract'
+                                : 'Permanent Staff'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-normal flex items-center gap-2">
+                            <span>{sub.branch.region.name}</span>
+                            <span>•</span>
+                            <span>
+                              {sub.month}/{sub.year} Cycle
+                            </span>
+                          </div>
                         </div>
                       </div>
 

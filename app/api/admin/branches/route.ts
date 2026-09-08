@@ -6,15 +6,21 @@ import { logAuditAction } from '@/lib/audit';
 export async function GET(request: Request) {
   try {
     const session = await getSession();
-    if (!session || session.role !== 'HR_ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
     const { searchParams } = new URL(request.url);
     const regionId = searchParams.get('regionId') || undefined;
 
+    // HR_ADMIN sees all branches (active or inactive); others see active branches only
+    const isHrAdmin = session?.role === 'HR_ADMIN';
+    const whereClause: any = {};
+    if (!isHrAdmin) {
+      whereClause.active = true;
+    }
+    if (regionId && regionId !== 'ALL') {
+      whereClause.regionId = regionId;
+    }
+
     const branches = await prisma.branch.findMany({
-      where: regionId && regionId !== 'ALL' ? { regionId } : {},
+      where: whereClause,
       include: {
         region: true,
         _count: { select: { submissions: true } },

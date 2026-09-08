@@ -259,6 +259,48 @@ export default function CompliancePage() {
         </div>
       </div>
 
+      {/* Region Completion Progress Strip */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-bold text-slate-900 uppercase tracking-wider">Regional Compliance Status (Month {currentMonth}/{yearFilter})</span>
+          <span className="text-slate-500 font-mono">50+ Station Grid Matrix</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {regions.map((reg) => {
+            const regBranches = branches.filter((b) => b.region.id === reg.id);
+            const regApproved = regBranches.filter((b) =>
+              b.submissions.some((s) => s.month === currentMonth && s.year === yearFilter && s.status === 'APPROVED')
+            ).length;
+            const pct = regBranches.length > 0 ? Math.round((regApproved / regBranches.length) * 100) : 0;
+
+            return (
+              <div
+                key={reg.id}
+                onClick={() => setRegionFilter(regionFilter === reg.id ? 'ALL' : reg.id)}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-medium cursor-pointer transition flex items-center gap-2 ${
+                  regionFilter === reg.id
+                    ? 'bg-emerald-900 text-white border-emerald-900 shadow-2xs'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+                }`}
+              >
+                <span>{reg.name}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                    pct === 100
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : pct > 50
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-rose-100 text-rose-800'
+                  }`}
+                >
+                  {pct}% ({regApproved}/{regBranches.length})
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Controls & Filter Toolbar */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4 flex-1">
