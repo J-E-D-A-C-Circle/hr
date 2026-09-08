@@ -11,7 +11,7 @@ export const AuditView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const pageSize = 6;
+  const pageSize = 5;
 
   useEffect(() => {
     setLoading(true);

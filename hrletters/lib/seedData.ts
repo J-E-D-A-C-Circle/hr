@@ -1,5 +1,17 @@
 export const initialStaff = [
   {
+    staffId: "HR-2026-000",
+    fullName: "Constance Akua Essuman",
+    department: "Driver Licensing & Executive Administration",
+    jobTitle: "Senior Licensing & HR Director",
+    email: "constanceakua.essuman@dvla.gov.gh",
+    phone: "+233 24 555 7788",
+    appointmentDate: "2022-01-15",
+    status: "ACTIVE" as const,
+    salaryGrade: "Grade 16 Step 5",
+    reportingOfficer: "Director-General DVLA",
+  },
+  {
     staffId: "HR-2026-001",
     fullName: "Kofi Mensah",
     department: "Driver Licensing & Administration",

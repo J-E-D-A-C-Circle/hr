@@ -10,11 +10,15 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  Users,
 } from "lucide-react";
 import { RoleType } from "./Navbar";
 
 export type TabType =
+  | "login"
   | "dashboard"
+  | "staff"
+  | "my-portal"
   | "templates"
   | "generator"
   | "archive"
@@ -29,6 +33,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: "dashboard",  label: "Dashboard",          icon: BarChart3,  roles: ["HR_OFFICER", "HR_DIRECTOR", "DEPT_HEAD"] },
+  { id: "staff",      label: "Staff Directory",     icon: Users,      roles: ["HR_OFFICER", "HR_DIRECTOR", "DEPT_HEAD"] },
+  { id: "my-portal",  label: "My Staff Portal",     icon: Users,      roles: ["STAFF"] },
   { id: "generator",  label: "Generate & Preview",  icon: FileCheck2, roles: ["HR_OFFICER", "HR_DIRECTOR", "DEPT_HEAD"] },
   { id: "templates",  label: "Letter Templates",    icon: FileCode2,  roles: ["HR_OFFICER", "HR_DIRECTOR"] },
   { id: "archive",    label: "Digital Archive",     icon: Archive,    roles: ["HR_OFFICER", "HR_DIRECTOR", "DEPT_HEAD"] },

@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Archive, Search, ShieldCheck, Eye, CheckCircle2, QrCode, X } from "lucide-react";
+import { Archive, Search, ShieldCheck, Eye, CheckCircle2, QrCode, X, Mail, FileCheck } from "lucide-react";
 import { LetterPreviewModal } from "../LetterPreviewModal";
+import { DvlaMailModal } from "../DvlaMailModal";
+import { AckModal } from "../AckModal";
 import { Badge, statusToBadgeVariant } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../ui/table";
@@ -14,10 +16,14 @@ export const ArchiveView: React.FC = () => {
   const [verifyCodeInput, setVerifyCodeInput] = useState("");
   const [verificationResult, setVerificationResult] = useState<any | null>(null);
   const [previewLetter, setPreviewLetter] = useState<any | null>(null);
+  const [mailModalOpen, setMailModalOpen] = useState(false);
+  const [mailLetter, setMailLetter] = useState<any | null>(null);
+  const [ackModalOpen, setAckModalOpen] = useState(false);
+  const [ackLetter, setAckLetter] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const pageSize = 6;
+  const pageSize = 5;
 
   useEffect(() => {
     setLoading(true);
@@ -197,14 +203,40 @@ export const ArchiveView: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={<Eye className="w-3.5 h-3.5" />}
-                      onClick={() => setPreviewLetter(letDoc)}
-                    >
-                      Inspect
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<Eye className="w-3.5 h-3.5" />}
+                        onClick={() => setPreviewLetter(letDoc)}
+                      >
+                        Inspect
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<Mail className="w-3.5 h-3.5 text-amber-500" />}
+                        onClick={() => {
+                          setMailLetter(letDoc);
+                          setMailModalOpen(true);
+                        }}
+                      >
+                        DVLA Mail
+                      </Button>
+                      {letDoc.status === "ISSUED" && (
+                        <Button
+                          variant="success"
+                          size="sm"
+                          icon={<FileCheck className="w-3.5 h-3.5" />}
+                          onClick={() => {
+                            setAckLetter(letDoc);
+                            setAckModalOpen(true);
+                          }}
+                        >
+                          Ack Receipt
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -230,6 +262,31 @@ export const ArchiveView: React.FC = () => {
 
       {previewLetter && (
         <LetterPreviewModal letter={previewLetter} onClose={() => setPreviewLetter(null)} />
+      )}
+      {mailModalOpen && (
+        <DvlaMailModal
+          isOpen={mailModalOpen}
+          letter={mailLetter}
+          onClose={() => {
+            setMailModalOpen(false);
+            setMailLetter(null);
+          }}
+        />
+      )}
+      {ackModalOpen && (
+        <AckModal
+          isOpen={ackModalOpen}
+          letter={ackLetter}
+          onClose={() => {
+            setAckModalOpen(false);
+            setAckLetter(null);
+          }}
+          onSuccess={() => {
+            fetch("/api/letters")
+              .then((r) => r.json())
+              .then((data) => { if (data.success) setLetters(data.data); });
+          }}
+        />
       )}
     </div>
   );

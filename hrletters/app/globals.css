@@ -9,17 +9,17 @@
 
   --color-bg:        #F9FAFB;
   --color-surface:   #FFFFFF;
-  --color-border:    #EBEBEB;
-  --color-border-subtle: #F5F5F5;
+  --color-border:    rgba(0, 0, 0, 0.07);
+  --color-border-subtle: rgba(0, 0, 0, 0.03);
 
   --color-text-1:    #111827;
   --color-text-2:    #374151;
   --color-text-3:    #6B7280;
   --color-text-4:    #9CA3AF;
 
-  --color-accent:    #2563EB;
-  --color-accent-hover: #1D4ED8;
-  --color-accent-subtle: #EFF6FF;
+  --color-accent:    #0F5132;
+  --color-accent-hover: #0B3D26;
+  --color-accent-subtle: #ECFDF5;
 
   --radius-card:   12px;
   --radius-btn:    8px;
@@ -37,17 +37,17 @@
 .dark {
   --color-bg:        #0A0F1E;
   --color-surface:   #0F1629;
-  --color-border:    #1A2740;
-  --color-border-subtle: #131E35;
+  --color-border:    rgba(255, 255, 255, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
 
   --color-text-1:    #F1F5F9;
   --color-text-2:    #CBD5E1;
   --color-text-3:    #64748B;
   --color-text-4:    #475569;
 
-  --color-accent:    #3B82F6;
-  --color-accent-hover: #2563EB;
-  --color-accent-subtle: rgba(59,130,246,0.08);
+  --color-accent:    #10B981;
+  --color-accent-hover: #059669;
+  --color-accent-subtle: rgba(16,185,129,0.1);
 
   --shadow-xs:  0 1px 2px 0 rgba(0,0,0,0.3);
   --shadow-sm:  0 1px 3px 0 rgba(0,0,0,0.4), 0 1px 2px -1px rgba(0,0,0,0.3);
@@ -92,17 +92,16 @@ body {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  box-shadow: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
 }
 
-/* ── Globally thin all Tailwind `border` utility lines ── */
+/* ── Globally soften all border utility lines ── */
 *, *::before, *::after {
-  --tw-border-opacity: 1;
+  border-color: var(--color-border);
 }
 
-/* Override default Tailwind border width to be hair-thin */
 [class*="border"] {
-  border-width: 1px;
+  border-color: var(--color-border);
 }
 
 .input-base {

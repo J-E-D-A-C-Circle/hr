@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  FileText, Send, PenTool, Eye, Tag, Stamp, User, Building2, Briefcase, Hash, MapPin, Printer, RefreshCw, Sparkles,
+  FileText, Send, PenTool, Eye, Tag, Stamp, User, Building2, Briefcase, Hash, MapPin, Printer, RefreshCw, Sparkles, Mail, CheckCircle2,
 } from "lucide-react";
 import { SignaturePad } from "../SignaturePad";
 import { LetterPreviewModal } from "../LetterPreviewModal";
+import { DvlaMailModal } from "../DvlaMailModal";
 import { OfficialAppointmentLetter } from "../OfficialAppointmentLetter";
 import { Select } from "../ui/Select";
 import { Badge, statusToBadgeVariant } from "../ui/Badge";
@@ -18,6 +19,7 @@ import { printOfficialLetter } from "../../lib/printLetterHelper";
 interface GeneratorViewProps {
   currentRole: RoleType;
   theme: "dark" | "light";
+  selectedStaff?: any;
 }
 
 const InputLabel: React.FC<{ children: React.ReactNode; required?: boolean }> = ({ children, required }) => (
@@ -26,7 +28,7 @@ const InputLabel: React.FC<{ children: React.ReactNode; required?: boolean }> = 
   </label>
 );
 
-export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole }) => {
+export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole, selectedStaff }) => {
   const [letters, setLetters] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +67,21 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole }) => 
 
   const [signingLetterId, setSigningLetterId] = useState<string | null>(null);
   const [previewLetter, setPreviewLetter] = useState<any | null>(null);
+  const [mailModalOpen, setMailModalOpen] = useState(false);
+  const [mailLetter, setMailLetter] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const pageSize = 6;
+  const pageSize = 5;
   const totalPages = Math.ceil(letters.length / pageSize);
   const paginatedLetters = letters.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    if (!selectedStaff) return;
+    setRecipientName(selectedStaff.fullName || "Kofi Mensah");
+    setRecipientStaffId(selectedStaff.staffId || "DVLA-712986");
+    setRecipientDepartment(selectedStaff.department || "Driver Licensing & Administration");
+    setRecipientJobTitle(selectedStaff.jobTitle || "Senior Licensing Officer");
+  }, [selectedStaff]);
 
   const loadData = async () => {
     setLoading(true);
@@ -628,6 +640,17 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole }) => 
                     <Button variant="secondary" size="sm" icon={<Eye className="w-3.5 h-3.5" />} onClick={() => setPreviewLetter(doc)}>
                       View
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Mail className="w-3.5 h-3.5 text-amber-500" />}
+                      onClick={() => {
+                        setMailLetter(doc);
+                        setMailModalOpen(true);
+                      }}
+                    >
+                      DVLA Mail
+                    </Button>
                     {doc.status === "PENDING_APPROVAL" && ["HR_DIRECTOR", "HR_OFFICER"].includes(currentRole) && (
                       <Button variant="primary" size="sm" onClick={() => handleApproveLetter(doc.id)}>
                         Approve
@@ -659,6 +682,16 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole }) => 
       )}
       {previewLetter && (
         <LetterPreviewModal letter={previewLetter} onClose={() => setPreviewLetter(null)} />
+      )}
+      {mailModalOpen && (
+        <DvlaMailModal
+          isOpen={mailModalOpen}
+          letter={mailLetter}
+          onClose={() => {
+            setMailModalOpen(false);
+            setMailLetter(null);
+          }}
+        />
       )}
     </div>
   );

@@ -83,7 +83,88 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ success: true, message: "HR Letters Portal Database initialized successfully" });
+    // 4. Ensure Constance Akua Essuman staff & approved promotion letter exist
+    let constanceStaff = await prisma.staff.findFirst({
+      where: { email: "constanceakua.essuman@dvla.gov.gh" },
+    });
+
+    if (!constanceStaff) {
+      constanceStaff = await prisma.staff.create({
+        data: {
+          staffId: "DVLA-883012",
+          fullName: "Constance Akua Essuman",
+          department: "Driver Licensing & Executive Administration",
+          jobTitle: "Senior Licensing & HR Director",
+          email: "constanceakua.essuman@dvla.gov.gh",
+          phone: "+233 24 555 7788",
+          appointmentDate: "2022-01-15",
+          status: "ACTIVE",
+          salaryGrade: "Grade 16 Step 5",
+          reportingOfficer: "Director-General DVLA",
+        },
+      });
+    }
+
+    const promotionLetter = await prisma.letterDocument.findFirst({
+      where: { staffId: constanceStaff.id, letterType: "PROMOTION" },
+    });
+
+    if (!promotionLetter) {
+      const promoCode = "V-DVLA-883012";
+      const promoTemplate = await prisma.letterTemplate.findFirst({ where: { type: "PROMOTION" } });
+      const templateContent = promoTemplate?.content || `Dear {{staff_name}},\n\nRE: PROMOTION TO {{job_title}}\n\nManagement is pleased to inform you that following your outstanding performance appraisals, you have been promoted to the position of {{job_title}} in the {{department}} Department.\n\nEffective Date: {{start_date}}\nSalary Grade: {{salary_grade}}\nReporting Officer: {{reporting_officer}}`;
+
+      const content = templateContent
+        .replace("{{staff_name}}", "Constance Akua Essuman")
+        .replace("{{job_title}}", "Senior Licensing & Executive HR Director")
+        .replace("{{department}}", "Driver Licensing & Executive Administration")
+        .replace("{{start_date}}", "01/09/2026")
+        .replace("{{salary_grade}}", "DVLA Executive Grade 16 Step 5")
+        .replace("{{reporting_officer}}", "Director-General DVLA");
+
+      const createdPromo = await prisma.letterDocument.create({
+        data: {
+          staffId: constanceStaff.id,
+          templateId: promoTemplate?.id || null,
+          verificationCode: promoCode,
+          title: "Letter of Promotion — Constance Akua Essuman",
+          letterType: "PROMOTION",
+          content,
+          salutation: "Dear Madam,",
+          customRefNumber: "DVLA/HR/PROM/2026/088",
+          effectiveDate: "01/09/2026",
+          salaryGrade: "DVLA Executive Grade 16 Step 5",
+          status: "APPROVED",
+          signatoryName: "EPHRAIM NII TAN SACKEY",
+          signatoryTitle: "AG. DIRECTOR, HUMAN RESOURCE",
+        },
+      });
+
+      await prisma.approvalWorkflow.create({
+        data: {
+          letterId: createdPromo.id,
+          stepNumber: 1,
+          approverRole: "Department Head",
+          approverName: "Abena Osei",
+          status: "APPROVED",
+          comments: "Promotional appraisal verified and recommended for HR Director issuance.",
+          decidedAt: new Date(),
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          action: "LETTER_APPROVED",
+          actorName: "Abena Osei",
+          actorRole: "DEPT_HEAD",
+          targetId: createdPromo.id,
+          targetType: "LetterDocument",
+          details: `Approved promotion letter ${promoCode} for Constance Akua Essuman (constanceakua.essuman@dvla.gov.gh)`,
+        },
+      });
+    }
+
+    return NextResponse.json({ success: true, message: "HR Letters Portal Database initialized with Constance Akua Essuman Promotion Letter" });
   } catch (error: any) {
     console.error("Seed error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

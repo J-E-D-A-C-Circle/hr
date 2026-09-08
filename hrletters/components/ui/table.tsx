@@ -22,7 +22,7 @@ export const TableHeader = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <thead
     ref={ref}
-    className={`[&_tr]:border-b ${className}`}
+    className={`border-b ${className}`}
     style={{ background: "var(--color-bg)", borderColor: "var(--color-border)" }}
     {...props}
   />
@@ -35,7 +35,7 @@ export const TableBody = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <tbody
     ref={ref}
-    className={`[&_tr:last-child]:border-0 divide-y ${className}`}
+    className={`[&_tr:last-child]:border-0 ${className}`}
     style={{ borderColor: "var(--color-border)" }}
     {...props}
   />

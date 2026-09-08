@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Sparkles, Check, RefreshCw, Eye, Edit3, Printer } from 'lucide-react';
+import { X, FileText, Sparkles, Check, RefreshCw, Eye, Edit3, Printer, Mail } from 'lucide-react';
 import { OfficialAppointmentLetter } from '@/components/OfficialAppointmentLetter';
+import { DvlaMailModal } from '@/components/DvlaMailModal';
 
 interface AppointmentLetterModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export default function AppointmentLetterModal({
   const [customBodyText, setCustomBodyText] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [mailModalOpen, setMailModalOpen] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -389,7 +391,10 @@ export default function AppointmentLetterModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white w-full max-w-6xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden my-6 flex flex-col max-h-[92vh]">
+      <div
+        className="w-full max-w-6xl rounded-2xl shadow-2xl border overflow-hidden my-6 flex flex-col max-h-[92vh]"
+        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+      >
         {/* Header */}
         <div className="bg-[#0F5132] text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -749,6 +754,14 @@ export default function AppointmentLetterModal({
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
+              onClick={() => setMailModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black text-gray-900 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 transition shadow flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Mail className="w-4 h-4 text-emerald-800" />
+              <span>Send via DVLA Mail</span>
+            </button>
+            <button
+              type="button"
               onClick={handlePrintLetter}
               className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black text-emerald-950 bg-amber-400 hover:bg-amber-300 transition shadow flex items-center justify-center gap-2 cursor-pointer"
             >
@@ -773,6 +786,15 @@ export default function AppointmentLetterModal({
           </div>
         </div>
       </div>
+
+      {mailModalOpen && (
+        <DvlaMailModal
+          isOpen={mailModalOpen}
+          defaultEmail={application?.email}
+          defaultSubject={`[DVLA HR Official] Appointment Letter - ${applicantName}`}
+          onClose={() => setMailModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

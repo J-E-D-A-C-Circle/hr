@@ -2,26 +2,29 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Bell, Sun, Moon, UserCheck, PanelLeft } from "lucide-react";
+import { Bell, Sun, Moon, UserCheck, PanelLeft, LogOut } from "lucide-react";
 import { Select } from "./ui/Select";
 
-export type RoleType = "HR_OFFICER" | "HR_DIRECTOR" | "DEPT_HEAD";
+export type RoleType = "HR_OFFICER" | "HR_DIRECTOR" | "DEPT_HEAD" | "STAFF";
 
 const ROLE_CONFIG: Record<RoleType, { label: string; color: string }> = {
-  HR_OFFICER:  { label: "HR Officer",     color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
-  HR_DIRECTOR: { label: "HR Director",    color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
-  DEPT_HEAD:   { label: "Dept Head",      color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" },
+  HR_OFFICER:  { label: "HR Officer",     color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
+  HR_DIRECTOR: { label: "HR Director",    color: "bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20" },
+  DEPT_HEAD:   { label: "Dept Head",      color: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20" },
+  STAFF:       { label: "Staff Member",   color: "bg-emerald-600/10 text-emerald-800 dark:text-emerald-300 border-emerald-600/20" },
 };
 
 const ROLE_OPTIONS = [
   { value: "HR_OFFICER",  label: "HR Officer — Drafting & Records" },
   { value: "HR_DIRECTOR", label: "HR Director — Approvals & Signatures" },
   { value: "DEPT_HEAD",   label: "Dept Head — Recommender" },
+  { value: "STAFF",       label: "Staff Portal User — Employee" },
 ];
 
 interface NavbarProps {
   currentRole: RoleType;
   onRoleChange: (role: RoleType) => void;
+  onLogout?: () => void;
   notificationsCount: number;
   theme: "dark" | "light";
   onToggleTheme: () => void;
@@ -32,6 +35,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentRole,
   onRoleChange,
+  onLogout,
   notificationsCount,
   theme,
   onToggleTheme,
@@ -79,19 +83,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* ── Controls ── */}
-      <div className="flex items-center gap-2">
-        <div className="w-64 hidden md:block">
-          <Select
-            value={currentRole}
-            onChange={(v) => onRoleChange(v as RoleType)}
-            options={ROLE_OPTIONS}
-            icon={<UserCheck className="w-4 h-4 text-blue-500" />}
-          />
-        </div>
-
-        <span className={`hidden sm:inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${role.color}`}>
-          {role.label}
+      {/* ── User & Controls ── */}
+      <div className="flex items-center gap-2.5">
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border ${role?.color || ''}`}>
+          <UserCheck className="w-3.5 h-3.5" />
+          {role?.label || 'Guest'}
         </span>
 
         <div className="w-px h-5 mx-1 shrink-0" style={{ background: "var(--color-border)" }} />
@@ -111,6 +107,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             : <Moon className="w-3.5 h-3.5 text-indigo-500" />}
           <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
         </button>
+
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20"
+            title="Log Out to Demo Login Page"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Log Out</span>
+          </button>
+        )}
 
         {/* Notifications */}
         <div className="relative">
