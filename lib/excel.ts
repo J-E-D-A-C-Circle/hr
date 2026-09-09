@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { calculateEndDate, computeContractStatus, computeDaysRemaining, formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } from "./status";
+import { calculateGhanaDeductions } from "./payroll";
 
 export interface MappedField {
   key: string;
@@ -484,10 +485,11 @@ export async function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr:
 
   staffRecords.forEach((item, idx) => {
     const basic = item.salary ? Number(item.salary) : 1400.00;
-    const ssnitEmployee = Math.round(basic * 0.055 * 100) / 100;
-    const graPaye = 122.28;
-    const totalDeduction = Math.round((ssnitEmployee + graPaye) * 100) / 100;
-    const netPay = Math.round((basic - totalDeduction) * 100) / 100;
+    const ghanaCalc = calculateGhanaDeductions(basic);
+    const ssnitEmployee = ghanaCalc.ssnit_employee_amount;
+    const graPaye = ghanaCalc.paye_tax_amount;
+    const totalDeduction = ghanaCalc.total_employee_deductions;
+    const netPay = ghanaCalc.net_take_home_salary;
 
     totalAmount += netPay;
 
@@ -660,9 +662,10 @@ export async function buildSsnitContributionWorkbook(staffRecords: any[], monthS
     }
 
     const basic = item.salary ? Number(item.salary) : 1400.00;
-    const tier1 = Math.round(basic * 0.135 * 100) / 100;
-    const tier2 = Math.round(basic * 0.05 * 100) / 100;
-    const graPaye = 122.28;
+    const ghanaCalc = calculateGhanaDeductions(basic);
+    const tier1 = ghanaCalc.ssnit_employer_amount;
+    const tier2 = ghanaCalc.petra_employee_amount;
+    const graPaye = ghanaCalc.paye_tax_amount;
 
     sumBasic += basic;
     sumTier1 += tier1;
@@ -766,12 +769,13 @@ export async function buildSinglePayslipWorkbook(staffRecord: any, monthStr: str
 
   const currentContract = staffRecord.contracts?.find((c: any) => c.is_current) || staffRecord.contracts?.[0];
   const basic = staffRecord.salary ? Number(staffRecord.salary) : 1400.00;
-  const ssnitTier1 = Math.round(basic * 0.135 * 100) / 100;
-  const petraTier2 = Math.round(basic * 0.05 * 100) / 100;
-  const ssnitEmployee = Math.round(basic * 0.055 * 100) / 100;
-  const graPaye = 122.28;
-  const totalDeductions = Math.round((ssnitEmployee + graPaye) * 100) / 100;
-  const netPay = Math.round((basic - totalDeductions) * 100) / 100;
+  const ghanaCalc = calculateGhanaDeductions(basic);
+  const ssnitTier1 = ghanaCalc.ssnit_employer_amount;
+  const petraTier2 = ghanaCalc.petra_employee_amount;
+  const ssnitEmployee = ghanaCalc.ssnit_employee_amount;
+  const graPaye = ghanaCalc.paye_tax_amount;
+  const totalDeductions = ghanaCalc.total_employee_deductions;
+  const netPay = ghanaCalc.net_take_home_salary;
 
   // Header Banner 1
   worksheet.mergeCells("A1:E1");
@@ -1002,16 +1006,17 @@ export async function buildMonthlyComputationWorkbook(
     const currentContract = item.contracts?.find((c: any) => c.is_current) || item.contracts?.[0];
     
     const basic = item.salary ? Number(item.salary) : 1400.00;
+    const ghanaCalc = calculateGhanaDeductions(basic);
     const gross = basic;
     const months = 1;
     const totalGross = gross * months;
-    const nssf55 = Math.round(totalGross * 0.055 * 100) / 100;
-    const nssf13 = Math.round(totalGross * 0.13 * 100) / 100;
+    const nssf55 = ghanaCalc.ssnit_employee_amount;
+    const nssf13 = ghanaCalc.ssnit_employer_amount;
     const payCost = Math.round((totalGross + nssf13) * 100) / 100;
     const taxable = Math.round((totalGross - nssf55) * 100) / 100;
-    const incomeTax = 122.28;
-    const totalDeduction = Math.round((nssf55 + incomeTax) * 100) / 100;
-    const netPay = Math.round((totalGross - totalDeduction) * 100) / 100;
+    const incomeTax = ghanaCalc.paye_tax_amount;
+    const totalDeduction = ghanaCalc.total_employee_deductions;
+    const netPay = ghanaCalc.net_take_home_salary;
 
     sumBasic += basic;
     sumGross += gross;

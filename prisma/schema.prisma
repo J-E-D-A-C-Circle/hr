@@ -90,3 +90,91 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+model RetirementDepartment {
+  id           Int               @id @default(autoincrement())
+  code         String            @unique
+  name         String
+  headOfDept   String?
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @updatedAt
+  staff        RetirementStaff[]
+
+  @@map("retirement_departments")
+}
+
+model RetirementStaff {
+  id                     Int                   @id @default(autoincrement())
+  staffId                String                @unique
+  fullName               String
+  dateOfBirth            DateTime
+  gender                 String                // Male, Female
+  departmentId           Int?
+  department             RetirementDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentName         String?               // Fallback / denormalized department name
+  jobTitle               String
+  grade                  String?               // Grade level e.g. "Senior Manager", "Assistant Officer", "Director"
+  dateOfFirstAppointment DateTime
+  retirementDate         DateTime
+  actualRetirementDate   DateTime?
+  retirementStatus       String                @default("ACTIVE") // ACTIVE, NEARING_RETIREMENT, DUE_THIS_YEAR, RETIRED
+  email                  String?
+  phone                  String?
+  active                 Boolean               @default(true)
+  created_at             DateTime              @default(now())
+  updated_at             DateTime              @updatedAt
+
+  alerts                 RetirementAlert[]
+
+  @@map("retirement_staff")
+}
+
+model RetirementUser {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  fullName     String
+  username     String   @unique
+  passwordHash String
+  role         String   @default("HR_OFFICER") // HR_ADMINISTRATOR, HR_OFFICER
+  active       Boolean  @default(true)
+  lastLogin    DateTime?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@map("retirement_users")
+}
+
+model RetirementAlert {
+  id           Int             @id @default(autoincrement())
+  staffId      Int
+  staff        RetirementStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  milestone    String          // 5_YEARS, 3_YEARS, 1_YEAR, 6_MONTHS
+  triggeredAt  DateTime        @default(now())
+  status       String          @default("UNREAD") // UNREAD, READ, ACKNOWLEDGED
+  created_at   DateTime        @default(now())
+
+  @@unique([staffId, milestone])
+  @@map("retirement_alerts")
+}
+
+model RetirementAuditLog {
+  id         Int      @id @default(autoincrement())
+  userName   String
+  userRole   String
+  action     String   // e.g. "CREATE_STAFF", "UPDATE_STAFF", "IMPORT_STAFF", "DEACTIVATE_STAFF", "CREATE_USER", "UPDATE_SETTINGS"
+  details    String
+  staffId    Int?
+  created_at DateTime @default(now())
+
+  @@map("retirement_audit_logs")
+}
+
+model RetirementSetting {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique
+  value      String
+  updated_at DateTime @updatedAt
+
+  @@map("retirement_settings")
+}
+

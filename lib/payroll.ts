@@ -40,6 +40,16 @@ export function calculateGraPayeTax(taxableIncome: number): number {
   const band5 = Math.min(remaining, 16000);
   tax += band5 * 0.25;
   remaining -= band5;
+  if (remaining <= 0) return Math.round(tax * 100) / 100;
+
+  // Band 6: Next GH₵ 30,520 @ 30%
+  const band6 = Math.min(remaining, 30520);
+  tax += band6 * 0.30;
+  remaining -= band6;
+  if (remaining <= 0) return Math.round(tax * 100) / 100;
+
+  // Band 7: Above GH₵ 50,416.67 @ 35%
+  tax += remaining * 0.35;
 
   return Math.round(tax * 100) / 100;
 }

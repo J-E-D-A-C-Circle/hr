@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
 import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook } from "@/lib/excel";
+import { calculateGhanaDeductions } from "@/lib/payroll";
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,13 +85,14 @@ export async function GET(request: NextRequest) {
 
       filtered.forEach((item: any) => {
         const basic = item.salary ? Number(item.salary) : 1400.00;
+        const ghanaCalc = calculateGhanaDeductions(basic);
         const totalGross = basic * 1;
-        const nssf55 = Math.round(totalGross * 0.055 * 100) / 100;
-        const nssf13 = Math.round(totalGross * 0.13 * 100) / 100;
+        const nssf55 = ghanaCalc.ssnit_employee_amount;
+        const nssf13 = ghanaCalc.ssnit_employer_amount;
         const payCost = Math.round((totalGross + nssf13) * 100) / 100;
-        const incomeTax = 122.28;
-        const totalDeduction = Math.round((nssf55 + incomeTax) * 100) / 100;
-        const netPay = Math.round((totalGross - totalDeduction) * 100) / 100;
+        const incomeTax = ghanaCalc.paye_tax_amount;
+        const totalDeduction = ghanaCalc.total_employee_deductions;
+        const netPay = ghanaCalc.net_take_home_salary;
 
         sumGross += totalGross;
         sumNssf13 += nssf13;

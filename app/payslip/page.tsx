@@ -28,6 +28,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } from "@/lib/status";
+import { calculateGhanaDeductions } from "@/lib/payroll";
 
 export default function PayslipPage() {
   const currentMonthStr = getCurrentMonthYearString();
@@ -93,13 +94,14 @@ export default function PayslipPage() {
   const financials = useMemo(() => {
     if (!currentStaff) return null;
     const basic = currentStaff.salary ? Number(currentStaff.salary) : 1400.00;
+    const ghanaCalc = calculateGhanaDeductions(basic);
     const gross = basic;
-    const ssnitEmployee = Math.round(basic * 0.055 * 100) / 100; // 5.5%
-    const ssnitEmployer = Math.round(basic * 0.135 * 100) / 100; // 13.5%
-    const petraTier2 = Math.round(basic * 0.05 * 100) / 100; // 5%
-    const graPaye = 122.28; // Standard PAYE tax bracket
-    const totalDeductions = Math.round((ssnitEmployee + graPaye) * 100) / 100;
-    const netPay = Math.round((gross - totalDeductions) * 100) / 100;
+    const ssnitEmployee = ghanaCalc.ssnit_employee_amount;
+    const ssnitEmployer = ghanaCalc.ssnit_employer_amount;
+    const petraTier2 = ghanaCalc.petra_employee_amount;
+    const graPaye = ghanaCalc.paye_tax_amount;
+    const totalDeductions = ghanaCalc.total_employee_deductions;
+    const netPay = ghanaCalc.net_take_home_salary;
 
     return {
       basic,

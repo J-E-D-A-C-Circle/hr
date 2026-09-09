@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildSinglePayslipWorkbook } from "@/lib/excel";
 import { getCurrentMonthYearString } from "@/lib/status";
+import { calculateGhanaDeductions } from "@/lib/payroll";
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,12 +35,13 @@ export async function GET(request: NextRequest) {
     }
 
     const basic = staffRecord.salary ? Number(staffRecord.salary) : 1400.0;
-    const ssnitTier1 = Math.round(basic * 0.135 * 100) / 100;
-    const petraTier2 = Math.round(basic * 0.05 * 100) / 100;
-    const ssnitEmployee = Math.round(basic * 0.055 * 100) / 100;
-    const graPaye = 122.28;
-    const totalDeductions = Math.round((ssnitEmployee + graPaye) * 100) / 100;
-    const netPay = Math.round((basic - totalDeductions) * 100) / 100;
+    const ghanaCalc = calculateGhanaDeductions(basic);
+    const ssnitTier1 = ghanaCalc.ssnit_employer_amount;
+    const petraTier2 = ghanaCalc.petra_employee_amount;
+    const ssnitEmployee = ghanaCalc.ssnit_employee_amount;
+    const graPaye = ghanaCalc.paye_tax_amount;
+    const totalDeductions = ghanaCalc.total_employee_deductions;
+    const netPay = ghanaCalc.net_take_home_salary;
 
     const payslipData = {
       staff: staffRecord,
