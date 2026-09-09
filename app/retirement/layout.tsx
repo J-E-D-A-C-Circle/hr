@@ -120,6 +120,7 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
     { label: "Nearing Retirement", href: "/retirement/nearing", icon: Clock },
     { label: "Due This Year", href: "/retirement/due-this-year", icon: AlertTriangle, badge: "Urgent" },
     { label: "Retired Staff", href: "/retirement/retired", icon: UserCheck },
+    { label: "Stations & Departments", href: "/retirement/departments", icon: Building2 },
     { label: "Reports & Analytics", href: "/retirement/reports", icon: FileBarChart },
     { label: "Alert Center", href: "/retirement/alerts", icon: Bell, count: unreadAlerts },
     ...(currentUser?.role === "HR_ADMINISTRATOR"

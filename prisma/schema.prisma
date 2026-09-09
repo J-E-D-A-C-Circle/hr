@@ -95,7 +95,10 @@ model RetirementDepartment {
   id           Int               @id @default(autoincrement())
   code         String            @unique
   name         String
+  type         String            @default("DEPARTMENT") // DEPARTMENT, STATION
+  location     String?           @default("Head Office, Accra")
   headOfDept   String?
+  description  String?
   created_at   DateTime          @default(now())
   updated_at   DateTime          @updatedAt
   staff        RetirementStaff[]
@@ -112,6 +115,7 @@ model RetirementStaff {
   departmentId           Int?
   department             RetirementDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   departmentName         String?               // Fallback / denormalized department name
+  stationName            String?               // Fallback / denormalized station name
   jobTitle               String
   grade                  String?               // Grade level e.g. "Senior Manager", "Assistant Officer", "Director"
   dateOfFirstAppointment DateTime

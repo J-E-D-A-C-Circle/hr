@@ -7,16 +7,22 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding DVLA Staff Retirement Tracking System...");
 
-  // 1. Create DVLA Head Office Departments
+  // 1. Create DVLA Head Office Departments & Regional Stations
   const departmentsData = [
-    { code: "LIC", name: "Driver Licensing Directorate", headOfDept: "Mr. Kwaku Bonsu" },
-    { code: "VINS", name: "Vehicle Inspection & Testing", headOfDept: "Ing. Samuel Osei" },
-    { code: "IT", name: "ICT & Digital Innovations", headOfDept: "Mrs. Abena Mansa" },
-    { code: "HR", name: "Human Resource Directorate", headOfDept: "Dr. Evelyn Mensah" },
-    { code: "FIN", name: "Finance & Accounts Division", headOfDept: "Mr. Michael Addo" },
-    { code: "LEG", name: "Legal Services & Compliance", headOfDept: "Barrister Cynthia Kwarteng" },
-    { code: "OPS", name: "Regional Operations & Transport", headOfDept: "Mr. Ebenezer Armah" },
-    { code: "DIT", name: "Driver Training & Assessment", headOfDept: "Capt. (Rtd) James Appiah" },
+    { code: "LIC", name: "Driver Licensing Directorate", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Mr. Kwaku Bonsu", description: "Driver license examination and issuance" },
+    { code: "VINS", name: "Vehicle Inspection & Testing", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Ing. Samuel Osei", description: "Automated vehicle roadworthiness assessment" },
+    { code: "IT", name: "ICT & Digital Innovations", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Mrs. Abena Mansa", description: "Enterprise IT infrastructure and software systems" },
+    { code: "HR", name: "Human Resource Directorate", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Dr. Evelyn Mensah", description: "Staff tracking, pensions, and statutory retirement" },
+    { code: "FIN", name: "Finance & Accounts Division", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Mr. Michael Addo", description: "Financial reporting, payroll, and revenue audit" },
+    { code: "LEG", name: "Legal Services & Compliance", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Barrister Cynthia Kwarteng", description: "Regulatory compliance and legal advocacy" },
+    { code: "OPS", name: "Regional Operations & Transport", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Mr. Ebenezer Armah", description: "National station supervision and logistics" },
+    { code: "DIT", name: "Driver Training & Assessment", type: "DEPARTMENT", location: "Head Office, Accra", headOfDept: "Capt. (Rtd) James Appiah", description: "Driving school accreditation and testing standards" },
+    // Regional Stations
+    { code: "STN-KMS", name: "Kumasi Regional Station", type: "STATION", location: "Ashanti Region, Kumasi", headOfDept: "Ing. Richard Mensah", description: "Ashanti Regional operational station" },
+    { code: "STN-TKR", name: "Takoradi Regional Station", type: "STATION", location: "Western Region, Takoradi", headOfDept: "Mrs. Grace Osei", description: "Western Region operations" },
+    { code: "STN-TMA", name: "Tema Regional Office", type: "STATION", location: "Greater Accra, Tema", headOfDept: "Mr. Francis Addo", description: "Harbour and heavy vehicle testing center" },
+    { code: "STN-TML", name: "Tamale Regional Station", type: "STATION", location: "Northern Region, Tamale", headOfDept: "Alhaji Salifu Yakubu", description: "Northern sector station" },
+    { code: "STN-CPC", name: "Cape Coast Regional Station", type: "STATION", location: "Central Region, Cape Coast", headOfDept: "Mr. Kweku Baidoo", description: "Central Region licensing and testing" },
   ];
 
   const depts: Record<string, number> = {};
@@ -24,7 +30,7 @@ async function main() {
   for (const dept of departmentsData) {
     const created = await prisma.retirementDepartment.upsert({
       where: { code: dept.code },
-      update: { name: dept.name, headOfDept: dept.headOfDept },
+      update: { name: dept.name, type: dept.type, location: dept.location, headOfDept: dept.headOfDept, description: dept.description },
       create: dept,
     });
     depts[dept.code] = created.id;
