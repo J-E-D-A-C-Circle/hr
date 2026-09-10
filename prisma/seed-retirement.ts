@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { calculateRetirement } from "../lib/retirement";
 import { addDays, addMonths, addYears, subDays, subMonths, subYears } from "date-fns";
 
-const prisma = new PrismaClient();
+const prisma: any = new PrismaClient();
 
 async function main() {
   console.log("🌱 Seeding DVLA Staff Retirement Tracking System...");
