@@ -22,7 +22,7 @@ export async function createAdminSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(ADMIN_SESSION_COOKIE, ADMIN_SESSION_VALUE, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // Allow over HTTP server IP addresses
     sameSite: "lax",
     maxAge: 60 * 60 * 8, // 8 hours
     path: "/",

@@ -32,7 +32,7 @@ export async function createRetirementSession(user: {
 
   cookieStore.set(RETIREMENT_SESSION_COOKIE, JSON.stringify(sessionData), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // Allow over HTTP server IP addresses
     sameSite: "lax",
     maxAge: 60 * 60 * 12, // 12 hours
     path: "/",

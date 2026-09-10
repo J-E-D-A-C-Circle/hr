@@ -37,7 +37,7 @@ export default function RetirementLoginPage() {
         return;
       }
 
-      router.push("/retirement");
+      window.location.href = "/retirement";
     } catch (err: any) {
       setError("Network error. Please check your connection.");
       setLoading(false);

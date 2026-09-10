@@ -32,8 +32,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      router.push("/admin/dashboard");
-      router.refresh();
+      window.location.href = "/admin/dashboard";
     } catch (err: any) {
       setError("An unexpected connection error occurred.");
       setLoading(false);

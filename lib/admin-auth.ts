@@ -41,7 +41,7 @@ export async function createAdminSession(admin: {
 
   cookieStore.set(ADMIN_SESSION_COOKIE, JSON.stringify(sessionData), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // Allow over HTTP server IP addresses (http://10.80.60.16:8080)
     sameSite: "lax",
     maxAge: 60 * 60 * 24, // 24 hours
     path: "/",

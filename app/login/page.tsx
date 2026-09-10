@@ -44,7 +44,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch {
       setError("Network error. Please check your connection.");
       setLoading(false);
