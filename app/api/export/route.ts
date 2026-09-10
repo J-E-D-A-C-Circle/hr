@@ -163,9 +163,11 @@ export async function GET(request: NextRequest) {
     const dateStr = new Date().toISOString().split("T")[0];
 
     if (exportType === "expiring" || filter === "expiring") {
-      const expiringList = annotated.filter((item: any) => item.computedStatus === "Expiring Soon");
-      excelBuffer = await buildExportWorkbook(expiringList, "Expiring Soon Staff");
-      filename = `Expiring_Soon_Staff_Directory_${dateStr}.xlsx`;
+      const expiringList = annotated.filter(
+        (item: any) => item.computedStatus === "Expiring Soon" || item.computedStatus === "Expired"
+      );
+      excelBuffer = await buildExportWorkbook(expiringList, "Expiring & Expired Staff");
+      filename = `Expiring_and_Expired_Staff_Directory_${dateStr}.xlsx`;
     } else if (exportType === "petra") {
       const mStr = validationMonth || getCurrentMonthYearString();
       excelBuffer = await buildPetraTier2Workbook(filtered, mStr);

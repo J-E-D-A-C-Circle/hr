@@ -329,7 +329,22 @@ export async function buildExportWorkbook(staffRecords: any[], customTitle?: str
     applyAutoColumnWidths(worksheet);
   };
 
-  if (customTitle) {
+  if (customTitle && (customTitle.includes("Expiring") || customTitle.includes("Expired"))) {
+    // 1. Combined Master Sheet
+    addDirectorySheet("Expiring & Expired Master", "Expiring Soon & Expired Staff Directory", staffRecords);
+
+    // 2. Expiring Soon Only Sheet
+    const expiringOnly = staffRecords.filter(
+      (r) => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Expiring Soon"
+    );
+    addDirectorySheet("Expiring Soon (≤30 Days)", "Expiring Soon Staff (Within 30 Days)", expiringOnly);
+
+    // 3. Expired Only Sheet
+    const expiredOnly = staffRecords.filter(
+      (r) => (r.computedStatus || computeContractStatus(r.contracts?.[0])) === "Expired"
+    );
+    addDirectorySheet("Expired Staff", "Expired Staff Directory", expiredOnly);
+  } else if (customTitle) {
     addDirectorySheet(customTitle, customTitle, staffRecords);
   } else {
     // 1. All Staff Master Sheet (Contains ALL Employees in database)

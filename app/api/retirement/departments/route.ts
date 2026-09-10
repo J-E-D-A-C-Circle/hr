@@ -35,13 +35,13 @@ export async function GET(request: NextRequest) {
       orderBy: { name: "asc" },
     });
 
-    const formatted = items.map((item) => {
+    const formatted = items.map((item: any) => {
       const staffList = item.staff || [];
       const totalStaff = staffList.length;
-      const active = staffList.filter((s) => s.retirementStatus === "ACTIVE").length;
-      const nearingRetirement = staffList.filter((s) => s.retirementStatus === "NEARING_RETIREMENT").length;
-      const dueThisYear = staffList.filter((s) => s.retirementStatus === "DUE_THIS_YEAR").length;
-      const retired = staffList.filter((s) => s.retirementStatus === "RETIRED").length;
+      const active = staffList.filter((s: any) => s.retirementStatus === "ACTIVE").length;
+      const nearingRetirement = staffList.filter((s: any) => s.retirementStatus === "NEARING_RETIREMENT").length;
+      const dueThisYear = staffList.filter((s: any) => s.retirementStatus === "DUE_THIS_YEAR").length;
+      const retired = staffList.filter((s: any) => s.retirementStatus === "RETIRED").length;
 
       return {
         id: item.id,
@@ -65,9 +65,9 @@ export async function GET(request: NextRequest) {
     });
 
     const totalUnits = allUnits.length;
-    const totalDepartments = allUnits.filter((u) => (u.type || "DEPARTMENT") === "DEPARTMENT").length;
-    const totalStations = allUnits.filter((u) => u.type === "STATION").length;
-    const totalStaffAllocated = allUnits.reduce((acc, u) => acc + (u.staff?.length || 0), 0);
+    const totalDepartments = allUnits.filter((u: any) => (u.type || "DEPARTMENT") === "DEPARTMENT").length;
+    const totalStations = allUnits.filter((u: any) => u.type === "STATION").length;
+    const totalStaffAllocated = allUnits.reduce((acc: number, u: any) => acc + (u.staff?.length || 0), 0);
 
     return NextResponse.json({
       success: true,
