@@ -42,6 +42,12 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
+  // Force light/white mode for the retirement portal
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    document.body.classList.remove("dark");
+  }, []);
+
   // Fetch current user & unread alerts
   useEffect(() => {
     if (pathname !== "/retirement/login") {
@@ -132,7 +138,7 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
   ];
 
   return (
-    <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col antialiased overflow-hidden">
+    <div className="h-screen bg-white text-slate-900 font-sans flex flex-col antialiased overflow-hidden">
       {/* Top Mobile Bar */}
       <header className="lg:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow shrink-0">
         <div className="flex items-center gap-3">
@@ -317,9 +323,9 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
         )}
 
         {/* Main Content Container */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-white">
           {/* Top Header (Desktop) */}
-          <header className="hidden lg:flex h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 items-center justify-between sticky top-0 z-20 shadow-xs">
+          <header className="hidden lg:flex h-20 bg-white border-b border-slate-200 px-6 items-center justify-between sticky top-0 z-20 shadow-xs">
             <div className="flex items-center gap-3">
               <Building2 className="h-5 w-5 text-slate-500" />
               <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -332,7 +338,7 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
               {/* Global Quick Search Button */}
               <button
                 onClick={() => setGlobalSearchOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 transition w-64 justify-between"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition w-64 justify-between"
               >
                 <span className="flex items-center gap-2">
                   <Search size={14} className="text-slate-400" />
@@ -347,7 +353,7 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
               <div className="relative">
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition relative"
+                  className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition relative"
                   title="Retirement Notifications"
                 >
                   <Bell size={18} />
@@ -360,7 +366,7 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
 
                 {/* Notifications Dropdown */}
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                       <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                         Milestone Alerts ({unreadAlerts})
@@ -413,20 +419,20 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
               </div>
 
               {/* User Profile & Logout Button in Top Header */}
-              <div className="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-emerald-800 text-yellow-300 font-bold text-xs flex items-center justify-center border border-emerald-700">
                     {currentUser?.fullName ? currentUser.fullName.substring(0, 2).toUpperCase() : "HR"}
                   </div>
                   <div className="hidden xl:block text-left">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none">{currentUser.fullName}</p>
-                    <span className="text-[10px] text-yellow-700 dark:text-yellow-400 font-bold uppercase">{currentUser.role === "HR_ADMINISTRATOR" ? "Admin" : "Officer"}</span>
+                    <p className="text-xs font-bold text-slate-800 leading-none">{currentUser.fullName}</p>
+                    <span className="text-[10px] text-yellow-700 font-bold uppercase">{currentUser.role === "HR_ADMINISTRATOR" ? "Admin" : "Officer"}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-100 hover:text-rose-700 transition flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-rose-100 hover:text-rose-700 transition flex items-center gap-1.5 border border-slate-200"
                   title="Sign Out of DVLA Retirement System"
                 >
                   <LogOut size={14} className="text-slate-500 hover:text-rose-600" />

@@ -103,20 +103,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       .catch(() => {});
   }, [pathname, router]);
 
-  // User Role State for Role-Based Access Control (RBAC)
-  const [userRole, setUserRole] = useState<"HR Manager" | "Payroll Specialist" | "Auditor (Read Only)">("HR Manager");
-
-  useEffect(() => {
-    const savedRole = localStorage.getItem("tempstaff_role") as any;
-    if (savedRole) {
-      setUserRole(savedRole);
-    }
-  }, []);
-
-  const handleRoleChange = (role: "HR Manager" | "Payroll Specialist" | "Auditor (Read Only)") => {
-    setUserRole(role);
-    localStorage.setItem("tempstaff_role", role);
-  };
+  const userRole = "HR Manager";
 
   const navItems = [
     {
@@ -184,8 +171,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       {/* Mobile Top App Bar */}
       <div className="md:hidden sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
-            <Building2 className="h-5 w-5" />
+          <div className="h-9 w-9 rounded-xl bg-white border border-slate-200 p-0.5 flex items-center justify-center shadow-md shadow-emerald-500/10 shrink-0">
+            <img src="/oop.png" alt="DVLA Logo" className="h-full w-full object-contain" />
           </div>
           <span className="font-black text-slate-900 dark:text-white text-base tracking-tight">
             TempStaff
@@ -232,8 +219,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           }`}
         >
           <Link href="/dashboard" className={`flex items-center gap-3 group ${collapsed ? "justify-center" : ""}`} title="TempStaff Home">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-emerald-500 via-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform shrink-0">
-              <Building2 className="h-6 w-6" />
+            <div className="h-11 w-11 rounded-2xl bg-white border border-slate-200 p-1 flex items-center justify-center shadow-lg shadow-emerald-500/10 group-hover:scale-105 transition-transform shrink-0">
+              <img src="/oop.png" alt="DVLA Logo" className="h-full w-full object-contain" />
             </div>
             {!collapsed && (
               <div className="overflow-hidden transition-all duration-200">
@@ -391,14 +378,14 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             </div>
           )}
 
-          {/* Admin User Card & RBAC Role Switcher */}
+          {/* HR Manager User Card */}
           {collapsed ? (
             <div className="flex flex-col items-center gap-2 p-2 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
               <div
-                title={`Active Session: ${userRole}`}
+                title="Active Session: HR Manager"
                 className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-xs"
               >
-                {userRole.substring(0, 2).toUpperCase()}
+                HR
               </div>
               <button
                 onClick={handleLogout}
@@ -409,22 +396,21 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               </button>
             </div>
           ) : (
-            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
-                    {userRole.substring(0, 2).toUpperCase()}
+                    HR
                   </div>
                   <div className="leading-tight overflow-hidden">
                     <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                       Active Session
                     </span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block truncate">
-                      {userRole}
+                      HR Manager
                     </span>
                   </div>
                 </div>
-
                 <button
                   onClick={handleLogout}
                   title="Sign Out"
@@ -432,46 +418,6 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                 >
                   <LogOut className="h-4 w-4" />
                 </button>
-              </div>
-
-              {/* Quick RBAC Role Select */}
-              <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Switch User Role (RBAC):</div>
-                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 text-[10px] font-bold">
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange("HR Manager")}
-                    className={`py-1 rounded-lg transition ${
-                      userRole === "HR Manager"
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    HR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange("Payroll Specialist")}
-                    className={`py-1 rounded-lg transition ${
-                      userRole === "Payroll Specialist"
-                        ? "bg-teal-600 text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    Payroll
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange("Auditor (Read Only)")}
-                    className={`py-1 rounded-lg transition ${
-                      userRole === "Auditor (Read Only)"
-                        ? "bg-slate-700 text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    Auditor
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -508,10 +454,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           <div className="flex items-center gap-3">
             {/* RBAC Active Role Indicator Pill */}
             <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold">
-              <span className="text-slate-400">Role:</span>
-              <span className={userRole === "HR Manager" ? "text-emerald-600 dark:text-emerald-400" : userRole === "Payroll Specialist" ? "text-teal-600 dark:text-teal-400" : "text-amber-600 dark:text-amber-400"}>
-                {userRole}
-              </span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-emerald-600 dark:text-emerald-400">HR Manager</span>
             </div>
             <Link href="/staff" className="relative hidden lg:block">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-950 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">

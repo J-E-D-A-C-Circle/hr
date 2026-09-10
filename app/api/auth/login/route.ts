@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkPasscode, createAdminSession } from "@/lib/auth";
+import { checkCredentials, createAdminSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    let passcode = "";
-    try {
-      const body = await request.json();
-      passcode = body?.passcode || "";
-    } catch (e) {
-      try {
-        const formData = await request.formData();
-        passcode = (formData.get("passcode") as string) || "";
-      } catch (err) {}
+    const body = await request.json();
+    const usernameOrEmail: string = body?.usernameOrEmail || body?.username || body?.email || "";
+    const password: string = body?.password || "";
+
+    if (!usernameOrEmail || !password) {
+      return NextResponse.json(
+        { success: false, error: "Username/email and password are required." },
+        { status: 400 }
+      );
     }
 
-    if (!passcode || !checkPasscode(passcode)) {
+    if (!checkCredentials(usernameOrEmail, password)) {
       return NextResponse.json(
-        { success: false, error: "Invalid admin passcode. (Default: admin123)" },
+        { success: false, error: "Invalid credentials. Please try again." },
         { status: 401 }
       );
     }
@@ -27,4 +27,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

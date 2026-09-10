@@ -1,6 +1,10 @@
 # 1. Base stage
-FROM node:20-alpine AS base
-RUN apk add --no-cache mariadb-client netcat-openbsd libc6-compat
+FROM node:20-slim AS base
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    default-mysql-client \
+    netcat-openbsd \
+    openssl \
+  && rm -rf /var/lib/apt/lists/*
 
 # 2. Dependencies stage
 FROM base AS deps

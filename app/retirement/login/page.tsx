@@ -44,33 +44,6 @@ export default function RetirementLoginPage() {
     }
   };
 
-  const handleQuickLogin = async (role: "admin" | "officer") => {
-    setLoading(true);
-    setError(null);
-    const credentials =
-      role === "admin"
-        ? { usernameOrEmail: "admin@dvla.gov.gh", password: "admin123" }
-        : { usernameOrEmail: "officer@dvla.gov.gh", password: "officer123" };
-
-    try {
-      const res = await fetch("/api/retirement/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        router.push("/retirement");
-      } else {
-        setError(data.error || "Quick login failed.");
-        setLoading(false);
-      }
-    } catch (e) {
-      setError("Connection failed.");
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 lg:p-8 font-sans">
@@ -185,29 +158,14 @@ export default function RetirementLoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Login Preset Buttons */}
-          <div className="mt-8 pt-6 border-t border-slate-900">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center">
-              Quick Demo Access
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("admin")}
-                className="px-3 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-left transition text-slate-300 hover:text-amber-400"
-              >
-                <p className="text-xs font-bold">HR Administrator</p>
-                <p className="text-[10px] text-slate-500">admin@dvla.gov.gh</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("officer")}
-                className="px-3 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-left transition text-slate-300 hover:text-amber-400"
-              >
-                <p className="text-xs font-bold">HR Officer</p>
-                <p className="text-[10px] text-slate-500">officer@dvla.gov.gh</p>
-              </button>
-            </div>
+          <div className="mt-6 pt-5 border-t border-slate-900 text-center">
+            <p className="text-[11px] text-slate-500">Contact IT for password resets.</p>
+            <a
+              href="/login"
+              className="text-[11px] text-slate-500 hover:text-emerald-400 transition underline underline-offset-2"
+            >
+              → Access Temporary Staff Portal
+            </a>
           </div>
         </div>
       </div>

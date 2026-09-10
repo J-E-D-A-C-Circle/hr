@@ -39,6 +39,14 @@ services:
       NODE_ENV: production
       # Generate on the server: openssl rand -base64 32
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      # TempStaff HR portal credentials (change all in production)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-hr.admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dvla.gov.gh}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      # Super Admin portal credentials
+      SUPER_ADMIN_USERNAME: ${SUPER_ADMIN_USERNAME:-hr.admin}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@dvla.gov.gh}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-admin123}
     depends_on:
       - db
 

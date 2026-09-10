@@ -1,15 +1,26 @@
 import { cookies } from "next/headers";
 
 const ADMIN_SESSION_COOKIE = "staff_admin_session";
-const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || "admin123";
+const ADMIN_SESSION_VALUE = "authenticated_admin_active";
+
+// Credentials configured via environment variables
+export const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "hr.admin";
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@dvla.gov.gh";
+export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 export async function verifyAdminSession(): Promise<boolean> {
-  return true;
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get(ADMIN_SESSION_COOKIE);
+    return session?.value === ADMIN_SESSION_VALUE;
+  } catch {
+    return false;
+  }
 }
 
 export async function createAdminSession(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(ADMIN_SESSION_COOKIE, "authenticated_admin_active", {
+  cookieStore.set(ADMIN_SESSION_COOKIE, ADMIN_SESSION_VALUE, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -23,6 +34,10 @@ export async function clearAdminSession(): Promise<void> {
   cookieStore.delete(ADMIN_SESSION_COOKIE);
 }
 
-export function checkPasscode(inputPasscode: string): boolean {
-  return inputPasscode === ADMIN_PASSCODE;
+export function checkCredentials(usernameOrEmail: string, password: string): boolean {
+  const identifier = usernameOrEmail.trim().toLowerCase();
+  const isValidUser =
+    identifier === ADMIN_USERNAME.toLowerCase() ||
+    identifier === ADMIN_EMAIL.toLowerCase();
+  return isValidUser && password === ADMIN_PASSWORD;
 }

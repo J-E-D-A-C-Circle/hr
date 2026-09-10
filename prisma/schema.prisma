@@ -5,7 +5,7 @@ datasource db {
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 model Staff {
@@ -181,4 +181,90 @@ model RetirementSetting {
 
   @@map("retirement_settings")
 }
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  name         String
+  passwordHash String
+  status       String    @default("ACTIVE") // ACTIVE, SUSPENDED
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admin_users")
+}
+
+model TempStaffUser {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  name         String
+  role         String    @default("HR Manager")
+  passwordHash String
+  status       String    @default("ACTIVE") // ACTIVE, SUSPENDED
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("tempstaff_users")
+}
+
+model SystemAnnouncement {
+  id          String    @id @default(uuid())
+  title       String
+  message     String
+  target      String    @default("ALL") // ALL, TEMPSTAFF, RETIREMENT
+  severity    String    @default("INFO") // INFO, WARNING, CRITICAL
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  createdBy   String
+
+  @@map("system_announcements")
+}
+
+model BankMaster {
+  id         Int      @id @default(autoincrement())
+  bankName   String
+  branchName String
+  code       String?  @unique
+  createdAt  DateTime @default(now())
+
+  @@map("bank_masters")
+}
+
+model InsuranceProvider {
+  id             Int      @id @default(autoincrement())
+  name           String   @unique
+  policyType     String   @default("TIER_3")
+  defaultPremium Float    @default(0.0)
+  createdAt      DateTime @default(now())
+
+  @@map("insurance_providers")
+}
+
+model ClearanceItem {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String?
+  requiredDept String
+  order        Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  @@map("clearance_items")
+}
+
+model RetirementGrade {
+  id            Int      @id @default(autoincrement())
+  gradeName     String   @unique
+  pensionFactor Float    @default(1.0)
+  description   String?
+  createdAt     DateTime @default(now())
+
+  @@map("retirement_grades")
+}
+
+
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Sep 10, 2026 at 01:56 AM
+-- Generation Time: Sep 10, 2026 at 05:41 AM
 -- Server version: 5.7.24
 -- PHP Version: 8.3.1
 
@@ -20,6 +20,31 @@ SET time_zone = "+00:00";
 --
 -- Database: `tempstaff_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_users`
+--
+
+CREATE TABLE `admin_users` (
+  `id` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `passwordHash` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ACTIVE',
+  `lastLoginAt` datetime(3) DEFAULT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `admin_users`
+--
+
+INSERT INTO `admin_users` (`id`, `username`, `email`, `name`, `passwordHash`, `status`, `lastLoginAt`, `createdAt`, `updatedAt`) VALUES
+('f81daa3f-5b14-44be-b122-29b79dce5ace', 'hr.admin', 'admin@dvla.gov.gh', 'Super Administrator', 'plain:admin123', 'ACTIVE', '2026-09-10 13:29:39.960', '2026-09-10 13:29:39.963', '2026-09-10 13:29:39.963');
 
 -- --------------------------------------------------------
 
@@ -53,6 +78,35 @@ INSERT INTO `audit_logs` (`id`, `user_name`, `user_role`, `action`, `details`, `
 (9, 'HR Admin', 'HR Manager', 'RENEW', 'Renewed Contract #2 for ELVIS MAWULI DOSU (TEMP-371) through 31/12/2026', 10645, '2026-09-07 15:50:34.827'),
 (10, 'HR Admin', 'HR Manager', 'RENEW', 'Renewed Contract #2 for TAMIMU DAUDA (TEMP-697) through 31/12/2026', 10494, '2026-09-07 15:54:28.528'),
 (11, 'HR Admin', 'HR Manager', 'RENEW', 'Renewed Contract #2 for ABDUL RAHIM MUNTAKA (TEMP-912) through 31/12/2026', 10654, '2026-09-07 16:11:19.818');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_masters`
+--
+
+CREATE TABLE `bank_masters` (
+  `id` int(11) NOT NULL,
+  `bankName` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `branchName` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `clearance_items`
+--
+
+CREATE TABLE `clearance_items` (
+  `id` int(11) NOT NULL,
+  `title` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `requiredDept` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order` int(11) NOT NULL DEFAULT '1',
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -881,6 +935,20 @@ CREATE TABLE `deduction_settings` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `insurance_providers`
+--
+
+CREATE TABLE `insurance_providers` (
+  `id` int(11) NOT NULL,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `policyType` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'TIER_3',
+  `defaultPremium` double NOT NULL DEFAULT '0',
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `retirement_alerts`
 --
 
@@ -963,6 +1031,20 @@ INSERT INTO `retirement_departments` (`id`, `code`, `name`, `headOfDept`, `creat
 (11, 'STN-TMA', 'Tema Regional Office', 'Mr. Francis Addo', '2026-09-09 11:13:46.236', '2026-09-10 08:13:08.946', 'Harbour and heavy vehicle testing center', 'Greater Accra, Tema', 'STATION'),
 (12, 'STN-TML', 'Tamale Regional Station', 'Alhaji Salifu Yakubu', '2026-09-09 11:13:46.238', '2026-09-10 08:13:08.953', 'Northern sector station', 'Northern Region, Tamale', 'STATION'),
 (13, 'STN-CPC', 'Cape Coast Regional Station', 'Mr. Kweku Baidoo', '2026-09-09 11:13:46.240', '2026-09-10 08:13:08.958', 'Central Region licensing and testing', 'Central Region, Cape Coast', 'STATION');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `retirement_grades`
+--
+
+CREATE TABLE `retirement_grades` (
+  `id` int(11) NOT NULL,
+  `gradeName` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `pensionFactor` double NOT NULL DEFAULT '1',
+  `description` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -2487,14 +2569,72 @@ INSERT INTO `staff_validations` (`id`, `staff_id`, `month`, `validated_at`, `val
 (597, 10468, 'August 2026 (Supplementary)', '2026-08-31 12:06:06.775', 'HR Admin', 'Supplementary payment for skipped cycle'),
 (599, 11056, 'September 2026', '2026-09-02 13:13:48.360', 'HR Admin', NULL);
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `system_announcements`
+--
+
+CREATE TABLE `system_announcements` (
+  `id` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ALL',
+  `severity` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'INFO',
+  `isActive` tinyint(1) NOT NULL DEFAULT '1',
+  `expiresAt` datetime(3) DEFAULT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `createdBy` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tempstaff_users`
+--
+
+CREATE TABLE `tempstaff_users` (
+  `id` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'HR Manager',
+  `passwordHash` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ACTIVE',
+  `lastLoginAt` datetime(3) DEFAULT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 --
 -- Indexes for dumped tables
 --
 
 --
+-- Indexes for table `admin_users`
+--
+ALTER TABLE `admin_users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `admin_users_username_key` (`username`),
+  ADD UNIQUE KEY `admin_users_email_key` (`email`);
+
+--
 -- Indexes for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `bank_masters`
+--
+ALTER TABLE `bank_masters`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `bank_masters_code_key` (`code`);
+
+--
+-- Indexes for table `clearance_items`
+--
+ALTER TABLE `clearance_items`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -2509,6 +2649,13 @@ ALTER TABLE `contracts`
 --
 ALTER TABLE `deduction_settings`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `insurance_providers`
+--
+ALTER TABLE `insurance_providers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `insurance_providers_name_key` (`name`);
 
 --
 -- Indexes for table `retirement_alerts`
@@ -2529,6 +2676,13 @@ ALTER TABLE `retirement_audit_logs`
 ALTER TABLE `retirement_departments`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `retirement_departments_code_key` (`code`);
+
+--
+-- Indexes for table `retirement_grades`
+--
+ALTER TABLE `retirement_grades`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `retirement_grades_gradeName_key` (`gradeName`);
 
 --
 -- Indexes for table `retirement_settings`
@@ -2568,6 +2722,20 @@ ALTER TABLE `staff_validations`
   ADD UNIQUE KEY `staff_validations_staff_id_month_key` (`staff_id`,`month`);
 
 --
+-- Indexes for table `system_announcements`
+--
+ALTER TABLE `system_announcements`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tempstaff_users`
+--
+ALTER TABLE `tempstaff_users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `tempstaff_users_username_key` (`username`),
+  ADD UNIQUE KEY `tempstaff_users_email_key` (`email`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -2578,10 +2746,28 @@ ALTER TABLE `audit_logs`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
+-- AUTO_INCREMENT for table `bank_masters`
+--
+ALTER TABLE `bank_masters`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `clearance_items`
+--
+ALTER TABLE `clearance_items`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `contracts`
 --
 ALTER TABLE `contracts`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11085;
+
+--
+-- AUTO_INCREMENT for table `insurance_providers`
+--
+ALTER TABLE `insurance_providers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `retirement_alerts`
@@ -2600,6 +2786,12 @@ ALTER TABLE `retirement_audit_logs`
 --
 ALTER TABLE `retirement_departments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT for table `retirement_grades`
+--
+ALTER TABLE `retirement_grades`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `retirement_settings`
