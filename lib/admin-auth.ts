@@ -79,7 +79,7 @@ export async function clearAdminSession(): Promise<void> {
 }
 
 /**
- * Authenticates admin credentials against DB or initial env fallback
+ * Authenticates admin credentials against DB or fallback env credentials
  */
 export async function authenticateAdmin(
   usernameOrEmail: string,
@@ -87,54 +87,75 @@ export async function authenticateAdmin(
 ) {
   const cleanInput = usernameOrEmail.trim().toLowerCase();
 
-  // 1. Search in DB first
-  const existingAdmin = await prisma.adminUser.findFirst({
-    where: {
-      OR: [
-        { username: cleanInput },
-        { email: cleanInput },
-      ],
-    },
-  });
-
-  if (existingAdmin) {
-    if (existingAdmin.status === "SUSPENDED") {
-      return { success: false, error: "Account is suspended. Contact system administrator." };
-    }
-
-    const isValid = verifyAdminPassword(passwordInput, existingAdmin.passwordHash);
-    if (!isValid) {
-      return { success: false, error: "Invalid username or password" };
-    }
-
-    // Update last login timestamp
-    await prisma.adminUser.update({
-      where: { id: existingAdmin.id },
-      data: { lastLoginAt: new Date() },
+  // 1. Attempt DB search safely
+  try {
+    const existingAdmin = await prisma.adminUser.findFirst({
+      where: {
+        OR: [
+          { username: cleanInput },
+          { email: cleanInput },
+        ],
+      },
     });
 
-    return { success: true, admin: existingAdmin };
+    if (existingAdmin) {
+      if (existingAdmin.status === "SUSPENDED") {
+        return { success: false, error: "Account is suspended. Contact system administrator." };
+      }
+
+      const isValid = verifyAdminPassword(passwordInput, existingAdmin.passwordHash);
+      if (!isValid) {
+        return { success: false, error: "Invalid username or password" };
+      }
+
+      // Update last login timestamp safely
+      try {
+        await prisma.adminUser.update({
+          where: { id: existingAdmin.id },
+          data: { lastLoginAt: new Date() },
+        });
+      } catch (err) {
+        console.warn("Failed to update lastLoginAt for admin:", err);
+      }
+
+      return { success: true, admin: existingAdmin };
+    }
+  } catch (dbError) {
+    console.warn("Admin DB query failed or table missing, falling back to ENV credentials:", dbError);
   }
 
-  // 2. Fallback check for initial setup using ENV variables
+  // 2. Fallback check using ENV variables or standard default admin credentials
   const envUsername = (process.env.SUPER_ADMIN_USERNAME || process.env.ADMIN_USERNAME || "hr.admin").toLowerCase();
   const envEmail = (process.env.SUPER_ADMIN_EMAIL || process.env.ADMIN_EMAIL || "admin@dvla.gov.gh").toLowerCase();
   const envPassword = process.env.SUPER_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "admin123";
 
   if ((cleanInput === envUsername || cleanInput === envEmail) && passwordInput === envPassword) {
-    // Auto-create default Super Admin in DB
-    const newAdmin = await prisma.adminUser.create({
-      data: {
+    let createdAdmin: any = null;
+    try {
+      createdAdmin = await prisma.adminUser.create({
+        data: {
+          username: envUsername,
+          email: envEmail,
+          name: "Super Administrator",
+          passwordHash: `plain:${envPassword}`,
+          status: "ACTIVE",
+          lastLoginAt: new Date(),
+        },
+      });
+    } catch (createErr) {
+      console.warn("Could not insert default admin to DB, continuing with session:", createErr);
+    }
+
+    return {
+      success: true,
+      admin: createdAdmin || {
+        id: "env-super-admin-id",
         username: envUsername,
         email: envEmail,
         name: "Super Administrator",
-        passwordHash: `plain:${envPassword}`,
-        status: "ACTIVE",
-        lastLoginAt: new Date(),
+        role: "SUPER_ADMIN",
       },
-    });
-
-    return { success: true, admin: newAdmin };
+    };
   }
 
   return { success: false, error: "Invalid admin credentials" };
