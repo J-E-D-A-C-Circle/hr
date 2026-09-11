@@ -1,49 +1,55 @@
-version: '3.8'
-
 services:
-  web:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: dvla_nss_portal
+      MYSQL_ROOT_PASSWORD: hr_root_password 
+      MYSQL_USER: hr_user
+      MYSQL_PASSWORD: hr_password
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 5
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_ARBITRARY: 0
+    ports:
+      - "8081:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "8080:3000"
     environment:
-      - DB_HOST=db
-      - DB_USER=root
-      - DB_PASSWORD=@Kuw_35567
-      - DB_NAME=dvla_nss_portal
-      - DB_PORT=3306
-      - JWT_SECRET=dvla_nss_portal_jwt_secret_key_2026
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: hr_user
+      DB_PASSWORD: hr_password
+      DB_NAME: dvla_nss_portal
+      DATABASE_URL: mysql://hr_user:hr_password@db:3306/dvla_nss_portal
+      NODE_ENV: production
+      # Generate on the server: openssl rand -base64 32
+      JWT_SECRET: ${JWT_SECRET:-dvla_nss_portal_jwt_secret_key_2026}
+      # DVLA NSS portal credentials (change all in production)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dvla.gov.gh}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
     depends_on:
-      - db
-    restart: always
-
-  db:
-    image: mysql:8.0
-    container_name: dvla_nss_db
-    ports:
-      - "3309:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: "@Kuw_35567"
-      MYSQL_DATABASE: dvla_nss_portal
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/1_schema.sql
-    restart: always
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: dvla_phpmyadmin
-    ports:
-      - "8081:80"
-    environment:
-      PMA_HOST: db
-      PMA_USER: root
-      PMA_PASSWORD: "@Kuw_35567"
-      MYSQL_ROOT_PASSWORD: "@Kuw_35567"
-    depends_on:
-      - db
-    restart: always
+      db:
+        condition: service_healthy
 
 volumes:
   mysql_data:
