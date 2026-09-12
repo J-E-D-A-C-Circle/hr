@@ -115,6 +115,10 @@ export default function Dashboard() {
   }, [router]);
 
   const fetchApplication = async () => {
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
     try {
       const token = getValidAuthToken();
       if (!token) {
@@ -126,6 +130,7 @@ export default function Dashboard() {
         '/api/applications/my-application',
         {
           headers: { Authorization: `Bearer ${token}` },
+          timeout: 2000,
         }
       );
       setApplication(response.data.application);
@@ -136,6 +141,7 @@ export default function Dashboard() {
         router.replace('/login');
       }
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   };
@@ -660,11 +666,102 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Status Banner - Only show if an application has actually been submitted */}
+            {/* Animated Status Timeline Stepper */}
             {application && application.status !== 'draft' && (
-              <div className="my-6 w-full">
-                <div className={`${statusInfo.color} rounded-lg px-6 py-3 text-base font-bold text-center border ${statusInfo.border} w-full`}>
-                  {statusInfo.text}
+              <div className="my-6 w-full p-6 rounded-2xl bg-white shadow-xl border border-emerald-100 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-4">
+                  <div>
+                    <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Application Status</span>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      NSS Posting Progress Tracker ({application.nss_number})
+                    </h3>
+                  </div>
+                  <div className={`${statusInfo.color} rounded-full px-4 py-1.5 text-xs font-extrabold border ${statusInfo.border} self-start sm:self-auto`}>
+                    {statusInfo.text}
+                  </div>
+                </div>
+
+                {/* Progress Steps */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 relative">
+                  {/* Step 1 */}
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/80 border border-emerald-200">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow">
+                      ✓
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-gray-900 block">1. Form Submitted</span>
+                      <span className="text-[11px] text-gray-500">Details Received</span>
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                    application.status === 'pending' || application.status === 'under_review'
+                      ? 'bg-amber-50 border-amber-200 ring-2 ring-amber-400/50'
+                      : application.status === 'approved' || application.status === 'rejected'
+                      ? 'bg-emerald-50 border-emerald-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                      application.status === 'approved' || application.status === 'rejected'
+                        ? 'bg-emerald-600 text-white'
+                        : application.status === 'pending' || application.status === 'under_review'
+                        ? 'bg-amber-500 text-white animate-pulse'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      {application.status === 'approved' || application.status === 'rejected' ? '✓' : '2'}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-gray-900 block">2. Admin Review</span>
+                      <span className="text-[11px] text-gray-500">
+                        {application.status === 'pending' ? 'In Queue' : application.status === 'under_review' ? 'Reviewing' : 'Completed'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                    application.status === 'approved'
+                      ? 'bg-emerald-50 border-emerald-200 ring-2 ring-emerald-400/50'
+                      : application.status === 'rejected'
+                      ? 'bg-rose-50 border-rose-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                      application.status === 'approved'
+                        ? 'bg-emerald-600 text-white'
+                        : application.status === 'rejected'
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      {application.status === 'approved' ? '✓' : application.status === 'rejected' ? '✕' : '3'}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-gray-900 block">3. Station Placement</span>
+                      <span className="text-[11px] text-gray-500">
+                        {application.posting_station ? application.posting_station : 'Pending Station'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Step 4 */}
+                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                    application.status === 'approved'
+                      ? 'bg-emerald-50 border-emerald-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                      application.status === 'approved' ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      {application.status === 'approved' ? '✓' : '4'}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-gray-900 block">4. Official Release</span>
+                      <span className="text-[11px] text-gray-500">
+                        {application.status === 'approved' ? 'Letter Ready' : 'Awaiting Approval'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

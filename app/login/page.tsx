@@ -3,11 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import Image from 'next/image';
-import { Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { isTokenExpired, clearAuthSession } from '@/lib/auth-client';
 
 export default function LoginPage() {
@@ -69,143 +66,178 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* HEADER FOR MOBILE (below md) */}
-      <div className="block md:hidden w-full bg-[#16a34a] px-4 py-2 flex items-center justify-center gap-3">
-        <Image src="/oop.png" alt="DVLA Logo" width={36} height={36} className="w-9 h-9 object-contain" priority />
-        <span className="text-base font-semibold text-white tracking-tight">DVLA NSS Portal</span>
-      </div>
+    <div className="relative min-h-screen w-full flex flex-col justify-between bg-slate-900 text-slate-900 font-sans overflow-hidden">
+      {/* DVLA Head Office Background Image with Faint Green Overlay */}
+      <div 
+        className="absolute inset-0 bg-no-repeat bg-cover bg-center"
+        style={{ backgroundImage: "url('/abs.jpg')" }}
+      />
+      {/* Faint Green Color Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0d5c2e]/92 via-[#0d5c2e]/88 to-[#073e1e]/92 backdrop-blur-[1px]" />
 
-      {/* REGISTER LINK MOBILE */}
-      <div className="block md:hidden w-full bg-[#15803d] px-4 py-2">
-        <button
-          type="button"
-          onClick={() => router.push('/register')}
-          className="text-white w-full flex items-center justify-between font-normal hover:opacity-90"
-        >
-          <span>Need an account? Register</span>
-          <span>→</span>
-        </button>
-      </div>
-
-      {/* SIDEBAR FOR DESKTOP */}
-      <div
-        className="hidden md:flex md:fixed md:left-0 md:top-0 md:w-80 md:h-screen bg-[#16a34a] flex-col p-6 relative bg-cover bg-center bg-no-repeat overflow-hidden"
-        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=1920&q=80)' }}
-      >
-        <div className="absolute inset-0 bg-[#16a34a]/90"></div>
-        <div className="relative z-10 flex flex-col h-full justify-between overflow-hidden">
-          <div className="flex flex-col items-center">
-            <div className="mb-6 mt-2">
-              <div className="w-20 h-20 mx-auto mb-2">
-                <Image src="/oop.png" alt="DVLA Logo" width={80} height={80} className="w-full h-full object-contain" priority />
-              </div>
-              <div className="text-white text-xl font-bold text-center">DVLA NSS Portal</div>
-              <div className="bg-white/10 rounded-xl px-4 py-3 text-sm italic text-white text-center shadow-md mt-2 max-w-xs">Empowering Ghana's Service. Together.</div>
+      {/* Top Header Bar */}
+      <header className="relative z-20 px-6 py-4 border-b border-white/10 bg-black/10 backdrop-blur-md">
+        <div className="max-w-6xl w-full mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
+            <div className="w-10 h-10 p-1 bg-white rounded-xl shadow-md flex items-center justify-center">
+              <Image
+                src="/oop.png"
+                alt="DVLA Logo"
+                width={36}
+                height={36}
+                className="w-full h-full object-contain"
+                priority
+              />
+            </div>
+            <div>
+              <span className="font-bold text-base text-white tracking-tight block">DVLA NSS Portal</span>
+              <span className="text-xs text-emerald-100/90 hidden sm:block">Driver and Vehicle Licensing Authority</span>
             </div>
           </div>
-          <div className="mt-auto flex flex-col items-center">
-            <Button
-              type="button"
-              onClick={() => router.push('/register')}
-              className="mt-4 w-full py-3 px-6 bg-[#16a34a] text-white text-base font-bold rounded-full hover:bg-[#15803d] hover:translate-y-[-2px] transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-              Need an account? Register <span className='text-xl ml-1'>→</span>
-            </Button>
-          </div>
-        </div>
-      </div>
 
-      {/* RIGHT MAIN CONTENT AREA */}
-      <div className="md:ml-80 ml-0 min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-4 md:p-10 flex flex-col">
-        {/* Beautiful register CTA under card for mobile */}
-        <div className="block md:hidden max-w-md w-full mx-auto mt-2 mb-6">
-          <Button
+          <button
             type="button"
             onClick={() => router.push('/register')}
-            className="w-full py-3 px-6 bg-[#16a34a] text-white text-base font-bold rounded-full hover:bg-[#15803d] transition-all shadow-lg flex items-center justify-center gap-2"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl transition-all shadow-sm cursor-pointer shrink-0"
           >
-            Need an account? Register <span className='text-xl ml-1'>→</span>
-          </Button>
+            <span className="hidden sm:inline">Need an account? </span>
+            <span>Register</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <div className="flex-1 flex flex-col justify-center max-w-md w-full mx-auto">
-          <div className="w-full rounded-2xl bg-white/95 backdrop-blur-lg shadow-lg ring-1 ring-black/10 px-4 py-6 md:px-8 md:py-9 relative overflow-hidden">
-            {/* Logo with pop-in and headline */}
-            <div className="flex flex-col items-center animate-fadeInUp mb-5 z-10 relative">
-              <Image src="/oop.png" alt="DVLA Logo" width={80} height={80} className="drop-shadow rounded-full bg-white/95 p-1 mb-2" priority />
-              <span className="italic text-gray-500 text-center text-base mb-1">Get access to your DVLA NSS Portal</span>
+      </header>
+
+      {/* Main Login Card - Floating on top of faint DVLA Head Office background */}
+      <main className="relative z-20 flex-1 flex items-center justify-center p-4 sm:p-6 my-6">
+        <div className="w-full max-w-md bg-white/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-2xl p-7 sm:p-9 space-y-6">
+          
+          {/* Card Header & DVLA Logo */}
+          <div className="text-center space-y-3">
+            <div className="w-20 h-20 mx-auto p-1.5 bg-white rounded-2xl shadow-lg ring-4 ring-[#0d5c2e]/10 border border-slate-100 flex items-center justify-center">
+              <Image
+                src="/oop.png"
+                alt="DVLA Logo"
+                width={72}
+                height={72}
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
-            <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-              {error && (
-                <div className="mb-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm md:text-base">
-                  {error}
-                </div>
-              )}
-              <div>
-                <Label htmlFor="email" className="mb-2 block text-sm md:text-base">Email Address</Label>
-                <Input
+
+            <div className="space-y-1">
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Sign in to your account</h1>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                Enter your credentials to access the DVLA National Service Scheme Portal.
+              </p>
+            </div>
+
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
                   type="email"
                   id="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="you@example.com"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d5c2e] focus:ring-2 focus:ring-[#0d5c2e]/20 transition-all bg-white"
                 />
               </div>
-              <div>
-                <Label htmlFor="password" className="mb-2 block text-sm md:text-base">Password</Label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                <div className="flex justify-end mt-2">
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    className="text-[#16a34a] text-xs md:text-sm font-medium underline underline-offset-2 hover:text-[#15803d] transition-colors"
-                    onClick={() => router.push('/forgot')}
-                  >Forgot password?</button>
-                </div>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => router.push('/forgot')}
+                  className="text-xs text-[#0d5c2e] hover:underline font-semibold"
+                >
+                  Forgot Password?
+                </button>
               </div>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full text-base font-semibold py-2.5 mt-1 bg-[#16a34a] hover:bg-[#15803d] transition-colors rounded-xl shadow focus:ring-2 focus:ring-[#16a34a]/30 focus:outline-none"
-              >
-                {loading ? 'Processing...' : 'Sign In'}
-              </Button>
-            </form>
-            <style jsx global>{`
-              @keyframes fadeInUp {
-                0% { opacity:0; transform: translateY(30px) scale(0.94); }
-                80% { opacity:1; transform: translateY(-4px) scale(1.05); }
-                100% { opacity:1; transform: translateY(0) scale(1); }
-              }
-              .animate-fadeInUp { animation: fadeInUp 0.77s cubic-bezier(.6,.4,0,1) both; }
-            `}</style>
+
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d5c2e] focus:ring-2 focus:ring-[#0d5c2e]/20 transition-all bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-2 py-3 px-6 rounded-xl bg-[#0d5c2e] hover:bg-[#084221] text-white font-bold text-sm shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Signing in...
+                </span>
+              ) : (
+                <span>Sign In</span>
+              )}
+            </button>
+          </form>
+
+          {/* Registration Link inside card */}
+          <div className="pt-4 border-t border-slate-200/80 text-center text-xs text-slate-600">
+            Need an account?{' '}
+            <button
+              type="button"
+              onClick={() => router.push('/register')}
+              className="font-bold text-[#0d5c2e] hover:underline cursor-pointer"
+            >
+              Register for NSS Placement
+            </button>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-20 py-4 px-6 text-center border-t border-white/10 bg-black/10 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-emerald-100/90">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-300" />
+            <span>Driver and Vehicle Licensing Authority • Ghana</span>
+          </div>
+          <p>© {new Date().getFullYear()} DVLA Ghana. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }
-

@@ -741,28 +741,28 @@ export default function RegisterPage() {
       </div>
 
       {/* SIDEBAR FOR DESKTOP only */}
-      <div 
-        className="hidden md:flex md:fixed md:left-0 md:top-0 md:w-[480px] md:h-screen bg-[#0d5c2e] flex-col p-8 relative bg-cover bg-center bg-no-repeat overflow-hidden"
-        style={{
-          backgroundImage: 'url(https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=1920&q=80)',
-        }}
-      >
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0d5c2e]/95 via-[#0d5c2e]/90 to-[#073e1e]/95"></div>
+      <div className="hidden md:flex md:fixed md:left-0 md:top-0 md:w-[460px] md:h-screen flex-col p-8 relative overflow-hidden bg-gradient-to-b from-[#0a4623] via-[#0d5c2e] to-[#073e1e] border-r border-emerald-950/40">
+        {/* Soft background glow */}
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+
         <div className="relative z-10 flex flex-col h-full justify-between overflow-hidden">
           <div className="flex flex-col">
-            {/* Logos */}
-            <div className="mb-8">
-              <div className="flex items-center justify-center">
-                <div className="w-28 h-28 p-2.5 bg-white/95 rounded-2xl shadow-xl ring-2 ring-white/40 flex items-center justify-center">
+            {/* Logos & Brand */}
+            <div className="mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 p-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl ring-2 ring-white/30 flex items-center justify-center shrink-0">
                   <Image
                     src="/oop.png"
                     alt="DVLA Logo"
-                    width={96}
-                    height={96}
+                    width={64}
+                    height={64}
                     className="w-full h-full object-contain"
                     priority
                   />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">DVLA NSS Portal</h2>
+                  <p className="text-xs text-emerald-200/90 font-medium">National Service Onboarding</p>
                 </div>
               </div>
             </div>
@@ -832,7 +832,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Content Area */}
-      <div className="md:ml-[480px] ml-0 min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6 md:p-12 flex flex-col">
+      <div className="md:ml-[460px] ml-0 min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-4 sm:p-6 md:p-12 flex flex-col">
         {/* Progress Indicator & Auto-Save Badge - Top Right */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-100/80 px-3.5 py-2 rounded-full border border-emerald-300 shadow-xs">

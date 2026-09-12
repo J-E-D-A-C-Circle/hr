@@ -23,7 +23,7 @@ export default function RootLayout({
               background: '#0f172a',
               color: '#fff',
               borderRadius: '0.75rem',
-              fontFamily: 'var(--font-public-sans), "Public Sans", sans-serif',
+              fontFamily: "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif",
               fontSize: '0.9rem',
               padding: '12px 16px',
               boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',

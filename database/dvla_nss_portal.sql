@@ -94,7 +94,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `email`, `password_hash`, `role`, `full_name`, `created_at`, `updated_at`) VALUES
 (1, 'admin@dvla.gov.gh', '$2b$10$S7lFC4jwFknRMS566CJgwOLxvpK7V4xXbMO7a.iONYrfihcQom1ZC', 'admin', 'System Administrator', '2026-08-28 12:35:46', '2026-08-28 12:35:46'),
-(3, 'caessuman3@gmail.com', '', 'applicant', 'Constance Akua Essuman', '2026-08-28 12:46:27', '2026-08-28 12:46:27');
+(3, 'caessuman3@gmail.com', '$2b$10$S7lFC4jwFknRMS566CJgwOLxvpK7V4xXbMO7a.iONYrfihcQom1ZC', 'applicant', 'Constance Akua Essuman', '2026-08-28 12:46:27', '2026-08-28 12:46:27');
 
 --
 -- Indexes for dumped tables

@@ -58,6 +58,24 @@ export async function PUT(request: Request) {
       applicationId,
     ]);
 
+    // Log to audit_logs table if table exists
+    try {
+      await query(
+        `INSERT INTO audit_logs (user_id, user_name, action, entity_type, entity_id, details)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          payload.user_id,
+          payload.email || 'Admin',
+          `Application ${status.toUpperCase()}`,
+          'application',
+          applicationId,
+          `Status changed to ${status}${postingStation ? ` (Station: ${postingStation}, Dept: ${postingDepartment})` : ''}`
+        ]
+      );
+    } catch (auditErr) {
+      // Ignore if audit_logs table does not exist
+    }
+
     return NextResponse.json({
       message: 'Application reviewed successfully',
       status,

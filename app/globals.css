@@ -2,7 +2,8 @@
 @import "tailwindcss";
 
 :root {
-  --font-public-sans: 'Public Sans', system-ui, sans-serif;
+  --font-gill-sans: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  --font-public-sans: var(--font-gill-sans);
   /* DVLA Brand Colors - Deep Rich Forest Green */
   --dvla-primary: #0d5c2e;
   --dvla-primary-dark: #073e1e;
@@ -58,7 +59,7 @@
   --color-dvla-danger: var(--dvla-danger);
   --color-dvla-warning: var(--dvla-warning);
   
-  --font-sans: var(--font-public-sans), 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: var(--font-gill-sans), 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
 }
 
 html, body {
@@ -66,13 +67,13 @@ html, body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
-  font-family: var(--font-public-sans), 'Public Sans', sans-serif !important;
+  font-family: var(--font-gill-sans), 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif !important;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-public-sans), 'Public Sans', sans-serif !important;
+  font-family: var(--font-gill-sans), 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif !important;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -214,3 +215,92 @@ body {
 .dvla-loading-text {
   animation: fadeInOut 2s ease-in-out infinite;
 }
+
+/* Modern Dashboard Motion Keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(13, 92, 46, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(13, 92, 46, 0.4);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Modern Glassmorphism & Custom Scrollbar Utilities */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
