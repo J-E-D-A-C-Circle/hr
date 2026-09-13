@@ -17,6 +17,10 @@ import { getValidAuthToken, getStoredUser } from '@/lib/auth-client';
 import { ArrowLeft, Check, Upload, FileText, Image as ImageIcon, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { uploadFile } from '@/lib/file-upload';
 import toast from 'react-hot-toast';
+import { Step1Account } from '@/components/registration/Step1Account';
+import { Step2Profile } from '@/components/registration/Step2Profile';
+import { Step3Verify } from '@/components/registration/Step3Verify';
+import { Step4Complete } from '@/components/registration/Step4Complete';
 
 interface FormData {
   email: string;
@@ -39,6 +43,11 @@ interface FormData {
   yearOfCompletion: string;
   serviceYear: string;
   nssPin: string;
+  postingRegion?: string;
+  postingDistrict?: string;
+  servicePeriodStart?: string;
+  servicePeriodEnd?: string;
+  additionalInfo?: string;
 }
 
 function formatGhanaCard(input: string): string {
@@ -91,21 +100,80 @@ export default function RegisterPage() {
     yearOfCompletion: '',
     serviceYear: String(new Date().getFullYear()),
     nssPin: '',
+    postingRegion: '',
+    postingDistrict: '',
+    servicePeriodStart: '',
+    servicePeriodEnd: '',
+    additionalInfo: '',
   });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated or Load Draft
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = getValidAuthToken();
-      const user = getStoredUser();
-
-      if (token && user) {
-        if (user.role === 'admin') {
-          router.replace('/admin/dashboard');
-        } else {
+    const checkAuthAndDraft = async () => {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            router.replace('/admin/dashboard');
+            return;
+          }
+          
+          // Check if they have a draft
+          const res = await fetch('/api/applications/draft', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          
+          if (data.application && data.application.status === 'draft') {
+            // Load draft into form data
+            const app = data.application;
+            const extra = app.additional_info ? JSON.parse(app.additional_info) : {};
+            
+            setFormData(prev => ({
+              ...prev,
+              firstName: app.first_name || '',
+              lastName: app.last_name || '',
+              middleName: app.middle_name || '',
+              email: app.email || prev.email,
+              phoneNumber: app.phone_number || '',
+              ghanaCard: app.nss_number || prev.ghanaCard, // Stored ghanaCard here temporarily? Or nssPin?
+              gender: app.gender || '',
+              nationality: app.nationality || 'Ghanaian',
+              region: app.region || '',
+              district: app.district || '',
+              address: app.residential_address || '',
+              school: app.institution_name || '',
+              course: app.course_program || '',
+              yearOfCompletion: app.year_of_completion || '',
+              serviceYear: app.service_year || String(new Date().getFullYear()),
+              postingRegion: app.posting_region || '',
+              postingDistrict: app.posting_district || '',
+              servicePeriodStart: app.service_period_start ? app.service_period_start.split('T')[0] : '',
+              servicePeriodEnd: app.service_period_end ? app.service_period_end.split('T')[0] : '',
+              additionalInfo: app.additional_info || '',
+              nssPin: app.nss_number || prev.nssPin,
+            }));
+            
+            if (extra.currentStep) {
+              setCurrentStep(extra.currentStep);
+            } else {
+              setCurrentStep(3); // Default to step 3 if they have an account but no step saved
+            }
+          } else {
+            // Not a draft, or fully completed
+            router.replace('/dashboard');
+          }
+        } catch (e) {
           router.replace('/dashboard');
         }
       }
+    };
+    
+    if (typeof window !== 'undefined') {
+      checkAuthAndDraft();
     }
   }, [router]);
 
@@ -293,10 +361,35 @@ export default function RegisterPage() {
         if (data.token) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
+          
+          // Save draft to database
+          try {
+            await fetch('/api/applications/draft', {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.token}`
+              },
+              body: JSON.stringify({ ...formData, currentStep: 3 })
+            });
+          } catch (e) {
+            console.error('Failed to save draft:', e);
+          }
+
+          // Send OTP via SMS
+          try {
+            await fetch('/api/auth/send-otp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phoneNumber: formData.phoneNumber })
+            });
+          } catch (e) {
+            console.error('Failed to send OTP:', e);
+          }
         }
         
         console.log('Account created successfully!', data.user);
-        toast.success(`Verification code sent to ${formData.email || 'your email'}`);
+        toast.success(`Verification code sent to ${formData.phoneNumber || 'your phone'}`);
         setCurrentStep(3);
       } catch (error: any) {
         setSubmitError(error.message || 'Registration failed. Please try again.');
@@ -310,11 +403,49 @@ export default function RegisterPage() {
     
     if (currentStep === 3) {
       if (otp.join('').length !== 6) {
-        toast.error('Please enter the 6-digit verification code sent to your email');
+        toast.error('Please enter the 6-digit verification code sent to your phone');
         return;
       }
-      toast.success('Email address verified successfully!');
-      setCurrentStep(4);
+      
+      setIsSubmitting(true);
+      try {
+        const response = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phoneNumber: formData.phoneNumber,
+            token: otp.join('')
+          })
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+          toast.error(data.error || 'Invalid verification code');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        toast.success('Phone number verified successfully!');
+        
+        // Update draft to Step 4
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetch('/api/applications/draft', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ ...formData, currentStep: 4 })
+          }).catch(console.error);
+        }
+        
+        setCurrentStep(4);
+      } catch (error: any) {
+        toast.error('Failed to verify code. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
     
@@ -416,12 +547,15 @@ export default function RegisterPage() {
         region: formData.region,
         district: formData.district.trim(),
         institution_name: formData.school,
-        course_program: formData.course.trim(), // Ensure no leading/trailing spaces
+        course_program: formData.course.trim(),
         year_of_completion: formData.yearOfCompletion,
         service_year: formData.serviceYear || new Date().getFullYear().toString(),
         nss_number: formData.nssPin || null,
-        posting_region: formData.region || null,
-        posting_district: formData.district.trim() || null, // Ensure it's not empty string
+        posting_region: formData.postingRegion || formData.region || null,
+        posting_district: formData.postingDistrict || formData.district.trim() || null,
+        service_period_start: formData.servicePeriodStart || null,
+        service_period_end: formData.servicePeriodEnd || null,
+        additional_info: formData.additionalInfo || null,
         passport_photo: passportPhotoPath,
         id_card_copy: idCardPath,
         appointment_letter: appointmentLetterPath,
@@ -518,201 +652,6 @@ export default function RegisterPage() {
     const file = e.target.files?.[0];
     setCvFileName(file ? file.name : '');
   };
-
-  // Ghana universities and colleges (partial, add as needed)
-  const ghanianSchools = [
-    "University of Ghana",
-    "Kwame Nkrumah University of Science and Technology",
-    "University of Cape Coast",
-    "University for Development Studies",
-    "University of Education, Winneba",
-    "University of Energy and Natural Resources",
-    "University of Health and Allied Sciences",
-    "Ghana Institute of Management and Public Administration",
-    "University of Mines and Technology",
-    "Ghana Communication Technology University",
-    "University of Professional Studies, Accra",
-    "Presbyterian University College",
-    "Central University",
-    "Valley View University",
-    "Pentecost University College",
-    "KAAF University College",
-    "Zenith University College",
-    "Christian Service University College",
-    "Cape Coast Technical University",
-    "Accra Technical University",
-    "Kumasi Technical University",
-    "Ho Technical University",
-    "Koforidua Technical University",
-    "Sunyani Technical University",
-    "Takoradi Technical University",
-    "Tamale Technical University",
-    "Bolgatanga Polytechnic",
-    "Wa Polytechnic",
-    // ... more ...
-  ];
-
-  // The schoolQuery and showSchoolDropdown state and useEffect are no longer needed
-  // as the school is now a Select component with a pre-defined list.
-
-  // The useEffect for hide is also no longer needed as the school Select handles its own dropdown.
-
-  // 1. Provide hardcoded arrays for schools and branches (outside component)
-  const dvlaBranches = [
-    // Greater Accra – multiple stations
-    "Accra Central",
-    "Achimota",
-    "Adentan",
-    "Dansoman",
-    "East Legon",
-    "Head Office - Cantonments",
-    "Kaneshie",
-    "Narhman",
-    "Nungua",
-    "Tema",
-    "Weija",
-    // Other regions and major towns
-    "Bolgatanga",
-    "Cape Coast",
-    "Goaso",
-    "Ho",
-    "Koforidua",
-    "Kumasi",
-    "Obuasi",
-    "Sefwi Wiawso",
-    "Sunyani",
-    "Takoradi",
-    "Tamale",
-    "Techiman",
-    "Wa"
-  ].sort();
-
-  // Ghana Universities & Tertiary Courses
-  const ghanianCourses = [
-    "BSc. Computer Science",
-    "BSc. Information Technology",
-    "BSc. Software Engineering",
-    "BSc. Computer Engineering",
-    "BSc. Data Science and Analytics",
-    "BSc. Cybersecurity",
-    "BSc. Electrical and Electronic Engineering",
-    "BSc. Mechanical Engineering",
-    "BSc. Civil Engineering",
-    "BSc. Geomatic Engineering",
-    "BSc. Biomedical Engineering",
-    "BSc. Chemical Engineering",
-    "BSc. Agricultural Engineering",
-    "BSc. Telecommunication Engineering",
-    "Bachelor of Medicine and Bachelor of Surgery (MBChB)",
-    "Doctor of Pharmacy (PharmD)",
-    "BSc. Nursing",
-    "BSc. Midwifery",
-    "BSc. Public Health",
-    "BSc. Medical Laboratory Science",
-    "BSc. Physician Assistantship",
-    "BSc. Physiotherapy",
-    "BSc. Radiography",
-    "BSc. Business Administration (Accounting)",
-    "BSc. Business Administration (Banking & Finance)",
-    "BSc. Business Administration (Human Resource Management)",
-    "BSc. Business Administration (Marketing)",
-    "BSc. Business Administration (Management)",
-    "BSc. Business Administration (Insurance & Risk)",
-    "BSc. Business Administration (Logistics & Supply Chain)",
-    "BA. Communication Studies & Journalism",
-    "BA. Public Relations",
-    "BA. Economics",
-    "BA. Sociology",
-    "BA. Psychology",
-    "BA. Political Science",
-    "BA. Information Studies",
-    "BA. Geography and Resource Development",
-    "BA. English Language & Literature",
-    "BA. History",
-    "BA. Linguistics",
-    "BA. French / Modern Languages",
-    "Bachelor of Laws (LL.B)",
-    "BSc. Actuarial Science",
-    "BSc. Statistics",
-    "BSc. Mathematics",
-    "BSc. Physics",
-    "BSc. Chemistry",
-    "BSc. Biochemistry / Biological Sciences",
-    "BSc. Environmental Science",
-    "BSc. Architecture",
-    "BSc. Quantity Surveying & Construction Economics",
-    "BSc. Real Estate / Estate Management",
-    "BSc. Land Economy",
-    "BSc. Agriculture / Agribusiness",
-    "BEd. Computer Science Education",
-    "BEd. Mathematics Education",
-    "BEd. Social Studies Education",
-    "BEd. Early Childhood Education",
-    "HND Computer Science",
-    "HND Electrical/Electronic Engineering",
-    "HND Mechanical Engineering",
-    "HND Building Technology",
-    "HND Accountancy",
-    "HND Marketing",
-    "HND Purchasing and Supply"
-  ];
-
-  // In component state, add Autocomplete state
-  const [schoolInput, setSchoolInput] = useState("");
-  const [schoolDropdown, setSchoolDropdown] = useState(false);
-  const [courseInput, setCourseInput] = useState("");
-  const [courseDropdown, setCourseDropdown] = useState(false);
-  const [branchInput, setBranchInput] = useState("");
-  const [branchDropdown, setBranchDropdown] = useState(false);
-  const [nationalityInput, setNationalityInput] = useState("");
-  const [nationalityDropdown, setNationalityDropdown] = useState(false);
-  const filteredSchools = ghanianSchools.filter(school => school.toLowerCase().includes(schoolInput.toLowerCase()));
-  const filteredCourses = ghanianCourses.filter(c => c.toLowerCase().includes(courseInput.toLowerCase()));
-  
-  // Nationalities list
-  const nationalities = [
-    "Ghanaian", "Nigerian", "Kenyan", "South African", "Egyptian", "Ethiopian", "Tanzanian",
-    "Ugandan", "Algerian", "Sudanese", "Moroccan", "Angolan", "Mozambican", "Madagascan",
-    "Cameroonian", "Ivory Coast", "Malagasy", "Burkina Faso", "Malawi", "Zambian", "Senegalese",
-    "Zimbabwean", "Guinean", "Rwandan", "Beninese", "Burundian", "Tunisian", "South Sudanese",
-    "Somalian", "Togolese", "Sierra Leonean", "Libyan", "Liberian", "Central African",
-    "Mauritanian", "Eritrean", "Gambian", "Botswanan", "Namibian", "Gabonese", "Lesotho",
-    "Guinea-Bissau", "Equatorial Guinean", "Mauritian", "Eswatini", "Djiboutian", "Comorian",
-    "Cabo Verdean", "Sao Tomean", "Seychellois", "British", "American", "Canadian", "Australian",
-    "Indian", "Chinese", "Japanese", "Korean", "Pakistani", "Bangladeshi", "Filipino",
-    "Vietnamese", "Thai", "Indonesian", "Malaysian", "Singaporean", "Sri Lankan", "Nepalese",
-    "Afghan", "Iranian", "Iraqi", "Saudi Arabian", "Emirati", "Kuwaiti", "Qatari", "Omani",
-    "Bahraini", "Yemeni", "Jordanian", "Lebanese", "Syrian", "Israeli", "Palestinian", "Turkish",
-    "Greek", "Italian", "Spanish", "French", "German", "Dutch", "Belgian", "Swiss", "Austrian",
-    "Portuguese", "Polish", "Russian", "Ukrainian", "Romanian", "Hungarian", "Czech", "Swedish",
-    "Norwegian", "Danish", "Finnish", "Irish", "Scottish", "Welsh", "Brazilian", "Argentine",
-    "Mexican", "Colombian", "Peruvian", "Venezuelan", "Chilean", "Ecuadorian", "Guatemalan",
-    "Cuban", "Haitian", "Dominican", "Jamaican", "Trinidadian", "Barbadian", "Bahamian", "Other"
-  ].sort();
-  
-  const filteredNationalities = nationalities.filter(nat => nat.toLowerCase().includes(nationalityInput.toLowerCase()));
-  const filteredBranches = dvlaBranches.filter(branch => branch.toLowerCase().includes(branchInput.toLowerCase()));
-
-  useEffect(() => {
-    function closeDropdowns(e: MouseEvent) {
-      // Close all dropdowns when clicking outside
-      const target = e.target as HTMLElement;
-      if (!target.closest('#school') && !target.closest('.school-dropdown')) {
-        setSchoolDropdown(false);
-      }
-      if (!target.closest('#course') && !target.closest('.course-dropdown')) {
-        setCourseDropdown(false);
-      }
-      if (!target.closest('#branch') && !target.closest('.branch-dropdown')) {
-        setBranchDropdown(false);
-      }
-      if (!target.closest('#nationality') && !target.closest('.nationality-dropdown')) {
-        setNationalityDropdown(false);
-      }
-    }
-    document.addEventListener('click', closeDropdowns);
-    return () => document.removeEventListener('click', closeDropdowns);
-  }, []);
 
   if (!hydrated) return null;
 
@@ -860,752 +799,66 @@ export default function RegisterPage() {
         <div className="flex-1 flex flex-col justify-center max-w-4xl w-full mx-auto">
           <div className="w-full rounded-3xl bg-white/80 backdrop-blur-md shadow-lg ring-1 ring-black/5 p-6 md:p-12">
           {currentStep === 1 && (
-            <form onSubmit={handleContinue} className="space-y-6">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Create an account.</h2>
-                <p className="text-base md:text-lg text-gray-600">Provide your account information to continue.</p>
-              </div>
-
-              {existingAccountNotice && (
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 animate-fadeIn">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#0d5c2e]/15 flex items-center justify-center text-[#0d5c2e] shrink-0 font-bold text-lg">
-                      💡
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">Account Already Exists</h4>
-                      <p className="text-xs text-slate-700">
-                        An account for <span className="font-semibold text-slate-900">{existingAccountNotice.email}</span> already exists. Log in to resume your application!
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => router.push(`/login?email=${encodeURIComponent(existingAccountNotice.email)}`)}
-                    className="bg-[#0d5c2e] hover:bg-[#073e1e] text-white text-xs font-bold px-4 py-2.5 rounded-lg shrink-0 transition-all shadow-md"
-                  >
-                    Sign In & Resume Draft →
-                  </Button>
-                </div>
-              )}
-
-              {/* Email Input */}
-              <div>
-                <Label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
-                  Your Email
-                </Label>
-                <Input
-                  type="email"
-                  id="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="Enter your email"
-                />
-              </div>
-
-              {/* Password Input */}
-              <div>
-                <Label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-2">
-                  Your Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    placeholder="Create a password."
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Password Requirements */}
-              <div className="text-sm text-gray-600 space-y-1">
-                {formData.password && passwordStrength && (
-                  <div className="mb-2">
-                    <span className="font-normal">{passwordStrength}</span>
-                  </div>
-                )}
-                <ul className="list-disc list-inside space-y-1 ml-2 font-normal">
-                  <li>Use at least 8 characters</li>
-                  <li>Besides letters, include at least a number or symbol (!@#$%^&*-_+=).</li>
-                  <li>Password is case sensitive.</li>
-                </ul>
-              </div>
-
-              {/* Confirm Password Input */}
-              <div>
-                <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-900 mb-2">
-                  Confirm Your Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    id="confirmPassword"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    placeholder="Confirm your password."
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
-                    tabIndex={-1}
-                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Continue Button */}
-              <div className="flex justify-end mt-8">
-                <Button type="submit">Continue</Button>
-              </div>
-            </form>
+            <Step1Account 
+              formData={formData}
+              handleInputChange={handleInputChange}
+              handleContinue={handleContinue}
+              existingAccountNotice={existingAccountNotice}
+              showPassword={showPassword}
+              setShowPassword={setShowPassword}
+              showConfirmPassword={showConfirmPassword}
+              setShowConfirmPassword={setShowConfirmPassword}
+              passwordStrength={passwordStrength}
+            />
           )}
 
           {/* Step 2: Profile Information */}
           {currentStep === 2 && (
-            <form onSubmit={handleContinue} className="space-y-6">
-              <div className="flex items-center mb-6">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setCurrentStep(currentStep - 1)}
-                  className="text-gray-900 font-medium hover:text-[#16a34a] transition-colors flex items-center gap-2 w-fit px-2 py-1 rounded-lg hover:bg-gray-100"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                </Button>
-              </div>
-
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Create an account.</h2>
-                <p className="text-base md:text-lg text-gray-600">Provide your personal information to get started.</p>
-              </div>
-
-              {/* Two Column Grid Layout */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  {/* First Name */}
-                  <div>
-                    <Label htmlFor="firstName" className="block text-sm font-medium text-gray-900 mb-2">
-                      Your First Name
-                    </Label>
-                    <Input
-                      type="text"
-                      id="firstName"
-                      required
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      placeholder="Enter Your First Name"
-                    />
-                  </div>
-
-                  {/* Last Name */}
-                  <div>
-                    <Label htmlFor="lastName" className="block text-sm font-medium text-gray-900 mb-2">
-                      Your Last Name
-                    </Label>
-                    <Input
-                      type="text"
-                      id="lastName"
-                      required
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      placeholder="Enter Your Last Name"
-                    />
-                  </div>
-
-                  {/* Phone Number */}
-                  <div>
-                    <Label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-900 mb-2">
-                      Your Phone Number
-                    </Label>
-                    <div className="relative w-full">
-                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2 z-10 pointer-events-none">
-                        <span className="text-sm font-semibold text-gray-700">GH</span>
-                        <span className="text-gray-400">|</span>
-                      </div>
-                      <Input
-                        type="tel"
-                        id="phoneNumber"
-                        required
-                        value={formData.phoneNumber}
-                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                        className="pl-12 w-full"
-                        placeholder="Enter phone number"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Date of Birth */}
-                  <div>
-                    <Label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-900 mb-2">
-                      Date of Birth <span className="text-gray-400 font-normal text-xs">(DD/MM/YYYY)</span>
-                    </Label>
-                    <Input
-                      type="date"
-                      id="dateOfBirth"
-                      required
-                      value={formData.dateOfBirth}
-                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                      className="w-full"
-                      max={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
-                  {/* Middle Name */}
-                  <div>
-                    <Label htmlFor="middleName" className="block text-sm font-medium text-gray-900 mb-2">
-                      Your Middle Name
-                    </Label>
-                    <Input
-                      type="text"
-                      id="middleName"
-                      value={formData.middleName}
-                      onChange={(e) => handleInputChange('middleName', e.target.value)}
-                      placeholder="Enter Other Names"
-                    />
-                  </div>
-
-                  {/* Gender */}
-                  <div>
-                    <Label htmlFor="gender" className="block text-sm font-medium text-gray-900 mb-2">
-                      Select Your Gender
-                    </Label>
-                    <div className="relative">
-                      <Select
-                        value={formData.gender || undefined}
-                        onValueChange={(value) => {
-                          if (value === "__clear__") {
-                            handleInputChange('gender', "");
-                            // Force close the select
-                            const trigger = document.getElementById('gender');
-                            if (trigger) {
-                              trigger.click();
-                            }
-                          } else {
-                            handleInputChange('gender', value);
-                          }
-                        }}
-                      >
-                        <SelectTrigger id="gender" className="w-full h-14 text-base">
-                          <SelectValue placeholder="Select Gender" />
-                        </SelectTrigger>
-                        <SelectContent position="popper" sideOffset={4}>
-                          {formData.gender && (
-                            <>
-                              <SelectItem value="__clear__" className="text-sm cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-50 border-b border-gray-200">
-                                Clear selection
-                              </SelectItem>
-                            </>
-                          )}
-                          <SelectItem value="Male" className="text-base cursor-pointer">Male</SelectItem>
-                          <SelectItem value="Female" className="text-base cursor-pointer">Female</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {formData.gender && (
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('gender', "")}
-                          className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                          aria-label="Clear gender selection"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Ghana Card */}
-                  <div>
-                    <Label htmlFor="ghanaCard" className="block text-sm font-medium text-gray-900 mb-2">
-                      Ghana Card Number <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative flex items-center">
-                      <Input
-                        type="text"
-                        id="ghanaCard"
-                        value={formData.ghanaCard}
-                        onFocus={(e) => {
-                          if (!e.target.value) {
-                            handleInputChange('ghanaCard', 'GHA-');
-                          }
-                        }}
-                        onChange={(e) => {
-                          const formatted = formatGhanaCard(e.target.value);
-                          handleInputChange('ghanaCard', formatted);
-                        }}
-                        placeholder="GHA-123456789-0"
-                        maxLength={15}
-                        className="w-full font-mono text-sm tracking-wider font-medium"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
-                      <span>Format:</span>
-                      <span className="font-mono font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">GHA-XXXXXXXXX-X</span>
-                      <span className="text-emerald-700 font-medium">(Auto-formats as you type)</span>
-                    </p>
-                  </div>
-
-                  {/* Nationality */}
-                  <div className="relative">
-                    <Label htmlFor="nationality" className="block text-sm font-medium text-gray-900 mb-2">
-                      Nationality
-                    </Label>
-                    <Input
-                      id="nationality"
-                      name="nationality"
-                      autoComplete="off"
-                      required
-                      value={nationalityInput || formData.nationality || ''}
-                      onFocus={() => {
-                        setNationalityDropdown(true);
-                        setNationalityInput(formData.nationality || '');
-                      }}
-                      onChange={e => {
-                        setNationalityInput(e.target.value);
-                        setNationalityDropdown(true);
-                        handleInputChange('nationality', e.target.value);
-                      }}
-                      placeholder="Start typing nationality..."
-                      className="w-full"
-                    />
-                    {nationalityDropdown && (
-                      <ul className="absolute left-0 z-50 max-h-60 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto">
-                        {filteredNationalities.length === 0 && (
-                          <li className="px-4 py-2 text-gray-400">No results</li>
-                        )}
-                        {filteredNationalities.map((nationality) => (
-                          <li
-                            key={nationality}
-                            className="px-4 py-2 hover:bg-emerald-100 cursor-pointer text-sm"
-                            onClick={() => {
-                              handleInputChange('nationality', nationality);
-                              setNationalityDropdown(false);
-                              setNationalityInput(nationality);
-                            }}
-                          >
-                            {nationality}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Continue Button */}
-              <div className="flex justify-end mt-8">
-                <Button type="submit">Continue</Button>
-              </div>
-            </form>
+            <Step2Profile 
+              formData={formData}
+              handleInputChange={handleInputChange}
+              handleContinue={handleContinue}
+              setCurrentStep={setCurrentStep}
+              currentStep={currentStep}
+            />
           )}
 
           {/* Step 3: Verify Email */}
           {currentStep === 3 && (
-            <form onSubmit={handleContinue} className="space-y-8 max-w-xl mx-auto w-full flex flex-col items-center">
-              <div className="w-full flex items-center mb-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setCurrentStep(currentStep - 1)}
-                  className="text-gray-900 font-medium hover:text-[#16a34a] transition-colors flex items-center gap-2 w-fit px-2 py-1 rounded-lg hover:bg-gray-100"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                </Button>
-              </div>
-              <div className="mb-4 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Verify Your Email Address</h2>
-                <p className="text-sm md:text-base text-gray-600">
-                  A 6-digit verification code has been sent to <span className="font-semibold text-gray-900">{formData.email || 'your email address'}</span>. Enter the code below to complete verification.
-                </p>
-              </div>
-              <div className="flex gap-4 md:gap-6 items-center justify-center mb-2">
-                {[0,1,2,3,4,5].map(i => (
-                  <Input
-                    key={i}
-                    id={`otp-input-${i}`}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={1}
-                    value={otp[i] || ''}
-                    onChange={e => handleOtpChange(i, e.target.value)}
-                    onKeyDown={e => handleOtpKeyDown(i, e)}
-                    className={`w-12 h-12 md:w-16 md:h-16 text-center text-xl md:text-2xl font-semibold border border-gray-200 focus:border-[#16a34a] focus:ring-[#16a34a] rounded-xl bg-white`}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-col items-center gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    toast.success(`Verification code re-sent to ${formData.email || 'your email'}`);
-                  }}
-                  className="text-emerald-700 hover:text-emerald-800 text-sm font-semibold hover:underline transition-colors cursor-pointer"
-                >
-                  Didn't receive code? Resend Code to Email
-                </button>
-              </div>
-              <div>
-                <Button type="submit" className="px-10">Continue</Button>
-              </div>
-            </form>
+            <Step3Verify 
+              formData={formData}
+              handleContinue={handleContinue}
+              setCurrentStep={setCurrentStep}
+              currentStep={currentStep}
+              otp={otp}
+              handleOtpChange={handleOtpChange}
+              handleOtpKeyDown={handleOtpKeyDown}
+            />
           )}
 
           {/* Step 4: Complete your account */}
           {currentStep === 4 && (
-            <form onSubmit={handleContinue} className="space-y-7 max-w-2xl mx-auto w-full">
-              <div className="flex items-center mb-6">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setCurrentStep(currentStep - 1)}
-                  className="text-gray-900 font-medium hover:text-[#16a34a] transition-colors flex items-center gap-2 w-fit px-2 py-1 rounded-lg hover:bg-gray-100"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                </Button>
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete your account</h2>
-                <p className="text-lg text-gray-600">Provide your personal information to get started.</p>
-              </div>
-              <div className="space-y-5">
-                {/* NSS PIN */}
-                <div>
-                  <Label htmlFor="nssPin" className="block text-sm font-medium text-gray-900 mb-2">Your National Service PIN</Label>
-                  <Input 
-                    id="nssPin" 
-                    name="nssPin" 
-                    value={formData.nssPin}
-                    onChange={(e) => handleInputChange('nssPin', e.target.value)}
-                    placeholder="Eg. NSS 0345 067 856" 
-                  />
-                </div>
-                {/* School Select */}
-                <div className="relative">
-                  <Label htmlFor="school" className="block text-sm font-medium text-gray-900 mb-2">School you attended</Label>
-                  <Input
-                    id="school"
-                    name="school"
-                    autoComplete="off"
-                    value={formData.school}
-                    onFocus={() => {
-                      setSchoolDropdown(true);
-                      setSchoolInput("");
-                    }}
-                    onChange={e => {
-                      setSchoolInput(e.target.value);
-                      setSchoolDropdown(true);
-                      handleInputChange('school', e.target.value);
-                    }}
-                    placeholder="Start typing your school..."
-                    className=""
-                  />
-                  {schoolDropdown && (
-                    <ul className="absolute left-0 z-50 max-h-60 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto">
-                      {filteredSchools.length === 0 && (
-                        <li className="px-4 py-2 text-gray-400">No results</li>
-                      )}
-                      {filteredSchools.map((school) => (
-                        <li
-                          key={school}
-                          className="px-4 py-2 hover:bg-emerald-100 cursor-pointer text-sm"
-                          onClick={() => {
-                            handleInputChange('school', school);
-                            setSchoolDropdown(false);
-                            setSchoolInput(school);
-                          }}
-                        >
-                          {school}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                {/* Course */}
-                <div className="relative">
-                  <Label htmlFor="course" className="block text-sm font-medium text-gray-900 mb-2">Your course of study</Label>
-                  <Input 
-                    id="course" 
-                    name="course" 
-                    autoComplete="off"
-                    required
-                    value={formData.course}
-                    onFocus={() => {
-                      setCourseDropdown(true);
-                      setCourseInput(formData.course || "");
-                    }}
-                    onChange={(e) => {
-                      setCourseInput(e.target.value);
-                      setCourseDropdown(true);
-                      handleInputChange('course', e.target.value);
-                    }}
-                    placeholder="Start typing your course (e.g. BSc Computer Science)..." 
-                  />
-                  {courseDropdown && (
-                    <ul className="course-dropdown absolute left-0 z-50 max-h-60 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto">
-                      {filteredCourses.length === 0 && (
-                        <li className="px-4 py-2 text-gray-400 text-sm">No exact match found — custom course text accepted</li>
-                      )}
-                      {filteredCourses.map((c) => (
-                        <li
-                          key={c}
-                          className="px-4 py-2 hover:bg-emerald-100 cursor-pointer text-sm font-medium text-gray-800"
-                          onClick={() => {
-                            handleInputChange('course', c);
-                            setCourseDropdown(false);
-                            setCourseInput(c);
-                          }}
-                        >
-                          {c}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {/* Year of Completion */}
-                <div>
-                  <Label htmlFor="yearOfCompletion" className="block text-sm font-medium text-gray-900 mb-2">Year of Completion (University)</Label>
-                  <Input 
-                    id="yearOfCompletion" 
-                    name="yearOfCompletion" 
-                    type="number"
-                    required
-                    min="2000"
-                    max={new Date().getFullYear() + 1}
-                    value={formData.yearOfCompletion}
-                    onChange={(e) => handleInputChange('yearOfCompletion', e.target.value)}
-                    placeholder="e.g. 2024" 
-                  />
-                </div>
-
-                {/* Service Year */}
-                <div>
-                  <Label htmlFor="serviceYear" className="block text-sm font-medium text-gray-900 mb-2">Service Year</Label>
-                  <Input 
-                    id="serviceYear" 
-                    name="serviceYear" 
-                    type="number"
-                    required
-                    min="2020"
-                    max={new Date().getFullYear() + 2}
-                    value={formData.serviceYear || new Date().getFullYear().toString()}
-                    onChange={(e) => handleInputChange('serviceYear', e.target.value)}
-                    placeholder={`e.g. ${new Date().getFullYear()}`}
-                  />
-                </div>
-                {/* Address */}
-                <div>
-                  <Label htmlFor="address" className="block text-sm font-medium text-gray-900 mb-2">Your Residential Address</Label>
-                  <Input 
-                    id="address" 
-                    name="address" 
-                    required
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="Enter the address of where you will stay during your service" 
-                  />
-                </div>
-
-                {/* Region */}
-                <div>
-                  <Label htmlFor="region" className="block text-sm font-medium text-gray-900 mb-2">Region</Label>
-                  <Input 
-                    id="region" 
-                    name="region" 
-                    required
-                    value={formData.region}
-                    onChange={(e) => handleInputChange('region', e.target.value)}
-                    placeholder="e.g. Greater Accra, Ashanti, Western" 
-                  />
-                </div>
-
-                {/* District */}
-                <div>
-                  <Label htmlFor="district" className="block text-sm font-medium text-gray-900 mb-2">District</Label>
-                  <Input 
-                    id="district" 
-                    name="district" 
-                    required
-                    value={formData.district}
-                    onChange={(e) => handleInputChange('district', e.target.value)}
-                    placeholder="e.g. Accra Metro, Kumasi Metro" 
-                  />
-                </div>
-                {/* Branch posted to (DVLA branches select) */}
-                <div className="relative">
-                  <Label htmlFor="branch" className="block text-sm font-medium text-gray-900 mb-2">DVLA branch posted to</Label>
-                  <Input
-                    id="branch"
-                    name="branch"
-                    autoComplete="off"
-                    value={formData.branch}
-                    onFocus={() => {
-                      setBranchDropdown(true);
-                      setBranchInput("");
-                    }}
-                    onChange={e => {
-                      setBranchInput(e.target.value);
-                      setBranchDropdown(true);
-                      handleInputChange('branch', e.target.value);
-                    }}
-                    placeholder="Start typing DVLA branch..."
-                  />
-                  {branchDropdown && (
-                    <ul className="absolute left-0 z-50 max-h-60 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto">
-                      {filteredBranches.length === 0 && (
-                        <li className="px-4 py-2 text-gray-400">No results</li>
-                      )}
-                      {filteredBranches.map((branch) => (
-                        <li
-                          key={branch}
-                          className="px-4 py-2 hover:bg-emerald-100 cursor-pointer text-sm"
-                          onClick={() => {
-                            handleInputChange('branch', branch);
-                            setBranchDropdown(false);
-                            setBranchInput(branch);
-                          }}
-                        >
-                          {branch}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                         {/* Uploads Grid Modernized */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                  {/* Passport upload */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="block text-sm font-semibold text-gray-900">Passport Picture</Label>
-                      {passportFileName && (
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                          ✓ Attached
-                        </span>
-                      )}
-                    </div>
-                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
-                      <button type="button" onClick={() => passportFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
-                        <ImageIcon className="w-4 h-4" />
-                        {passportFileName ? 'Change Photo' : 'Upload Passport'}
-                      </button>
-                      <input ref={passportFileRef} id="passport" name="passport" type="file" accept="image/*" className="hidden" onChange={handlePassportSelected} />
-                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
-                        {passportFileName ? passportFileName : 'No file selected'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Ghana Card / ID Card upload */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="block text-sm font-semibold text-gray-900">Ghana Card / ID Card Copy</Label>
-                      {idCardFileName && (
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                          ✓ Attached
-                        </span>
-                      )}
-                    </div>
-                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
-                      <button type="button" onClick={() => idCardFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
-                        <ShieldCheck className="w-4 h-4" />
-                        {idCardFileName ? 'Change ID Card' : 'Upload ID Card'}
-                      </button>
-                      <input ref={idCardFileRef} id="id_card" name="id_card" type="file" accept="image/*,application/pdf" className="hidden" onChange={handleIdCardSelected} />
-                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
-                        {idCardFileName ? idCardFileName : 'No file selected'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Appointment Letter upload */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="block text-sm font-semibold text-gray-900">NSS Appointment Letter</Label>
-                      {appointmentFileName && (
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                          ✓ Attached
-                        </span>
-                      )}
-                    </div>
-                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
-                      <button type="button" onClick={() => appointmentFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
-                        <FileText className="w-4 h-4" />
-                        {appointmentFileName ? 'Change Letter' : 'Upload Letter'}
-                      </button>
-                      <input ref={appointmentFileRef} id="appointment" name="appointment" type="file" accept="application/pdf,image/*" className="hidden" onChange={handleAppointmentSelected} />
-                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
-                        {appointmentFileName ? appointmentFileName : 'No file selected'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CV upload */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) / Certificates</Label>
-                      {cvFileName && (
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                          ✓ Attached
-                        </span>
-                      )}
-                    </div>
-                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
-                      <button type="button" onClick={() => cvFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
-                        <Upload className="w-4 h-4" />
-                        {cvFileName ? 'Change CV / File' : 'Upload CV / File'}
-                      </button>
-                      <input ref={cvFileRef} id="cv" name="cv" type="file" accept="application/pdf" className="hidden" onChange={handleCvSelected} />
-                      <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
-                        {cvFileName ? cvFileName : 'No file selected'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end mt-8">
-                <Button type="submit" className="px-10" disabled={isSubmitting}>
-                  {isSubmitting ? 'Submitting Application...' : 'Submit Application'}
-                </Button>
-              </div>
-              {submitError && (
-                <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-                  {submitError}
-                </div>
-              )}
-            </form>
+            <Step4Complete 
+              formData={formData}
+              handleInputChange={handleInputChange}
+              handleContinue={handleContinue}
+              setCurrentStep={setCurrentStep}
+              currentStep={currentStep}
+              isSubmitting={isSubmitting}
+              submitError={submitError}
+              passportFileName={passportFileName}
+              idCardFileName={idCardFileName}
+              appointmentFileName={appointmentFileName}
+              cvFileName={cvFileName}
+              passportFileRef={passportFileRef}
+              idCardFileRef={idCardFileRef}
+              appointmentFileRef={appointmentFileRef}
+              cvFileRef={cvFileRef}
+              handlePassportSelected={handlePassportSelected}
+              handleIdCardSelected={handleIdCardSelected}
+              handleAppointmentSelected={handleAppointmentSelected}
+              handleCvSelected={handleCvSelected}
+            />
           )}
           </div>
         </div>

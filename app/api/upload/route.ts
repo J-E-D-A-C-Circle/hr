@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
+import { users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -38,12 +40,23 @@ export async function POST(request: Request) {
       );
     }
 
+    const originalName = file.name;
+    const ext = path.extname(originalName).toLowerCase();
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
+    if (!allowedExtensions.includes(ext)) {
+      return NextResponse.json(
+        { error: 'Invalid file extension. Only images and PDFs are allowed.' },
+        { status: 400 }
+      );
+    }
+
     // Get user details for folder naming
-    const users = await query<any[]>(
-      'SELECT full_name FROM users WHERE id = ?',
-      [payload.user_id]
-    );
-    const userName = users.length > 0 ? users[0].full_name : 'user';
+    const userResult = await db
+      .select({ full_name: users.fullName })
+      .from(users)
+      .where(eq(users.id, payload.user_id));
+      
+    const userName = userResult.length > 0 ? userResult[0].full_name : 'user';
     const sanitizedName = String(userName)
       .toLowerCase()
       .replace(/[^a-z0-9-]/g, '-')
@@ -56,7 +69,7 @@ export async function POST(request: Request) {
     const uploadBaseDir = path.join(process.cwd(), 'uploads', fileType, userFolderName);
     await fs.mkdir(uploadBaseDir, { recursive: true });
 
-    const originalName = file.name;
+
     const cleanOriginalName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const timestamp = Date.now();
     const savedFilename = `${timestamp}_${cleanOriginalName}`;
@@ -70,17 +83,18 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
+        message: 'File uploaded successfully',
         file_path: relativePath,
-        file_name: originalName,
+        file_name: savedFilename,
         file_size: file.size,
         mime_type: file.type,
       },
-      { status: 201 }
+      { status: 200 }
     );
   } catch (error: any) {
-    console.error('File upload error:', error);
+    console.error('Upload file error:', error);
     return NextResponse.json(
-      { error: 'Failed to save file: ' + error.message },
+      { error: 'Failed to upload file: ' + error.message },
       { status: 500 }
     );
   }

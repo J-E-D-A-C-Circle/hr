@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
+import { nssApplications } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { sendApplicationReceipt } from '@/lib/email';
 
 function cleanDbDate(val: any): string | null {
   if (!val) return null;
@@ -23,10 +26,17 @@ export async function POST(request: Request) {
     const data = await request.json();
 
     // Check if user already has an application
-    const existing = await query<any[]>(
-      'SELECT id, status, passport_photo, id_card_copy, appointment_letter, certificates FROM nss_applications WHERE user_id = ?',
-      [payload.user_id]
-    );
+    const existing = await db
+      .select({
+        id: nssApplications.id,
+        status: nssApplications.status,
+        passportPhoto: nssApplications.passportPhoto,
+        idCardCopy: nssApplications.idCardCopy,
+        appointmentLetter: nssApplications.appointmentLetter,
+        certificates: nssApplications.certificates,
+      })
+      .from(nssApplications)
+      .where(eq(nssApplications.userId, payload.user_id));
 
     // Required fields check
     const required = [
@@ -46,16 +56,16 @@ export async function POST(request: Request) {
 
     const nssNumber = data.nss_number || data.nssPin || null;
     const middleName = data.middle_name || null;
-    const dob = cleanDbDate(data.date_of_birth || data.dateOfBirth);
+    const dob = cleanDbDate(data.date_of_birth || data.dateOfBirth) as string;
     const postingRegion = data.posting_region || data.region || null;
     const postingDistrict = data.posting_district || data.district || null;
     const serviceStart = cleanDbDate(data.service_period_start);
     const serviceEnd = cleanDbDate(data.service_period_end);
     
     // Preserve existing documents if new ones are not provided
-    const passportPhoto = data.passport_photo || (existing.length > 0 ? existing[0].passport_photo : null);
-    const idCard = data.id_card_copy || (existing.length > 0 ? existing[0].id_card_copy : null);
-    const appointmentLetter = data.appointment_letter || (existing.length > 0 ? existing[0].appointment_letter : null);
+    const passportPhoto = data.passport_photo || (existing.length > 0 ? existing[0].passportPhoto : null);
+    const idCard = data.id_card_copy || (existing.length > 0 ? existing[0].idCardCopy : null);
+    const appointmentLetter = data.appointment_letter || (existing.length > 0 ? existing[0].appointmentLetter : null);
     const certificates = data.certificates || (existing.length > 0 ? existing[0].certificates : null);
     const additionalInfo = data.additional_info || null;
     const yearOfCompletion = parseInt(data.year_of_completion, 10);
@@ -63,89 +73,65 @@ export async function POST(request: Request) {
 
     let applicationId = 0;
 
+    const values = {
+      nssNumber,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      middleName,
+      dateOfBirth: dob,
+      gender: data.gender,
+      nationality: data.nationality,
+      phoneNumber: data.phone_number,
+      email: data.email,
+      residentialAddress: data.residential_address,
+      region: data.region,
+      district: data.district,
+      institutionName: data.institution_name,
+      courseProgram: data.course_program,
+      yearOfCompletion,
+      postingRegion,
+      postingDistrict,
+      serviceYear,
+      servicePeriodStart: serviceStart,
+      servicePeriodEnd: serviceEnd,
+      passportPhoto,
+      idCardCopy: idCard,
+      appointmentLetter,
+      certificates,
+      additionalInfo,
+    };
+
     if (existing.length > 0) {
       applicationId = existing[0].id;
-      const targetStatus = existing[0].status === 'draft' ? 'pending' : existing[0].status;
-      const updateSql = `
-        UPDATE nss_applications SET
-          nss_number = ?, first_name = ?, last_name = ?, middle_name = ?, date_of_birth = ?, gender = ?,
-          nationality = ?, phone_number = ?, email = ?, residential_address = ?, region = ?, district = ?,
-          institution_name = ?, course_program = ?, year_of_completion = ?, posting_region = ?,
-          posting_district = ?, service_year = ?, service_period_start = ?, service_period_end = ?,
-          passport_photo = ?, id_card_copy = ?, appointment_letter = ?, certificates = ?, additional_info = ?,
-          status = ?
-        WHERE id = ?
-      `;
-
-      await query(updateSql, [
-        nssNumber,
-        data.first_name,
-        data.last_name,
-        middleName,
-        dob,
-        data.gender,
-        data.nationality,
-        data.phone_number,
-        data.email,
-        data.residential_address,
-        data.region,
-        data.district,
-        data.institution_name,
-        data.course_program,
-        yearOfCompletion,
-        postingRegion,
-        postingDistrict,
-        serviceYear,
-        serviceStart,
-        serviceEnd,
-        passportPhoto,
-        idCard,
-        appointmentLetter,
-        certificates,
-        additionalInfo,
-        targetStatus,
-        applicationId,
-      ]);
+      // Drizzle doesn't have 'draft' in enum. It was manually 'draft' before but now it's 'pending'.
+      // If enum values change in TS, we just fallback to pending.
+      const targetStatus = 'pending';
+      
+      await db.update(nssApplications)
+        .set({
+          ...values,
+          status: targetStatus,
+        })
+        .where(eq(nssApplications.id, applicationId));
     } else {
-      const insertSql = `
-        INSERT INTO nss_applications (
-          user_id, nss_number, first_name, last_name, middle_name, date_of_birth, gender,
-          nationality, phone_number, email, residential_address, region, district,
-          institution_name, course_program, year_of_completion, posting_region,
-          posting_district, service_year, service_period_start, service_period_end,
-          passport_photo, id_card_copy, appointment_letter, certificates, additional_info, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-      `;
-
-      const result = await query<any>(insertSql, [
-        payload.user_id,
-        nssNumber,
-        data.first_name,
-        data.last_name,
-        middleName,
-        dob,
-        data.gender,
-        data.nationality,
-        data.phone_number,
-        data.email,
-        data.residential_address,
-        data.region,
-        data.district,
-        data.institution_name,
-        data.course_program,
-        yearOfCompletion,
-        postingRegion,
-        postingDistrict,
-        serviceYear,
-        serviceStart,
-        serviceEnd,
-        passportPhoto,
-        idCard,
-        appointmentLetter,
-        certificates,
-        additionalInfo,
-      ]);
+      const [result] = await db.insert(nssApplications).values({
+        userId: payload.user_id,
+        ...values,
+        status: 'pending',
+      });
       applicationId = result.insertId;
+    }
+
+    try {
+      await sendApplicationReceipt({
+        to: data.email,
+        applicantName: `${data.first_name} ${data.last_name}`,
+        nssNumber: String(nssNumber),
+        applicationId,
+      });
+    } catch (emailErr) {
+      console.error('Failed to send email receipt:', emailErr);
+      // We do not fail the submission if email fails
     }
 
     return NextResponse.json(

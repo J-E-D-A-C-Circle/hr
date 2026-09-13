@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
+import { nssApplications, auditLogs } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function PUT(request: Request) {
   try {
@@ -38,42 +40,29 @@ export async function PUT(request: Request) {
     const postingStation = data.posting_station || null;
     const postingDepartment = data.posting_department || null;
 
-    const sql = `
-      UPDATE nss_applications 
-      SET status = ?, 
-          reviewed_by = ?, 
-          review_notes = ?, 
-          posting_station = ?, 
-          posting_department = ?, 
-          reviewed_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
+    await db.update(nssApplications)
+      .set({
+        status: status as any,
+        reviewedBy: payload.user_id,
+        reviewNotes,
+        postingStation,
+        postingDepartment,
+        reviewedAt: new Date(),
+      })
+      .where(eq(nssApplications.id, parseInt(applicationId, 10)));
 
-    await query(sql, [
-      status,
-      payload.user_id,
-      reviewNotes,
-      postingStation,
-      postingDepartment,
-      applicationId,
-    ]);
-
-    // Log to audit_logs table if table exists
+    // Log to audit_logs table
     try {
-      await query(
-        `INSERT INTO audit_logs (user_id, user_name, action, entity_type, entity_id, details)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          payload.user_id,
-          payload.email || 'Admin',
-          `Application ${status.toUpperCase()}`,
-          'application',
-          applicationId,
-          `Status changed to ${status}${postingStation ? ` (Station: ${postingStation}, Dept: ${postingDepartment})` : ''}`
-        ]
-      );
+      await db.insert(auditLogs).values({
+        userId: payload.user_id,
+        userName: payload.email || 'Admin',
+        action: `Application ${status.toUpperCase()}`,
+        entityType: 'application',
+        entityId: parseInt(applicationId, 10),
+        details: `Status changed to ${status}${postingStation ? ` (Station: ${postingStation}, Dept: ${postingDepartment})` : ''}`,
+      });
     } catch (auditErr) {
-      // Ignore if audit_logs table does not exist
+      // Ignore if audit fails
     }
 
     return NextResponse.json({

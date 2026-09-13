@@ -4,13 +4,13 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: dvla_nss_portal
-      MYSQL_ROOT_PASSWORD: hr_root_password 
+      MYSQL_ROOT_PASSWORD: hr_root_password
       MYSQL_USER: hr_user
       MYSQL_PASSWORD: hr_password
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 5s
       retries: 5
     volumes:
@@ -47,9 +47,16 @@ services:
       # DVLA NSS portal credentials (change all in production)
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dvla.gov.gh}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      # Wigal SMS API Credentials
+      WIGAL_USERNAME: ${WIGAL_USERNAME:-DVLA}
+      WIGAL_PASSWORD: ${WIGAL_PASSWORD:-Devapps@123}
+      WIGAL_SENDER_ID: ${WIGAL_SENDER_ID:-DVLA PLATES}
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - app_uploads:/app/uploads
 
 volumes:
   mysql_data:
+  app_uploads:

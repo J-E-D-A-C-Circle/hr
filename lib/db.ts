@@ -1,4 +1,6 @@
 import mysql from 'mysql2/promise';
+import { drizzle } from 'drizzle-orm/mysql2';
+import * as schema from '@/db/schema';
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
@@ -11,6 +13,8 @@ const pool = mysql.createPool({
   queueLimit: 0,
   timezone: '+00:00',
 });
+
+export const db = drizzle(pool, { mode: 'default', schema });
 
 export async function query<T = any>(sql: string, params: any[] = []): Promise<T> {
   try {

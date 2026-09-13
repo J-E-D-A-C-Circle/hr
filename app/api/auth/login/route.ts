@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
+import { users } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { comparePassword, generateToken, hashPassword } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
@@ -16,25 +19,51 @@ export async function POST(request: Request) {
 
     const cleanEmail = String(email).trim().toLowerCase();
 
-    // Query user by email
-    const users = await query<any[]>(
-      'SELECT id, email, password_hash, role, full_name FROM users WHERE LOWER(email) = ?',
-      [cleanEmail]
-    );
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const isAllowed = rateLimit(`login:${cleanEmail}:${ip}`, 5, 15 * 60 * 1000);
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
 
-    let user = users[0];
+    // Query user by email
+    const usersResult = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        password_hash: users.passwordHash,
+        role: users.role,
+        full_name: users.fullName,
+      })
+      .from(users)
+      .where(sql`LOWER(${users.email}) = ${cleanEmail}`);
+
+    let user = usersResult[0];
 
     // If default admin user logging in and not found or password match fails, auto-seed admin if needed
     if (!user && cleanEmail === 'admin@dvla.gov.gh' && password === 'admin123') {
       const defaultHash = await hashPassword('admin123');
-      await query(
-        'INSERT INTO users (email, password_hash, role, full_name) VALUES (?, ?, ?, ?)',
-        ['admin@dvla.gov.gh', defaultHash, 'admin', 'System Administrator']
-      );
-      const newAdmin = await query<any[]>(
-        'SELECT id, email, password_hash, role, full_name FROM users WHERE LOWER(email) = ?',
-        ['admin@dvla.gov.gh']
-      );
+      
+      const [insertResult] = await db.insert(users).values({
+        email: 'admin@dvla.gov.gh',
+        passwordHash: defaultHash,
+        role: 'admin',
+        fullName: 'System Administrator',
+      });
+      
+      const newAdmin = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          password_hash: users.passwordHash,
+          role: users.role,
+          full_name: users.fullName,
+        })
+        .from(users)
+        .where(eq(users.id, insertResult.insertId));
+        
       user = newAdmin[0];
     }
 
@@ -61,7 +90,7 @@ export async function POST(request: Request) {
     // Admin password fallback if initial schema seed hash didn't match
     if (!isMatch && cleanEmail === 'admin@dvla.gov.gh' && password === 'admin123') {
       const newHash = await hashPassword('admin123');
-      await query('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, user.id]);
+      await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
       isMatch = true;
     }
 
@@ -94,7 +123,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { error: 'Internal server error: ' + (error.message || 'Database error') },
+      { error: 'Login failed' },
       { status: 500 }
     );
   }

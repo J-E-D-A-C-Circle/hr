@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
+import { users, nssApplications } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { hashPassword, generateToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, full_name, firstName, lastName, role } = body;
+    const { email, password, full_name, firstName, lastName } = body;
 
     const userEmail = String(email || '').trim().toLowerCase();
     const userFullName = full_name || `${firstName || ''} ${lastName || ''}`.trim();
@@ -25,18 +27,19 @@ export async function POST(request: Request) {
     }
 
     // Check if user exists
-    const existing = await query<any[]>(
-      'SELECT id FROM users WHERE LOWER(email) = ?',
-      [userEmail]
-    );
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(sql`LOWER(${users.email}) = ${userEmail}`);
 
     if (existing.length > 0) {
       const existingUser = existing[0];
-      const apps = await query<any[]>(
-        'SELECT status, additional_info FROM nss_applications WHERE user_id = ?',
-        [existingUser.id]
-      );
-      const hasDraft = apps.length === 0 || apps[0].status === 'draft';
+      const apps = await db
+        .select({ status: nssApplications.status })
+        .from(nssApplications)
+        .where(eq(nssApplications.userId, existingUser.id));
+        
+      const hasDraft = apps.length === 0 || apps[0].status === 'pending';
 
       return NextResponse.json(
         {
@@ -51,12 +54,14 @@ export async function POST(request: Request) {
 
     // Hash password and insert
     const passwordHash = await hashPassword(password);
-    const userRole = role === 'admin' ? 'admin' : 'applicant';
+    const userRole = 'applicant';
 
-    const result = await query<any>(
-      'INSERT INTO users (email, password_hash, role, full_name) VALUES (?, ?, ?, ?)',
-      [userEmail, passwordHash, userRole, userFullName]
-    );
+    const [result] = await db.insert(users).values({
+      email: userEmail,
+      passwordHash,
+      role: userRole,
+      fullName: userFullName,
+    });
 
     const userId = result.insertId;
 

@@ -26,6 +26,7 @@ import {
 import { formatDate } from '@/lib/utils';
 import AppointmentLetterModal from '@/components/AppointmentLetterModal';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
+import { getFileViewUrl } from '@/lib/file-upload';
 
 import AdminSidebar, { AdminTabId } from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
@@ -560,7 +561,7 @@ export default function AdminDashboard() {
                       </div>
                       {selectedApplication.passport_photo ? (
                         <a
-                          href={`/uploads/${selectedApplication.passport_photo}`}
+                          href={getFileViewUrl(selectedApplication.passport_photo)}
                           target="_blank"
                           rel="noreferrer"
                           className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0d5c2e] text-xs font-bold border border-slate-200"
@@ -580,7 +581,7 @@ export default function AdminDashboard() {
                       </div>
                       {selectedApplication.id_card_copy ? (
                         <a
-                          href={`/uploads/${selectedApplication.id_card_copy}`}
+                          href={getFileViewUrl(selectedApplication.id_card_copy)}
                           target="_blank"
                           rel="noreferrer"
                           className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0d5c2e] text-xs font-bold border border-slate-200"
@@ -589,6 +590,46 @@ export default function AdminDashboard() {
                         </a>
                       ) : (
                         <span className="mt-4 text-slate-400 italic text-[11px] font-medium">No ID uploaded</span>
+                      )}
+                    </div>
+                    
+                    {/* Appointment Letter */}
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="font-extrabold text-slate-900 block mb-1">Appointment Letter</span>
+                        <span className="text-slate-500 text-[11px] block font-medium">Official DVLA Document</span>
+                      </div>
+                      {selectedApplication.appointment_letter ? (
+                        <a
+                          href={getFileViewUrl(selectedApplication.appointment_letter)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0d5c2e] text-xs font-bold border border-slate-200"
+                        >
+                          <Eye className="w-4 h-4" /> View Appointment Letter
+                        </a>
+                      ) : (
+                        <span className="mt-4 text-slate-400 italic text-[11px] font-medium">No letter uploaded</span>
+                      )}
+                    </div>
+
+                    {/* CV / Certificates */}
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="font-extrabold text-slate-900 block mb-1">CV / Certificates</span>
+                        <span className="text-slate-500 text-[11px] block font-medium">Additional Academic Records</span>
+                      </div>
+                      {selectedApplication.certificates ? (
+                        <a
+                          href={getFileViewUrl(selectedApplication.certificates)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0d5c2e] text-xs font-bold border border-slate-200"
+                        >
+                          <Eye className="w-4 h-4" /> View Certificates
+                        </a>
+                      ) : (
+                        <span className="mt-4 text-slate-400 italic text-[11px] font-medium">No CV uploaded</span>
                       )}
                     </div>
                   </div>

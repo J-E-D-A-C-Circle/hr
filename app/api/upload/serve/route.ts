@@ -25,9 +25,23 @@ export async function GET(request: Request) {
       return new NextResponse('Bad Request: File path required', { status: 400 });
     }
 
-    // Sanitize path to prevent directory traversal
-    const sanitizedPath = filePathParam.replace(/\.\./g, '');
-    const fullPath = path.join(process.cwd(), 'uploads', sanitizedPath);
+    // Prevent directory traversal
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const cleanParam = filePathParam.replace(/^[/\\]+/, '');
+    const fullPath = path.resolve(uploadsDir, cleanParam);
+
+    if (!fullPath.startsWith(uploadsDir)) {
+      return new NextResponse('Bad Request: Invalid path', { status: 400 });
+    }
+
+    // IDOR check for applicants
+    if (payload.role === 'applicant') {
+      const relativePath = path.relative(uploadsDir, fullPath);
+      const segments = relativePath.split(path.sep);
+      if (segments.length < 2 || !segments[1].startsWith(`${payload.user_id}-`)) {
+        return new NextResponse('Unauthorized: Access denied', { status: 403 });
+      }
+    }
 
     try {
       await fs.access(fullPath);

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { db } from '@/lib/db';
+import { users, nssApplications } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/mysql-core';
 
 export async function GET(
   request: Request,
@@ -19,16 +22,54 @@ export async function GET(
       return NextResponse.json({ error: 'Application ID required' }, { status: 400 });
     }
 
-    const sql = `
-      SELECT a.*, u.full_name as user_name, u.email as user_email,
-             r.full_name as reviewer_name
-      FROM nss_applications a 
-      JOIN users u ON a.user_id = u.id 
-      LEFT JOIN users r ON a.reviewed_by = r.id
-      WHERE a.id = ?
-    `;
+    const reviewers = alias(users, 'reviewers');
 
-    const apps = await query<any[]>(sql, [applicationId]);
+    const apps = await db
+      .select({
+        id: nssApplications.id,
+        user_id: nssApplications.userId,
+        nss_number: nssApplications.nssNumber,
+        first_name: nssApplications.firstName,
+        last_name: nssApplications.lastName,
+        middle_name: nssApplications.middleName,
+        date_of_birth: nssApplications.dateOfBirth,
+        gender: nssApplications.gender,
+        nationality: nssApplications.nationality,
+        phone_number: nssApplications.phoneNumber,
+        email: nssApplications.email,
+        residential_address: nssApplications.residentialAddress,
+        region: nssApplications.region,
+        district: nssApplications.district,
+        institution_name: nssApplications.institutionName,
+        course_program: nssApplications.courseProgram,
+        year_of_completion: nssApplications.yearOfCompletion,
+        posting_region: nssApplications.postingRegion,
+        posting_district: nssApplications.postingDistrict,
+        posting_station: nssApplications.postingStation,
+        posting_department: nssApplications.postingDepartment,
+        service_year: nssApplications.serviceYear,
+        service_period_start: nssApplications.servicePeriodStart,
+        service_period_end: nssApplications.servicePeriodEnd,
+        passport_photo: nssApplications.passportPhoto,
+        id_card_copy: nssApplications.idCardCopy,
+        appointment_letter: nssApplications.appointmentLetter,
+        certificates: nssApplications.certificates,
+        additional_info: nssApplications.additionalInfo,
+        status: nssApplications.status,
+        reviewed_by: nssApplications.reviewedBy,
+        review_notes: nssApplications.reviewNotes,
+        reviewed_at: nssApplications.reviewedAt,
+        created_at: nssApplications.createdAt,
+        updated_at: nssApplications.updatedAt,
+        
+        user_name: users.fullName,
+        user_email: users.email,
+        reviewer_name: reviewers.fullName,
+      })
+      .from(nssApplications)
+      .innerJoin(users, eq(nssApplications.userId, users.id))
+      .leftJoin(reviewers, eq(nssApplications.reviewedBy, reviewers.id))
+      .where(eq(nssApplications.id, parseInt(applicationId, 10)));
 
     if (apps.length === 0) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });

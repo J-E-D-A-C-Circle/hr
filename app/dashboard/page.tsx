@@ -133,7 +133,14 @@ export default function Dashboard() {
           timeout: 2000,
         }
       );
-      setApplication(response.data.application);
+      
+      const app = response.data.application;
+      if (!app || app.status === 'draft') {
+        router.replace('/register');
+        return;
+      }
+      
+      setApplication(app);
     } catch (error: any) {
       console.error('Error fetching application:', error);
       if (error.response?.status === 401) {
@@ -770,39 +777,7 @@ export default function Dashboard() {
           {/* Grid Cards - 2x2 Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {!application || application.status === 'draft' ? (
-              /* Draft or No Application - Show full width Resume / Start Application Hero Card */
-              <div className="bg-gradient-to-r from-emerald-900 via-[#0d5c2e] to-emerald-900 text-white rounded-2xl shadow-xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 col-span-2 relative overflow-hidden">
-                <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                
-                <div className="flex items-start gap-5 relative z-10">
-                  <div className="p-4 bg-white/15 backdrop-blur-md rounded-2xl ring-1 ring-white/30 shrink-0">
-                    <FileText className="w-10 h-10 text-emerald-300" />
-                  </div>
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-300 text-xs font-semibold uppercase tracking-wider mb-2 border border-emerald-400/30">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      {application?.status === 'draft' ? 'Draft Saved' : 'Action Required'}
-                    </div>
-                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
-                      {application?.status === 'draft' ? 'Resume Your NSS Application' : 'Start Your NSS Application'}
-                    </h3>
-                    <p className="text-sm text-emerald-100/90 max-w-xl leading-relaxed">
-                      {application?.status === 'draft'
-                        ? 'You have an incomplete application draft saved in the cloud. Pick up right where you left off to complete your posting process at DVLA.'
-                        : 'Enroll into the National Service Scheme Program at The Driver and Vehicle Licensing Authority.'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto relative z-10 shrink-0">
-                  <Button
-                    onClick={() => router.push(application?.status === 'draft' ? '/register' : '/dashboard/apply')}
-                    className="w-full md:w-auto px-8 py-3.5 rounded-xl text-[#0d5c2e] font-bold bg-white hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 text-sm"
-                  >
-                    {application?.status === 'draft' ? 'Continue Application →' : 'Start Application'}
-                  </Button>
-                </div>
-              </div>
+              <div className="col-span-2 py-12 flex justify-center text-gray-500">Redirecting to application form...</div>
             ) : (
               <>
                 {/* Card 1: Application Form (Top Left) */}
