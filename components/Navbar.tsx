@@ -75,7 +75,7 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 font-medium">
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              <span className="hidden sm:inline">Admin Mode</span>
+              <span className="hidden sm:inline">HR Officer Mode</span>
             </div>
           </div>
         </div>

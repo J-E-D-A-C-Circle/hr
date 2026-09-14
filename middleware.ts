@@ -63,7 +63,22 @@ export function middleware(request: NextRequest) {
   if (isTempstaffPublic) return NextResponse.next();
 
   const session = request.cookies.get(TEMPSTAFF_SESSION_COOKIE);
-  if (session?.value !== TEMPSTAFF_SESSION_VALUE) {
+  let isTempstaffValid = false;
+
+  if (session?.value && session.value !== "logged_out") {
+    if (session.value === TEMPSTAFF_SESSION_VALUE) {
+      isTempstaffValid = true;
+    } else {
+      try {
+        const parsed = JSON.parse(session.value);
+        isTempstaffValid = !!(parsed?.username || parsed?.name || parsed?.email);
+      } catch {
+        isTempstaffValid = false;
+      }
+    }
+  }
+
+  if (!isTempstaffValid) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

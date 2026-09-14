@@ -79,7 +79,7 @@ export async function POST(
 
     await logAuditEvent({
       userName: body?.user_name || "HR Admin",
-      userRole: body?.user_role || "HR Manager",
+      userRole: body?.user_role || "HR Officer",
       action: "RENEW",
       details: `Renewed Contract #${result.renewal_number} for ${staff?.full_name || "Staff"} (${staff?.staff_code || `#${staffId}`}) through ${formatDateDDMMYYYY(newEndDate)}`,
       staffId,

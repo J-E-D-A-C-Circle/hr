@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         await tx.auditLog.create({
           data: {
             user_name: user_name || "HR Admin",
-            user_role: user_role || "HR Manager",
+            user_role: user_role || "HR Officer",
             action: "BULK_RENEW",
             details: `Bulk renewed Contract #${newRenewalNum} for ${staff.full_name} (${staff.staff_code || `#${id}`}) through ${formatDateDDMMYYYY(newEndDate)}`,
             staff_id: id,

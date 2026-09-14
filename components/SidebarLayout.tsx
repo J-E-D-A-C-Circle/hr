@@ -37,6 +37,17 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [stats, setStats] = useState<{ active: number; expiring: number } | null>(null);
 
+  const [user, setUser] = useState<{
+    name: string;
+    username: string;
+    email?: string;
+    role: string;
+  }>({
+    name: "HR Officer",
+    username: "hr.officer",
+    role: "HR Officer",
+  });
+
   // Theme state: "light" or "dark" (default to light mode)
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -84,6 +95,18 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         .then((res) => {
           if (!res.ok) {
             router.push("/login");
+          } else {
+            return res.json();
+          }
+        })
+        .then((data) => {
+          if (data?.user) {
+            setUser({
+              name: data.user.name || data.user.username || "HR Officer",
+              username: data.user.username || "hr.officer",
+              email: data.user.email,
+              role: "HR Officer",
+            });
           }
         })
         .catch(() => {});
@@ -103,7 +126,12 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       .catch(() => {});
   }, [pathname, router]);
 
-  const userRole = "HR Manager";
+  const initials = (user.name || user.username || "HR")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   const navItems = [
     {
@@ -378,14 +406,14 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             </div>
           )}
 
-          {/* HR Manager User Card */}
+          {/* Logged in User Card */}
           {collapsed ? (
             <div className="flex flex-col items-center gap-2 p-2 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
               <div
-                title="Active Session: HR Manager"
+                title={`Active Session: ${user.name} (${user.role})`}
                 className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-xs"
               >
-                HR
+                {initials}
               </div>
               <button
                 onClick={handleLogout}
@@ -398,16 +426,16 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           ) : (
             <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-xs">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
-                    HR
+                    {initials}
                   </div>
-                  <div className="leading-tight overflow-hidden">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
-                      Active Session
+                  <div className="leading-tight overflow-hidden min-w-0">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate" title={user.name}>
+                      {user.name}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block truncate">
-                      HR Manager
+                      HR Officer
                     </span>
                   </div>
                 </div>
@@ -452,10 +480,19 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* RBAC Active Role Indicator Pill */}
-            <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="text-emerald-600 dark:text-emerald-400">HR Manager</span>
+            {/* Logged in User Profile Info Pill */}
+            <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs">
+              <div className="h-6 w-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                {initials}
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                  {user.name}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                  HR Officer
+                </span>
+              </div>
             </div>
             <Link href="/staff" className="relative hidden lg:block">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-950 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">

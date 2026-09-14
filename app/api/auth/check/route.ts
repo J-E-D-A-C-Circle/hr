@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { verifyAdminSession } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 
 export async function GET() {
-  const isValid = await verifyAdminSession();
-  if (!isValid) {
+  const session = await getAdminSession();
+  if (!session) {
     return NextResponse.json(
       { authenticated: false, error: "Session expired or unauthenticated" },
       { status: 401 }
     );
   }
-  return NextResponse.json({ authenticated: true });
+  return NextResponse.json({ authenticated: true, user: session });
 }
+

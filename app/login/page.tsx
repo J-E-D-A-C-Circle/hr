@@ -124,7 +124,7 @@ export default function LoginPage() {
           {/* Role Badge */}
           <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg w-fit">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">HR Manager</span>
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">HR Officer</span>
           </div>
 
           {error && (

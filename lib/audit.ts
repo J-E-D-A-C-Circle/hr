@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getAdminSession } from "@/lib/auth";
 
 export interface LogAuditParams {
   userName?: string;
@@ -9,17 +10,28 @@ export interface LogAuditParams {
 }
 
 export async function logAuditEvent({
-  userName = "HR Admin",
-  userRole = "HR Manager",
+  userName,
+  userRole = "HR Officer",
   action,
   details,
   staffId = null,
 }: LogAuditParams) {
   try {
+    let finalUserName = userName;
+    let finalUserRole = userRole;
+
+    if (!finalUserName) {
+      const session = await getAdminSession();
+      finalUserName = session?.name || session?.username || "HR Officer";
+      if (session?.role) {
+        finalUserRole = session.role;
+      }
+    }
+
     await prisma.auditLog.create({
       data: {
-        user_name: userName,
-        user_role: userRole,
+        user_name: finalUserName,
+        user_role: finalUserRole,
         action,
         details,
         staff_id: staffId ? Number(staffId) : null,
@@ -29,3 +41,4 @@ export async function logAuditEvent({
     console.error("Failed to log audit event:", error);
   }
 }
+

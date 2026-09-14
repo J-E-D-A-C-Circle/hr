@@ -82,7 +82,7 @@ model DeductionSetting {
 model AuditLog {
   id         Int      @id @default(autoincrement())
   user_name  String   @default("HR Admin")
-  user_role  String   @default("HR Manager")
+  user_role  String   @default("HR Officer")
   action     String   // e.g. "CREATE", "RENEW", "BULK_RENEW", "TERMINATE", "REINSTATE", "PAYMENT_STATUS_CHANGE"
   details    String
   staff_id   Int?
@@ -201,7 +201,7 @@ model TempStaffUser {
   username     String    @unique
   email        String    @unique
   name         String
-  role         String    @default("HR Manager")
+  role         String    @default("HR Officer")
   passwordHash String
   status       String    @default("ACTIVE") // ACTIVE, SUSPENDED
   lastLoginAt  DateTime?

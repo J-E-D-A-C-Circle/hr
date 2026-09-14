@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     let isValid = false;
+    let sessionUser: { id?: string; username: string; name: string; email: string; role: string } | null = null;
 
     // 1. Check DB tempstaff_users table first
     try {
@@ -42,6 +43,13 @@ export async function POST(request: NextRequest) {
 
         if (matchHash) {
           isValid = true;
+          sessionUser = {
+            id: dbUser.id,
+            username: dbUser.username,
+            name: dbUser.name,
+            email: dbUser.email,
+            role: "HR Officer",
+          };
           // Update last login timestamp
           try {
             await prisma.tempStaffUser.update({
@@ -58,17 +66,36 @@ export async function POST(request: NextRequest) {
     // 2. Fall back to env credentials check
     if (!isValid && checkCredentials(usernameOrEmail, password)) {
       isValid = true;
+      const rawName = usernameOrEmail.includes("@")
+        ? usernameOrEmail.split("@")[0]
+        : usernameOrEmail;
+      
+      const formattedName = rawName
+        .split(/[\._\-]/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+
+      sessionUser = {
+        username: rawName,
+        name: formattedName || "HR Officer",
+        email: usernameOrEmail.includes("@") ? usernameOrEmail : "admin@dvla.gov.gh",
+        role: "HR Officer",
+      };
     }
 
-    if (!isValid) {
+    if (!isValid || !sessionUser) {
       return NextResponse.json(
         { success: false, error: "Invalid credentials. Please try again." },
         { status: 401 }
       );
     }
 
-    await createAdminSession();
-    return NextResponse.json({ success: true, message: "Logged in successfully" });
+    await createAdminSession(sessionUser);
+    return NextResponse.json({
+      success: true,
+      message: "Logged in successfully",
+      user: sessionUser,
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
