@@ -25,8 +25,8 @@ export async function GET() {
     const upcomingExpirations: any[] = [];
     const departmentCounts: Record<string, number> = {};
 
-    staffList.forEach((staff) => {
-      const currentContract = staff.contracts.find((c) => c.is_current) || staff.contracts[0] || null;
+    staffList.forEach((staff: any) => {
+      const currentContract = staff.contracts.find((c: any) => c.is_current) || staff.contracts[0] || null;
       const status = computeContractStatus(currentContract);
 
       statusCounts[status] = (statusCounts[status] || 0) + 1;

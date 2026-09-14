@@ -51,13 +51,11 @@ export async function GET(request: NextRequest) {
     const filtered = annotated.filter((item: any) => {
       // Month Validation Filter
       if (validationMonth) {
-        const cleanMonth = validationMonth.replace(/\s*\([^)]*\)/g, "").trim().toLowerCase();
-        if (cleanMonth) {
-          const hasValidation = item.validations?.some(
-            (v: any) => v.month.toLowerCase().includes(cleanMonth) || cleanMonth.includes(v.month.toLowerCase())
-          );
-          if (!hasValidation) return false;
-        }
+        const targetMonth = validationMonth.trim().toLowerCase();
+        const hasValidation = item.validations?.some(
+          (v: any) => v.month.trim().toLowerCase() === targetMonth
+        );
+        if (!hasValidation) return false;
       }
 
       // Standard Full Data Directory Export includes ALL employees across all status categories

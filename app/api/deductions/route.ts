@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
     // 4. Apply live search query if present
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      deductionsData = deductionsData.filter((row) => {
+      deductionsData = deductionsData.filter((row: any) => {
         return (
           row.full_name?.toLowerCase().includes(q) ||
           row.staff_code?.toLowerCase().includes(q) ||

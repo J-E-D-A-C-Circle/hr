@@ -70,11 +70,11 @@ export async function POST(request: Request) {
     }
 
     const existingStaff = await prisma.retirementStaff.findMany({ select: { staffId: true } });
-    const existingStaffIds = new Set(existingStaff.map((s) => s.staffId.toUpperCase()));
+    const existingStaffIds = new Set(existingStaff.map((s: any) => s.staffId.toUpperCase()));
 
     const departments = await prisma.retirementDepartment.findMany();
     const deptMap = new Map<string, number>();
-    departments.forEach((d) => {
+    departments.forEach((d: any) => {
       deptMap.set(d.name.toLowerCase(), d.id);
       deptMap.set(d.code.toLowerCase(), d.id);
     });

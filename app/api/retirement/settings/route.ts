@@ -11,7 +11,7 @@ export async function GET() {
       email_notifications: "enabled",
     };
 
-    settings.forEach((s) => {
+    settings.forEach((s: any) => {
       settingsMap[s.key] = s.value;
     });
 

@@ -46,7 +46,7 @@ export async function GET(request: Request) {
 
     // Compute live dynamic calculations for all records
     const processedList = rawStaffList
-      .map((staff) => {
+      .map((staff: any) => {
         const calc = calculateRetirement(staff.dateOfBirth, staff.dateOfFirstAppointment, today);
         return {
           ...staff,
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
           retirementYear: calc.retirementDate.getFullYear(),
         };
       })
-      .filter((staff) => {
+      .filter((staff: any) => {
         if (retirementYear && retirementYear !== "ALL") {
           return staff.retirementYear === parseInt(retirementYear, 10);
         }

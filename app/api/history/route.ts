@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const validatedStaffIds = new Set(monthValidations.map((v) => v.staff_id));
+    const validatedStaffIds = new Set(monthValidations.map((v: any) => v.staff_id));
     const hasMonthValidations = validatedStaffIds.size > 0;
 
     // Fetch all staff with their contracts and validations
@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter staff strictly validated for target month (if validations exist)
-    const validatedStaffList = allStaff.filter((staff) => {
+    const validatedStaffList = allStaff.filter((staff: any) => {
       if (hasMonthValidations) {
         return validatedStaffIds.has(staff.id);
       }
       // Fallback: check if staff has any validation matching month string or active status
-      return staff.validations.some((v) => v.month.toLowerCase().includes(monthLabel.toLowerCase()));
+      return staff.validations.some((v: any) => v.month.toLowerCase().includes(monthLabel.toLowerCase()));
     });
 
     let additionsInMonthCount = 0;

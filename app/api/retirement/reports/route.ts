@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       orderBy: { retirementDate: "asc" },
     });
 
-    const calculatedStaff = allStaff.map((s) => {
+    const calculatedStaff = allStaff.map((s: any) => {
       const calc = calculateRetirement(s.dateOfBirth, s.dateOfFirstAppointment, today);
       return {
         ...s,
@@ -35,14 +35,14 @@ export async function GET(request: Request) {
 
     // Filtering by department if specified
     const filteredStaff = departmentId && departmentId !== "ALL"
-      ? calculatedStaff.filter((s) => s.departmentId === parseInt(departmentId, 10))
+      ? calculatedStaff.filter((s: any) => s.departmentId === parseInt(departmentId, 10))
       : calculatedStaff;
 
     if (reportType === "summary") {
-      const activeCount = filteredStaff.filter((s) => s.computedStatus === "ACTIVE").length;
-      const nearingCount = filteredStaff.filter((s) => s.computedStatus === "NEARING_RETIREMENT").length;
-      const dueCount = filteredStaff.filter((s) => s.computedStatus === "DUE_THIS_YEAR").length;
-      const retiredCount = filteredStaff.filter((s) => s.computedStatus === "RETIRED").length;
+      const activeCount = filteredStaff.filter((s: any) => s.computedStatus === "ACTIVE").length;
+      const nearingCount = filteredStaff.filter((s: any) => s.computedStatus === "NEARING_RETIREMENT").length;
+      const dueCount = filteredStaff.filter((s: any) => s.computedStatus === "DUE_THIS_YEAR").length;
+      const retiredCount = filteredStaff.filter((s: any) => s.computedStatus === "RETIRED").length;
       const totalCount = filteredStaff.length;
 
       const responsePayload = {
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
       };
 
       if (exportFormat === "excel") {
-        const rows = filteredStaff.map((s) => ({
+        const rows = filteredStaff.map((s: any) => ({
           "Staff ID": s.staffId,
           "Full Name": s.fullName,
           "Gender": s.gender,
@@ -91,11 +91,11 @@ export async function GET(request: Request) {
 
     if (reportType === "upcoming") {
       const upcomingRecords = filteredStaff.filter(
-        (s) => s.computedStatus === "DUE_THIS_YEAR" || s.computedStatus === "NEARING_RETIREMENT"
+        (s: any) => s.computedStatus === "DUE_THIS_YEAR" || s.computedStatus === "NEARING_RETIREMENT"
       );
 
       if (exportFormat === "excel") {
-        const rows = upcomingRecords.map((s) => ({
+        const rows = upcomingRecords.map((s: any) => ({
           "Staff ID": s.staffId,
           "Full Name": s.fullName,
           "Department": s.departmentName || s.department?.name || "N/A",
@@ -129,23 +129,23 @@ export async function GET(request: Request) {
         include: { staff: { where: { active: true } } },
       });
 
-      const deptSummary = depts.map((d) => {
-        const dStaff = calculatedStaff.filter((s) => s.departmentId === d.id);
+      const deptSummary = depts.map((d: any) => {
+        const dStaff = calculatedStaff.filter((s: any) => s.departmentId === d.id);
         return {
           id: d.id,
           code: d.code,
           name: d.name,
           headOfDept: d.headOfDept,
           totalStaff: dStaff.length,
-          active: dStaff.filter((s) => s.computedStatus === "ACTIVE").length,
-          nearingRetirement: dStaff.filter((s) => s.computedStatus === "NEARING_RETIREMENT").length,
-          dueThisYear: dStaff.filter((s) => s.computedStatus === "DUE_THIS_YEAR").length,
-          retired: dStaff.filter((s) => s.computedStatus === "RETIRED").length,
+          active: dStaff.filter((s: any) => s.computedStatus === "ACTIVE").length,
+          nearingRetirement: dStaff.filter((s: any) => s.computedStatus === "NEARING_RETIREMENT").length,
+          dueThisYear: dStaff.filter((s: any) => s.computedStatus === "DUE_THIS_YEAR").length,
+          retired: dStaff.filter((s: any) => s.computedStatus === "RETIRED").length,
         };
       });
 
       if (exportFormat === "excel") {
-        const rows = deptSummary.map((d) => ({
+        const rows = deptSummary.map((d: any) => ({
           "Department Code": d.code,
           "Department Name": d.name,
           "Head of Dept": d.headOfDept || "N/A",
@@ -175,10 +175,10 @@ export async function GET(request: Request) {
     }
 
     if (reportType === "retired") {
-      const retiredRecords = filteredStaff.filter((s) => s.computedStatus === "RETIRED");
+      const retiredRecords = filteredStaff.filter((s: any) => s.computedStatus === "RETIRED");
 
       if (exportFormat === "excel") {
-        const rows = retiredRecords.map((s) => ({
+        const rows = retiredRecords.map((s: any) => ({
           "Staff ID": s.staffId,
           "Full Name": s.fullName,
           "Department": s.departmentName || s.department?.name || "N/A",
