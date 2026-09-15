@@ -80,6 +80,37 @@ async function main() {
     console.log(`Loaded ${ssnitMap.size} SSNIT & NIA lookup entries from JUNE SSNIT.xlsx`);
   }
 
+  // Load SSNIT data from ssnit_files directory if present
+  const ssnitFilesDir = path.join(__dirname, "..", "ssnit_files");
+  if (fs.existsSync(ssnitFilesDir)) {
+    const files = fs.readdirSync(ssnitFilesDir).filter((f) => f.endsWith(".xlsx"));
+    for (const f of files) {
+      const p = path.join(ssnitFilesDir, f);
+      const sWb = XLSX.readFile(p);
+      const sSheet = sWb.Sheets[sWb.SheetNames[0]];
+      const sRows: any[][] = XLSX.utils.sheet_to_json(sSheet, { header: 1 });
+      for (let i = 13; i < sRows.length; i++) {
+        const row = sRows[i];
+        if (!row || !row[1]) continue;
+        const ssnitNo = String(row[1]).trim();
+        const niaNo = row[2] ? String(row[2]).trim() : null;
+        const surname = row[4] ? String(row[4]).trim() : "";
+        const firstName = row[5] ? String(row[5]).trim() : "";
+        if (!ssnitNo || ssnitNo === "N/A" || ssnitNo === "null") continue;
+        const val = {
+          ssnit_no: ssnitNo,
+          nia_number: niaNo && niaNo !== "N/A" ? niaNo : null,
+        };
+        const fullName = `${surname} ${firstName}`.trim();
+        const norm1 = normalizeName(fullName);
+        const norm2 = normalizeName(`${firstName} ${surname}`);
+        if (norm1) ssnitMap.set(norm1, val);
+        if (norm2) ssnitMap.set(norm2, val);
+      }
+    }
+    console.log(`Updated SSNIT lookup map to ${ssnitMap.size} total entries with ssnit_files.`);
+  }
+
   const workbook = XLSX.readFile(filePath);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });

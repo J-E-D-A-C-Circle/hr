@@ -26,9 +26,9 @@ if [ "${STAFF_COUNT:-0}" -eq "0" ]; then
   if [ -f "/app/database/tempstaff_db.sql" ]; then
     echo "📥 Importing SQL database dump..."
     mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME < /app/database/tempstaff_db.sql || true
-  elif [ -f "/app/database/sql_backup_2026_09_10.sql" ]; then
+  elif [ -f "/app/database/sql_backup_2026_09_15.sql" ]; then
     echo "📥 Importing backup SQL file..."
-    mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME < /app/database/sql_backup_2026_09_10.sql || true
+    mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME < /app/database/sql_backup_2026_09_15.sql || true
   fi
 fi
 

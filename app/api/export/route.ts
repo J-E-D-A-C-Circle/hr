@@ -48,10 +48,16 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    const targetMonth = validationMonth ? validationMonth.trim().toLowerCase() : "";
+    const hasAnyValidationForMonth = targetMonth
+      ? annotated.some((item: any) =>
+          item.validations?.some((v: any) => v.month.trim().toLowerCase() === targetMonth)
+        )
+      : false;
+
     const filtered = annotated.filter((item: any) => {
-      // Month Validation Filter
-      if (validationMonth) {
-        const targetMonth = validationMonth.trim().toLowerCase();
+      // Month Validation Filter (if validations exist for targetMonth, filter strictly by them)
+      if (validationMonth && hasAnyValidationForMonth) {
         const hasValidation = item.validations?.some(
           (v: any) => v.month.trim().toLowerCase() === targetMonth
         );

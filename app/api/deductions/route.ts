@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus } from "@/lib/status";
 import { calculateGhanaDeductions } from "@/lib/payroll";
+import { buildSsnitContributionWorkbook } from "@/lib/excel";
 import * as XLSX from "xlsx";
 
 const DEFAULT_RATES = {
@@ -200,36 +201,9 @@ export async function GET(request: NextRequest) {
       rates,
     };
 
-    // 5. Dedicated Official SSNIT Export (.xlsx) matching exact 12 columns
+    // 5. Dedicated Official SSNIT Export (.xlsx) matching official SSNIT format
     if (format === "ssnit") {
-      const ssnitExportRows = deductionsData.map((row: any, idx: number) => {
-        const { firstName, surname, otherName } = parseName(row.full_name);
-        const basicSalary = row.salary;
-        const ssnitTier1 = Math.round(basicSalary * 0.135 * 100) / 100; // 13.5%
-        const petraTier2 = Math.round(basicSalary * 0.05 * 100) / 100; // 5%
-        const payeTax = row.paye_tax_amount;
-
-        return {
-          "S/NO.": idx + 1,
-          "SSNIT NUMBER": row.ssnit_no || "N/A",
-          "NIA NUMBER": row.nia_number || "N/A",
-          "SURNAME": surname,
-          "FIRST NAME": firstName,
-          "OTHER NAME": otherName,
-          "OPTION CODE (PNDCL 247/ACT 766)": "ACT 766",
-          "HAZARDOUS (Y/N)": "N",
-          "BASIC SALARY": basicSalary.toFixed(2),
-          "SSNIT - TIER 1 (13.5%)": ssnitTier1.toFixed(2),
-          "TIER 2 (5%)": petraTier2.toFixed(2),
-          "GRA - PAYE DED.": payeTax.toFixed(2),
-        };
-      });
-
-      const worksheet = XLSX.utils.json_to_sheet(ssnitExportRows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "SSNIT Schedule");
-
-      const buf = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+      const buf = await buildSsnitContributionWorkbook(activeStaff);
       const dateStr = new Date().toISOString().split("T")[0];
 
       return new NextResponse(buf as unknown as BodyInit, {
