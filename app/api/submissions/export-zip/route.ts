@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, submissions } from '@/lib/db';
+import { eq, and, desc } from 'drizzle-orm';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
 import fs from 'fs';
@@ -14,77 +15,61 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const timeframe = searchParams.get('timeframe') || 'ALL'; // MONTH | QUARTER | YEAR | ALL
+    const timeframe = searchParams.get('timeframe') || 'ALL';
     const month = searchParams.get('month') && searchParams.get('month') !== 'ALL' ? parseInt(searchParams.get('month')!) : undefined;
-    const quarter = searchParams.get('quarter') || undefined; // Q1, Q2, Q3, Q4
+    const quarter = searchParams.get('quarter') || undefined;
     const year = searchParams.get('year') && searchParams.get('year') !== 'ALL' ? parseInt(searchParams.get('year')!) : undefined;
     const branchId = searchParams.get('branchId') || undefined;
     const department = searchParams.get('department') || undefined;
     const status = searchParams.get('status') || 'ALL';
     const staffType = searchParams.get('staffType') || 'ALL';
 
-    const where: any = {};
+    const conditions: any[] = [];
+    if (branchId && branchId !== 'ALL') conditions.push(eq(submissions.branchId, branchId));
+    if (month) conditions.push(eq(submissions.month, month));
+    if (year) conditions.push(eq(submissions.year, year));
+    if (status && status !== 'ALL') conditions.push(eq(submissions.status, status));
+    if (staffType && staffType !== 'ALL') conditions.push(eq(submissions.staffType, staffType));
 
-    // Station Branch filter
-    if (branchId && branchId !== 'ALL') {
-      where.branchId = branchId;
-    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Month filter
-    if (month) {
-      where.month = month;
-    }
+    let subList = await db.query.submissions.findMany({
+      where: whereClause,
+      with: {
+        branch: { with: { region: true } },
+        uploadedBy: { columns: { name: true, email: true } },
+        reviewer: { columns: { name: true, email: true } },
+      },
+      orderBy: [desc(submissions.year), desc(submissions.month), desc(submissions.uploadedAt)],
+    });
 
-    // Year filter
-    if (year) {
-      where.year = year;
-    }
-
-    // Quarter filter (if month is not explicitly set)
     if (!month && timeframe === 'QUARTER' && quarter) {
-      if (quarter === 'Q1') where.month = { in: [1, 2, 3] };
-      else if (quarter === 'Q2') where.month = { in: [4, 5, 6] };
-      else if (quarter === 'Q3') where.month = { in: [7, 8, 9] };
-      else if (quarter === 'Q4') where.month = { in: [10, 11, 12] };
-    }
-
-    // Status filter
-    if (status && status !== 'ALL') {
-      where.status = status;
-    }
-
-    // Staff Type / Department filter
-    if (staffType && staffType !== 'ALL') {
-      where.staffType = staffType;
-    } else if (department && department !== 'ALL') {
-      if (['PERMANENT', 'CONTRACT'].includes(department)) {
-        where.staffType = department;
-      } else {
-        where.note = { contains: department };
+      const quarterMonthsMap: Record<string, number[]> = {
+        Q1: [1, 2, 3],
+        Q2: [4, 5, 6],
+        Q3: [7, 8, 9],
+        Q4: [10, 11, 12],
+      };
+      const allowedMonths = quarterMonthsMap[quarter] || [];
+      if (allowedMonths.length > 0) {
+        subList = subList.filter((s: any) => allowedMonths.includes(s.month));
       }
     }
 
-    const submissions = await prisma.submission.findMany({
-      where,
-      include: {
-        branch: {
-          include: { region: true },
-        },
-        uploadedBy: {
-          select: { name: true, email: true },
-        },
-        reviewer: {
-          select: { name: true, email: true },
-        },
-      },
-      orderBy: [{ year: 'desc' }, { month: 'desc' }, { uploadedAt: 'desc' }],
-    });
+    if (department && department !== 'ALL' && (!staffType || staffType === 'ALL')) {
+      if (['PERMANENT', 'CONTRACT'].includes(department)) {
+        subList = subList.filter((s: any) => s.staffType === department);
+      } else {
+        const depLower = department.toLowerCase();
+        subList = subList.filter((s: any) => s.note?.toLowerCase().includes(depLower));
+      }
+    }
 
     const zip = new JSZip();
     const manifestRows: any[] = [];
     const filesFolder = zip.folder('pdf_scans');
 
-    for (const sub of submissions) {
+    for (const sub of subList) {
       let parsedNote: any = {};
       try {
         if (sub.note && sub.note.startsWith('{')) {
@@ -115,15 +100,14 @@ export async function GET(request: Request) {
         'Signer Name': parsedNote.signerName || 'N/A',
         'Status': sub.status,
         'File Name': sub.fileName,
-        'Uploaded Date': new Date(sub.uploadedAt).toLocaleString(),
+        'Uploaded Date': new Date(sub.uploadedAt || '').toLocaleString(),
         'Uploaded By': sub.uploadedBy?.name || sub.uploadedBy?.email || 'N/A',
         'Reviewed Date': sub.reviewedAt ? new Date(sub.reviewedAt).toLocaleString() : 'N/A',
         'Reviewer Name': sub.reviewer?.name || 'N/A',
         'Reviewer Notes': sub.reviewerNotes || 'None',
       });
 
-      // Attach file to ZIP if available on disk
-      let fullPath = path.join(/*turbopackIgnore: true*/ process.cwd(), 'uploads', sub.fileName);
+      let fullPath = path.join(process.cwd(), 'uploads', sub.fileName);
       if (!fs.existsSync(fullPath)) {
         fullPath = path.join(/*turbopackIgnore: true*/ process.cwd(), sub.filePath);
       }
@@ -135,7 +119,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // Add Master Manifest Spreadsheet to ZIP
     const csvString = Papa.unparse(manifestRows);
     zip.file('audit_summary_manifest.csv', csvString);
 

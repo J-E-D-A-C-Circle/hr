@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, auditLogs } from '@/lib/db';
+import { eq, and, desc } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
@@ -14,29 +15,34 @@ export async function GET(request: Request) {
     const targetType = searchParams.get('targetType') || undefined;
     const query = searchParams.get('q') || undefined;
 
-    const where: any = {};
-    if (action && action !== 'ALL') where.action = action;
-    if (targetType && targetType !== 'ALL') where.targetType = targetType;
-    if (query) {
-      where.OR = [
-        { action: { contains: query } },
-        { targetType: { contains: query } },
-        { metadata: { contains: query } },
-        { actor: { name: { contains: query } } },
-        { actor: { email: { contains: query } } },
-      ];
-    }
+    const conditions: any[] = [];
+    if (action && action !== 'ALL') conditions.push(eq(auditLogs.action, action));
+    if (targetType && targetType !== 'ALL') conditions.push(eq(auditLogs.targetType, targetType));
 
-    const auditLogs = await prisma.auditLog.findMany({
-      where,
-      include: {
-        actor: { select: { id: true, name: true, email: true, role: true } },
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    let logs = await db.query.auditLogs.findMany({
+      where: whereClause,
+      with: {
+        actor: { columns: { id: true, name: true, email: true, role: true } },
       },
-      orderBy: { timestamp: 'desc' },
-      take: 200,
+      orderBy: [desc(auditLogs.timestamp)],
+      limit: 200,
     });
 
-    return NextResponse.json({ auditLogs });
+    if (query) {
+      const qLower = query.toLowerCase();
+      logs = logs.filter(
+        (log: any) =>
+          log.action.toLowerCase().includes(qLower) ||
+          log.targetType.toLowerCase().includes(qLower) ||
+          log.metadata?.toLowerCase().includes(qLower) ||
+          log.actor?.name.toLowerCase().includes(qLower) ||
+          log.actor?.email.toLowerCase().includes(qLower)
+      );
+    }
+
+    return NextResponse.json({ auditLogs: logs });
   } catch (error) {
     console.error('Error fetching audit logs:', error);
     return NextResponse.json({ error: 'Failed to fetch audit log records' }, { status: 500 });

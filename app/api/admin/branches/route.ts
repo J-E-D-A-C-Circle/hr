@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, branches, regions } from '@/lib/db';
+import { eq, and, asc } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
 
 export async function GET(request: Request) {
@@ -9,28 +10,34 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const regionId = searchParams.get('regionId') || undefined;
 
-    // HR_ADMIN sees all branches (active or inactive); others see active branches only
     const isHrAdmin = session?.role === 'HR_ADMIN';
-    const whereClause: any = {};
+    const conditions: any[] = [];
     if (!isHrAdmin) {
-      whereClause.active = true;
+      conditions.push(eq(branches.active, true));
     }
     if (regionId && regionId !== 'ALL') {
-      whereClause.regionId = regionId;
+      conditions.push(eq(branches.regionId, regionId));
     }
 
-    const branches = await prisma.branch.findMany({
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const branchList = await db.query.branches.findMany({
       where: whereClause,
-      include: {
+      with: {
         region: true,
-        _count: { select: { submissions: true } },
+        submissions: true,
       },
-      orderBy: { name: 'asc' },
+      orderBy: [asc(branches.name)],
     });
 
-    const regions = await prisma.region.findMany({ orderBy: { name: 'asc' } });
+    const formattedBranches = branchList.map((b: any) => ({
+      ...b,
+      _count: { submissions: b.submissions ? b.submissions.length : 0 },
+    }));
 
-    return NextResponse.json({ branches, regions });
+    const regionList = await db.query.regions.findMany({ orderBy: [asc(regions.name)] });
+
+    return NextResponse.json({ branches: formattedBranches, regions: regionList });
   } catch (error) {
     console.error('Error fetching branches:', error);
     return NextResponse.json({ error: 'Failed to fetch branches' }, { status: 500 });
@@ -55,28 +62,39 @@ export async function POST(request: Request) {
 
     let branch;
     if (id) {
-      branch = await prisma.branch.update({
-        where: { id },
-        data: { name, code: branchCode, regionId, headName, headEmail, active: active ?? true },
-      });
+      db.update(branches)
+        .set({
+          name,
+          code: branchCode,
+          regionId,
+          headName,
+          headEmail,
+          active: active ?? true,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(branches.id, id))
+        .run();
+      branch = await db.query.branches.findFirst({ where: eq(branches.id, id) });
     } else {
-      branch = await prisma.branch.create({
-        data: { name, code: branchCode, regionId, headName, headEmail, active: active ?? true },
-      });
+      branch = db
+        .insert(branches)
+        .values({ name, code: branchCode, regionId, headName, headEmail, active: active ?? true })
+        .returning()
+        .get();
     }
 
     await logAuditAction({
       actorId: session.id,
       action: id ? 'BRANCH_UPDATE' : 'BRANCH_CREATE',
       targetType: 'BRANCH',
-      targetId: branch.id,
+      targetId: branch?.id,
       metadata: { name, code: branchCode, regionId },
     });
 
     return NextResponse.json({ success: true, branch });
   } catch (error: any) {
     console.error('Error saving branch:', error);
-    if (error.code === 'P2002') {
+    if (error.message?.includes('UNIQUE constraint failed')) {
       return NextResponse.json({ error: 'A station branch with this name already exists' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Failed to save branch' }, { status: 500 });
@@ -95,7 +113,7 @@ export async function DELETE(request: Request) {
     const deleteAll = searchParams.get('deleteAll');
 
     if (deleteAll === 'true') {
-      await prisma.branch.deleteMany({});
+      db.delete(branches).run();
       await logAuditAction({
         actorId: session.id,
         action: 'BRANCH_DELETE_ALL',
@@ -109,16 +127,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Station ID is required' }, { status: 400 });
     }
 
-    const deleted = await prisma.branch.delete({
-      where: { id },
-    });
+    const targetBranch = await db.query.branches.findFirst({ where: eq(branches.id, id) });
+    db.delete(branches).where(eq(branches.id, id)).run();
 
     await logAuditAction({
       actorId: session.id,
       action: 'BRANCH_DELETE',
       targetType: 'BRANCH',
       targetId: id,
-      metadata: { name: deleted.name },
+      metadata: { name: targetBranch?.name || 'Unknown' },
     });
 
     return NextResponse.json({ success: true, deletedId: id });

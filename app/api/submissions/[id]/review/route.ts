@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, submissions } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
 
 export async function POST(
@@ -25,9 +26,9 @@ export async function POST(
       return NextResponse.json({ error: 'Rejection requires a mandatory comment explaining what needs correction.' }, { status: 400 });
     }
 
-    const submission = await prisma.submission.findUnique({
-      where: { id },
-      include: { branch: true },
+    const submission = await db.query.submissions.findFirst({
+      where: eq(submissions.id, id),
+      with: { branch: true },
     });
 
     if (!submission) {
@@ -36,22 +37,23 @@ export async function POST(
 
     const updatedStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
 
-    const updated = await prisma.submission.update({
-      where: { id },
-      data: {
+    db.update(submissions)
+      .set({
         status: updatedStatus,
         reviewerId: session.id,
         reviewerNotes: reviewerNotes ? reviewerNotes.trim() : null,
-        reviewedAt: new Date(),
-      },
-      include: {
-        branch: {
-          include: {
-            region: true,
-          },
-        },
-        uploadedBy: { select: { id: true, name: true, email: true } },
-        reviewer: { select: { id: true, name: true, email: true } },
+        reviewedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(submissions.id, id))
+      .run();
+
+    const updated = await db.query.submissions.findFirst({
+      where: eq(submissions.id, id),
+      with: {
+        branch: { with: { region: true } },
+        uploadedBy: { columns: { id: true, name: true, email: true } },
+        reviewer: { columns: { id: true, name: true, email: true } },
       },
     });
 
@@ -59,7 +61,7 @@ export async function POST(
       actorId: session.id,
       action: action === 'APPROVE' ? 'APPROVE' : 'REJECT',
       targetType: 'SUBMISSION',
-      targetId: updated.id,
+      targetId: id,
       metadata: {
         branchName: submission.branch.name,
         month: submission.month,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession, hashPassword } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, branches, regions, users } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
 import Papa from 'papaparse';
 
@@ -56,44 +57,47 @@ export async function POST(request: Request) {
       const headName = r.head_name ? r.head_name.trim() : 'Station Head';
       const headEmail = r.head_email.trim().toLowerCase();
 
-      // Upsert region
       const regionCode = `REG-${regionName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
-      const region = await prisma.region.upsert({
-        where: { code: regionCode },
-        update: { name: regionName },
-        create: { name: regionName, code: regionCode },
-      });
+      let reg = await db.query.regions.findFirst({ where: eq(regions.code, regionCode) });
+      if (!reg) {
+        reg = db.insert(regions).values({ name: regionName, code: regionCode }).returning().get();
+      }
 
-      // Upsert branch by name
-      const branch = await prisma.branch.upsert({
-        where: { name: branchName },
-        update: { code: branchCode, regionId: region.id, headName, headEmail },
-        create: {
-          code: branchCode,
-          name: branchName,
-          regionId: region.id,
-          headName,
-          headEmail,
-          active: true,
-        },
-      });
+      let branch = await db.query.branches.findFirst({ where: eq(branches.name, branchName) });
+      if (branch) {
+        db.update(branches)
+          .set({ code: branchCode, regionId: reg.id, headName, headEmail, updatedAt: new Date().toISOString() })
+          .where(eq(branches.id, branch.id))
+          .run();
+        branch = (await db.query.branches.findFirst({ where: eq(branches.id, branch.id) }))!;
+      } else {
+        branch = db
+          .insert(branches)
+          .values({ code: branchCode, name: branchName, regionId: reg.id, headName, headEmail, active: true })
+          .returning()
+          .get();
+      }
       importedBranches++;
 
-      // Password logic
       const passHash = r.initial_password ? await hashPassword(r.initial_password.trim()) : defaultPasswordHash;
 
-      // Upsert Station Manager user account
-      await prisma.user.upsert({
-        where: { email: headEmail },
-        update: { name: headName, branchId: branch.id, role: 'STATION_MANAGER' },
-        create: {
-          name: headName,
-          email: headEmail,
-          passwordHash: passHash,
-          role: 'STATION_MANAGER',
-          branchId: branch.id,
-        },
-      });
+      let usr = await db.query.users.findFirst({ where: eq(users.email, headEmail) });
+      if (usr) {
+        db.update(users)
+          .set({ name: headName, branchId: branch.id, role: 'STATION_MANAGER', updatedAt: new Date().toISOString() })
+          .where(eq(users.id, usr.id))
+          .run();
+      } else {
+        db.insert(users)
+          .values({
+            name: headName,
+            email: headEmail,
+            passwordHash: passHash,
+            role: 'STATION_MANAGER',
+            branchId: branch.id,
+          })
+          .run();
+      }
       importedUsers++;
     }
 

@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { prisma } from './prisma';
 
 export type Role = 'STATION_MANAGER' | 'HR_ADMIN' | 'FINANCE_OFFICER';
 

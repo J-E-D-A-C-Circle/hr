@@ -16,13 +16,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY public ./public
 COPY .next/standalone ./
 COPY .next/static ./.next/static
-COPY prisma ./prisma
-COPY node_modules/.prisma ./node_modules/.prisma
-COPY node_modules/prisma ./node_modules/prisma
-COPY node_modules/@prisma ./node_modules/@prisma
+COPY lib/db ./lib/db
 
-# Create upload directory and sqlite directory with correct permissions
-RUN mkdir -p /app/uploads /app/prisma && chown -R nextjs:nodejs /app/uploads /app/prisma /app
+# Create upload directory with correct permissions
+RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads /app
 
 # Copy startup script
 COPY entrypoint.sh /app/entrypoint.sh

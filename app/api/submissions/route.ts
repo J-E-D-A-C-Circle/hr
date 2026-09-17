@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, submissions, branches, users } from '@/lib/db';
+import { eq, and, desc } from 'drizzle-orm';
 import { checkPDFLegibility } from '@/lib/ocr';
 import { logAuditAction } from '@/lib/audit';
 import fs from 'fs';
@@ -22,51 +23,56 @@ export async function GET(request: Request) {
     const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50;
 
-    // Scope rules: If authenticated as Station Manager, force their own branch
     let effectiveBranchId = branchId;
     if (session && session.role === 'STATION_MANAGER') {
       effectiveBranchId = session.branchId || branchId;
     }
 
-    const where: any = {};
-    if (month) where.month = month;
-    if (year) where.year = year;
-    if (status && status !== 'ALL') where.status = status;
-    if (staffType && staffType !== 'ALL') where.staffType = staffType;
-    if (effectiveBranchId) where.branchId = effectiveBranchId;
-    if (regionId && regionId !== 'ALL') {
-      where.branch = { regionId };
-    }
-    if (query) {
-      where.OR = [
-        { branch: { name: { contains: query } } },
-        { branch: { code: { contains: query } } },
-        { note: { contains: query } },
-      ];
-    }
+    const conditions: any[] = [];
+    if (month) conditions.push(eq(submissions.month, month));
+    if (year) conditions.push(eq(submissions.year, year));
+    if (status && status !== 'ALL') conditions.push(eq(submissions.status, status));
+    if (staffType && staffType !== 'ALL') conditions.push(eq(submissions.staffType, staffType));
+    if (effectiveBranchId) conditions.push(eq(submissions.branchId, effectiveBranchId));
 
-    const totalCount = await prisma.submission.count({ where });
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const submissions = await prisma.submission.findMany({
-      where,
-      include: {
+    let allSubmissions = await db.query.submissions.findMany({
+      where: whereClause,
+      with: {
         branch: {
-          include: { region: true },
+          with: { region: true },
         },
         uploadedBy: {
-          select: { id: true, name: true, email: true },
+          columns: { id: true, name: true, email: true },
         },
         reviewer: {
-          select: { id: true, name: true, email: true },
+          columns: { id: true, name: true, email: true },
         },
       },
-      orderBy: [{ year: 'desc' }, { month: 'desc' }, { uploadedAt: 'desc' }],
-      skip: limit > 0 ? (page - 1) * limit : 0,
-      take: limit > 0 ? limit : undefined,
+      orderBy: [desc(submissions.year), desc(submissions.month), desc(submissions.uploadedAt)],
     });
 
+    if (regionId && regionId !== 'ALL') {
+      allSubmissions = allSubmissions.filter((s: any) => s.branch?.regionId === regionId);
+    }
+
+    if (query) {
+      const qLower = query.toLowerCase();
+      allSubmissions = allSubmissions.filter(
+        (s: any) =>
+          s.branch?.name.toLowerCase().includes(qLower) ||
+          s.branch?.code?.toLowerCase().includes(qLower) ||
+          s.note?.toLowerCase().includes(qLower)
+      );
+    }
+
+    const totalCount = allSubmissions.length;
+    const startIndex = (page - 1) * limit;
+    const paginatedSubmissions = limit > 0 ? allSubmissions.slice(startIndex, startIndex + limit) : allSubmissions;
+
     return NextResponse.json({
-      submissions,
+      submissions: paginatedSubmissions,
       pagination: {
         totalCount,
         page,
@@ -100,39 +106,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File, month, and year are required' }, { status: 400 });
     }
 
-    // Check size limit: 30MB
     const MAX_SIZE = 30 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return NextResponse.json({ error: 'File size exceeds maximum 30MB limit' }, { status: 400 });
     }
 
-    // Validate mime type / filename
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       return NextResponse.json({ error: 'Only PDF files are accepted' }, { status: 400 });
     }
 
-    const branch = await prisma.branch.findUnique({
-      where: { id: branchId },
-      include: { users: true },
+    const branch = await db.query.branches.findFirst({
+      where: eq(branches.id, branchId),
+      with: { users: true },
     });
 
     if (!branch) {
       return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
     }
 
-    // Determine uploader ID (session user or station user fallback)
     let uploaderId = session?.id;
     if (!uploaderId) {
-      const stationUser = branch.users[0] || (await prisma.user.findFirst({ where: { role: 'HR_ADMIN' } }));
+      const hrAdmin = await db.query.users.findFirst({ where: eq(users.role, 'HR_ADMIN') });
+      const stationUser = branch.users[0] || hrAdmin;
       if (!stationUser) {
         return NextResponse.json({ error: 'No uploader account available for this branch' }, { status: 400 });
       }
       uploaderId = stationUser.id;
     }
 
-    // Check if month already approved
-    const existingApproved = await prisma.submission.findFirst({
-      where: { branchId, month, year, status: 'APPROVED' },
+    const existingApproved = await db.query.submissions.findFirst({
+      where: and(
+        eq(submissions.branchId, branchId),
+        eq(submissions.month, month),
+        eq(submissions.year, year),
+        eq(submissions.status, 'APPROVED')
+      ),
     });
 
     if (existingApproved) {
@@ -142,20 +150,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check for prior submission to link resubmission
-    const priorSubmission = await prisma.submission.findFirst({
-      where: { branchId, month, year },
-      orderBy: { createdAt: 'desc' },
+    const priorSubmission = await db.query.submissions.findFirst({
+      where: and(eq(submissions.branchId, branchId), eq(submissions.month, month), eq(submissions.year, year)),
+      orderBy: [desc(submissions.createdAt)],
     });
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Security: Check PDF magic header bytes (%PDF-)
     if (fileBuffer.length < 5 || fileBuffer.toString('utf-8', 0, 5) !== '%PDF-') {
       return NextResponse.json({ error: 'Uploaded file is not a valid PDF document' }, { status: 400 });
     }
 
-    // Run OCR Legibility check
     const ocrResult = await checkPDFLegibility(fileBuffer);
     if (!ocrResult.passed && !confirmOcrOverride) {
       return NextResponse.json(
@@ -169,7 +174,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ensure uploads folder exists
     const uploadDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -181,6 +185,8 @@ export async function POST(request: Request) {
     const fullFilePath = path.join(uploadDir, fileName);
     const relativeFilePath = `uploads/${fileName}`;
 
+    fs.writeFileSync(fullFilePath, fileBuffer);
+
     const isResubmission = !!priorSubmission;
     let staffType = (formData.get('staffType') as string) || 'PERMANENT';
     try {
@@ -190,8 +196,9 @@ export async function POST(request: Request) {
       }
     } catch (e) {}
 
-    const newSubmission = await prisma.submission.create({
-      data: {
+    const newSubmission = db
+      .insert(submissions)
+      .values({
         branchId,
         month,
         year,
@@ -200,15 +207,21 @@ export async function POST(request: Request) {
         fileSize: file.size,
         note: note.slice(0, 500),
         uploadedById: uploaderId,
-        uploadedAt: new Date(),
+        uploadedAt: new Date().toISOString(),
         status: 'PENDING',
         resubmissionOfId: priorSubmission?.id || null,
         ocrPassed: ocrResult.passed,
         ocrText: ocrResult.text.slice(0, 1000),
         staffType,
-      },
-      include: {
-        branch: true,
+      })
+      .returning()
+      .get();
+
+    const fullNewSubmission = await db.query.submissions.findFirst({
+      where: eq(submissions.id, newSubmission.id),
+      with: {
+        branch: { with: { region: true } },
+        uploadedBy: { columns: { id: true, name: true, email: true } },
       },
     });
 
@@ -227,7 +240,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, submission: newSubmission });
+    return NextResponse.json({ success: true, submission: fullNewSubmission || newSubmission });
   } catch (error) {
     console.error('Error handling upload:', error);
     return NextResponse.json({ error: 'Failed to process document upload' }, { status: 500 });

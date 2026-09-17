@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db, users } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { verifyPassword, setSessionCookie } from '@/lib/auth';
 import { logAuditAction } from '@/lib/audit';
 
@@ -11,9 +12,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
-      include: {
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email.toLowerCase().trim()),
+      with: {
         branch: true,
         region: true,
       },

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, branches, submissions, deadlineConfigs } from '@/lib/db';
+import { eq, and, inArray } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
 
 export async function POST(request: Request) {
@@ -11,38 +12,33 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
-    const currentMonth = now.getMonth() + 1; // 1 - 12
+    const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    const config = await prisma.deadlineConfig.findUnique({ where: { id: 'default' } });
+    const config = await db.query.deadlineConfigs.findFirst({ where: eq(deadlineConfigs.id, 'default') });
     const cutoffDay = config?.cutoffDayOfMonth || 21;
 
-    // Find all active branches
-    const activeBranches = await prisma.branch.findMany({
-      where: { active: true },
-      include: { region: true },
+    const activeBranches = await db.query.branches.findMany({
+      where: eq(branches.active, true),
+      with: { region: true },
     });
 
-    // Find branches that already submitted for current month with status APPROVED or PENDING
-    const existingSubmissions = await prisma.submission.findMany({
-      where: {
-        month: currentMonth,
-        year: currentYear,
-        status: { in: ['APPROVED', 'PENDING'] },
-      },
-      select: { branchId: true },
+    const existingSubmissions = await db.query.submissions.findMany({
+      where: and(
+        eq(submissions.month, currentMonth),
+        eq(submissions.year, currentYear),
+        inArray(submissions.status, ['APPROVED', 'PENDING'])
+      ),
+      columns: { branchId: true },
     });
 
-    const submittedBranchIds = new Set(existingSubmissions.map((s: { branchId: string }) => s.branchId));
-
-    const pendingReminderBranches = activeBranches.filter((b: { id: string }) => !submittedBranchIds.has(b.id));
+    const submittedBranchIds = new Set(existingSubmissions.map((s: any) => s.branchId));
+    const pendingReminderBranches = activeBranches.filter((b: any) => !submittedBranchIds.has(b.id));
 
     const isOverdue = now.getDate() > cutoffDay;
-
     let sentCount = 0;
 
     for (const branch of pendingReminderBranches) {
-      // Log reminder action for each branch
       await logAuditAction({
         actorId: session.id,
         action: isOverdue ? 'OVERDUE_NOTICE_SENT' : 'REMINDER_SENT',

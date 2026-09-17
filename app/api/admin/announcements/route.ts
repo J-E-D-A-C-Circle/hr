@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db, announcements, auditLogs } from '@/lib/db';
+import { eq, desc } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const announcements = await prisma.announcement.findMany({
-      orderBy: { createdAt: 'desc' },
+    const list = await db.query.announcements.findMany({
+      orderBy: [desc(announcements.createdAt)],
     });
-    return NextResponse.json({ announcements });
+    return NextResponse.json({ announcements: list });
   } catch (error) {
     console.error('Error fetching announcements:', error);
     return NextResponse.json({ error: 'Failed to fetch announcements' }, { status: 500 });
@@ -28,25 +29,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
     }
 
-    const announcement = await prisma.announcement.create({
-      data: {
+    const announcement = db
+      .insert(announcements)
+      .values({
         title,
         content,
         priority: priority || 'INFO',
         active: active !== undefined ? active : true,
         author: session.name || 'HR Administration',
-      },
-    });
+      })
+      .returning()
+      .get();
 
-    await prisma.auditLog.create({
-      data: {
+    db.insert(auditLogs)
+      .values({
         actorId: session.id,
         action: 'ANNOUNCEMENT_CREATED',
         targetType: 'SYSTEM',
         targetId: announcement.id,
         metadata: JSON.stringify({ title, priority }),
-      },
-    });
+      })
+      .run();
 
     return NextResponse.json({ announcement, message: 'Announcement published successfully' });
   } catch (error) {
@@ -69,7 +72,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Announcement ID required' }, { status: 400 });
     }
 
-    await prisma.announcement.delete({ where: { id } });
+    db.delete(announcements).where(eq(announcements.id, id)).run();
 
     return NextResponse.json({ message: 'Announcement removed' });
   } catch (error) {

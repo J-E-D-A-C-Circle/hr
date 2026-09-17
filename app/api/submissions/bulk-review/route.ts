@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, submissions } from '@/lib/db';
+import { inArray } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
 
 export async function POST(request: Request) {
@@ -27,26 +28,25 @@ export async function POST(request: Request) {
 
     const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
 
-    // Batch update
-    const result = await prisma.submission.updateMany({
-      where: {
-        id: { in: submissionIds },
-      },
-      data: {
+    db.update(submissions)
+      .set({
         status: newStatus,
         reviewerId: session.id,
         reviewerNotes: reviewerNotes ? reviewerNotes.trim() : null,
-        reviewedAt: new Date(),
-      },
-    });
+        reviewedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(inArray(submissions.id, submissionIds))
+      .run();
 
-    // Log bulk audit action
+    const count = submissionIds.length;
+
     await logAuditAction({
       actorId: session.id,
       action: action === 'APPROVE' ? 'BULK_APPROVE' : 'BULK_REJECT',
       targetType: 'SUBMISSION',
       metadata: {
-        count: result.count,
+        count,
         submissionIds,
         reviewerNotes: reviewerNotes || null,
       },
@@ -54,8 +54,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      count: result.count,
-      message: `Successfully ${action === 'APPROVE' ? 'approved' : 'rejected'} ${result.count} submission(s).`,
+      count,
+      message: `Successfully ${action === 'APPROVE' ? 'approved' : 'rejected'} ${count} submission(s).`,
     });
   } catch (error) {
     console.error('Error executing bulk review:', error);

@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import { db, auditLogs } from './db';
 
 export async function logAuditAction(params: {
   actorId?: string | null;
@@ -8,15 +8,18 @@ export async function logAuditAction(params: {
   metadata?: Record<string, unknown>;
 }) {
   try {
-    return await prisma.auditLog.create({
-      data: {
+    const inserted = db
+      .insert(auditLogs)
+      .values({
         actorId: params.actorId || null,
         action: params.action,
         targetType: params.targetType,
         targetId: params.targetId || null,
         metadata: params.metadata ? JSON.stringify(params.metadata) : null,
-      },
-    });
+      })
+      .returning()
+      .get();
+    return inserted;
   } catch (error) {
     console.error('Failed to write audit log:', error);
     return null;

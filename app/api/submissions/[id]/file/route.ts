@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, submissions } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
@@ -15,16 +16,15 @@ export async function GET(
     }
 
     const { id } = await params;
-    const submission = await prisma.submission.findUnique({
-      where: { id },
-      include: { branch: true },
+    const submission = await db.query.submissions.findFirst({
+      where: eq(submissions.id, id),
+      with: { branch: true },
     });
 
     if (!submission) {
       return NextResponse.json({ error: 'Submission file not found' }, { status: 404 });
     }
 
-    // Role check: Station Managers can only view their own branch files
     if (session.role === 'STATION_MANAGER' && session.branchId !== submission.branchId) {
       return NextResponse.json({ error: 'Access denied to other branch documents' }, { status: 403 });
     }

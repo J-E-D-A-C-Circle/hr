@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { db, deadlineConfigs } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
 
 export async function GET() {
@@ -10,11 +11,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const config = await prisma.deadlineConfig.upsert({
-      where: { id: 'default' },
-      update: {},
-      create: { id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 },
-    });
+    let config = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+    if (!config) {
+      config = db
+        .insert(deadlineConfigs)
+        .values({ id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 })
+        .returning()
+        .get();
+    }
 
     return NextResponse.json({ config });
   } catch (error) {
@@ -44,11 +48,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Reminder lead days must be between 1 and 15' }, { status: 400 });
     }
 
-    const updated = await prisma.deadlineConfig.upsert({
-      where: { id: 'default' },
-      update: { cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder },
-      create: { id: 'default', cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder },
-    });
+    let config = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+    if (config) {
+      db.update(deadlineConfigs)
+        .set({ cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder, updatedAt: new Date().toISOString() })
+        .where(eq(deadlineConfigs.id, 'default'))
+        .run();
+      config = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+    } else {
+      config = db
+        .insert(deadlineConfigs)
+        .values({ id: 'default', cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder })
+        .returning()
+        .get();
+    }
 
     await logAuditAction({
       actorId: session.id,
@@ -57,7 +70,7 @@ export async function POST(request: Request) {
       metadata: { cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder },
     });
 
-    return NextResponse.json({ success: true, config: updated });
+    return NextResponse.json({ success: true, config });
   } catch (error) {
     console.error('Error updating deadline config:', error);
     return NextResponse.json({ error: 'Failed to save deadline settings' }, { status: 500 });

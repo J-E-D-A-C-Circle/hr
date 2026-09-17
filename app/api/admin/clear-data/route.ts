@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db, submissions, auditLogs, users, branches, announcements } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import fs from 'fs';
 import path from 'path';
@@ -25,15 +26,15 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-      await prisma.submission.deleteMany({});
-      await prisma.auditLog.create({
-        data: {
+      db.delete(submissions).run();
+      db.insert(auditLogs)
+        .values({
           actorId: session.id,
           action: 'CLEAR_DATA_SUBMISSIONS',
           targetType: 'SYSTEM',
           metadata: JSON.stringify({ mode }),
-        },
-      });
+        })
+        .run();
       return NextResponse.json({ message: 'All test submissions and uploaded PDF files cleared successfully.' });
     }
 
@@ -49,20 +50,20 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-      await prisma.submission.deleteMany({});
-      await prisma.auditLog.deleteMany({});
-      await prisma.user.deleteMany({ where: { role: 'STATION_MANAGER' } });
-      await prisma.branch.deleteMany({});
-      await prisma.announcement.deleteMany({});
+      db.delete(submissions).run();
+      db.delete(auditLogs).run();
+      db.delete(users).where(eq(users.role, 'STATION_MANAGER')).run();
+      db.delete(branches).run();
+      db.delete(announcements).run();
 
-      await prisma.auditLog.create({
-        data: {
+      db.insert(auditLogs)
+        .values({
           actorId: session.id,
           action: 'CLEAR_DATA_FULL_RESET',
           targetType: 'SYSTEM',
           metadata: JSON.stringify({ mode }),
-        },
-      });
+        })
+        .run();
 
       return NextResponse.json({ message: 'Database reset completed. All test stations, manager accounts, and submissions cleared.' });
     }
