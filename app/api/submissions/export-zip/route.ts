@@ -108,12 +108,12 @@ export async function GET(request: Request) {
       });
 
       let fullPath = path.join(process.cwd(), 'uploads', sub.fileName);
-      if (!fs.existsSync(fullPath)) {
+      if (!fs.existsSync(/*turbopackIgnore: true*/ fullPath)) {
         fullPath = path.join(/*turbopackIgnore: true*/ process.cwd(), sub.filePath);
       }
 
-      if (fs.existsSync(fullPath)) {
-        const fileContent = fs.readFileSync(fullPath);
+      if (fs.existsSync(/*turbopackIgnore: true*/ fullPath)) {
+        const fileContent = fs.readFileSync(/*turbopackIgnore: true*/ fullPath);
         const zipFileName = `${sub.branch?.code || 'STATION'}_${sub.year}_M${String(sub.month).padStart(2, '0')}_${sub.fileName}`;
         filesFolder?.file(zipFileName, fileContent);
       }

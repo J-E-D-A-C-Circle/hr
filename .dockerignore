@@ -1,3 +1,5 @@
+node_modules
+.next
 .git
 .gitignore
 npm-debug.log
@@ -6,6 +8,6 @@ Dockerfile
 k8s
 uploads/*
 !uploads/.gitkeep
-prisma/*.db
-prisma/*.db-journal
+*.db
+*.db-journal
 .env*.local
