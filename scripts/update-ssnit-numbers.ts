@@ -39,20 +39,25 @@ async function main() {
     path.join(__dirname, "..", "ssnit_files"),
     path.join(__dirname, "..", "scratch", "ssnit_zip"),
     path.join(__dirname, ".."),
+    path.join(__dirname, "..", "database"),
   ];
   
-  const zipFiles = [
+  const targetFiles = [
     "DVLA_March_2026_Contract.xlsx",
     "DVLA_April_2026_Contract.xlsx",
     "DVLA_May_2026_Contract.xlsx",
     "DVLA_June_2026_Contract.xlsx",
+    "SSNIT_Contribution_August_2026_2026-09-10.xlsx",
+    "JUNE SSNIT.xlsx",
+    "CORRECTED JULY.xlsx",
+    "TEMP COMPUTATION.xlsx",
   ];
 
   const excelList: SsnitExcelItem[] = [];
   const excelTokenMap = new Map<string, SsnitExcelItem>();
   const excelFirstLastMap = new Map<string, SsnitExcelItem>();
 
-  for (const f of zipFiles) {
+  for (const f of targetFiles) {
     let filePath = "";
     for (const dir of searchDirs) {
       const candidate = path.join(dir, f);
@@ -68,43 +73,85 @@ async function main() {
 
     console.log(`Processing file: ${f}`);
     const wb = XLSX.readFile(filePath);
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    
+    for (const sheetName of wb.SheetNames) {
+      const sheet = wb.Sheets[sheetName];
+      const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      if (!rows || rows.length === 0) continue;
 
-    for (let i = 13; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || !row[1]) continue;
+      // Find header row dynamically
+      let headerRowIdx = -1;
+      let ssnitCol = -1;
+      let niaCol = -1;
+      let surnameCol = -1;
+      let firstNameCol = -1;
+      let otherNameCol = -1;
+      let fullNameCol = -1;
 
-      const ssnitNo = String(row[1]).trim();
-      const niaNo = row[2] ? String(row[2]).trim() : null;
-      const surname = row[4] ? String(row[4]).trim() : "";
-      const firstName = row[5] ? String(row[5]).trim() : "";
-      const fullName = `${surname} ${firstName}`.trim();
+      for (let r = 0; r < Math.min(rows.length, 25); r++) {
+        const row = rows[r];
+        if (!Array.isArray(row)) continue;
 
-      if (ssnitNo && ssnitNo !== "N/A" && ssnitNo !== "null") {
-        const item: SsnitExcelItem = {
-          ssnitNo,
-          niaNo: niaNo && niaNo !== "N/A" ? niaNo : null,
-          surname,
-          firstName,
-          fullName,
-          file: f,
-          tokens: getTokens(fullName),
-        };
+        const ssnitIdx = row.findIndex((cell) => cell && /ssnit/i.test(String(cell)));
+        if (ssnitIdx !== -1) {
+          headerRowIdx = r;
+          ssnitCol = ssnitIdx;
+          niaCol = row.findIndex((cell) => cell && /(nia|ghana\s*card)/i.test(String(cell)));
+          surnameCol = row.findIndex((cell) => cell && /surname/i.test(String(cell)));
+          firstNameCol = row.findIndex((cell) => cell && /first\s*name/i.test(String(cell)));
+          otherNameCol = row.findIndex((cell) => cell && /(other|middle)\s*name/i.test(String(cell)));
+          fullNameCol = row.findIndex((cell) => cell && /(full\s*name|^name$|staff\s*name)/i.test(String(cell)));
+          break;
+        }
+      }
 
-        excelList.push(item);
+      if (headerRowIdx === -1 || ssnitCol === -1) {
+        continue;
+      }
 
-        const sortedKey = getSortedTokenStr(fullName);
-        if (!excelTokenMap.has(sortedKey)) {
-          excelTokenMap.set(sortedKey, item);
+      for (let i = headerRowIdx + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row[ssnitCol]) continue;
+
+        const ssnitNo = String(row[ssnitCol]).trim();
+        const niaNo = niaCol !== -1 && row[niaCol] ? String(row[niaCol]).trim() : null;
+
+        let surname = surnameCol !== -1 && row[surnameCol] ? String(row[surnameCol]).trim() : "";
+        let firstName = firstNameCol !== -1 && row[firstNameCol] ? String(row[firstNameCol]).trim() : "";
+        let otherName = otherNameCol !== -1 && row[otherNameCol] ? String(row[otherNameCol]).trim() : "";
+        let fullName = "";
+
+        if (surname || firstName) {
+          fullName = `${surname} ${firstName} ${otherName}`.trim();
+        } else if (fullNameCol !== -1 && row[fullNameCol]) {
+          fullName = String(row[fullNameCol]).trim();
         }
 
-        const itemTokens = item.tokens;
-        if (itemTokens.length >= 2) {
-          const firstLastKey = `${itemTokens[0]} ${itemTokens[itemTokens.length - 1]}`;
-          const lastFirstKey = `${itemTokens[itemTokens.length - 1]} ${itemTokens[0]}`;
-          if (!excelFirstLastMap.has(firstLastKey)) excelFirstLastMap.set(firstLastKey, item);
-          if (!excelFirstLastMap.has(lastFirstKey)) excelFirstLastMap.set(lastFirstKey, item);
+        if (ssnitNo && ssnitNo !== "N/A" && ssnitNo !== "null" && ssnitNo !== "0" && fullName) {
+          const item: SsnitExcelItem = {
+            ssnitNo,
+            niaNo: niaNo && niaNo !== "N/A" && niaNo !== "null" ? niaNo : null,
+            surname,
+            firstName,
+            fullName,
+            file: `${f} [${sheetName}]`,
+            tokens: getTokens(fullName),
+          };
+
+          excelList.push(item);
+
+          const sortedKey = getSortedTokenStr(fullName);
+          if (!excelTokenMap.has(sortedKey)) {
+            excelTokenMap.set(sortedKey, item);
+          }
+
+          const itemTokens = item.tokens;
+          if (itemTokens.length >= 2) {
+            const firstLastKey = `${itemTokens[0]} ${itemTokens[itemTokens.length - 1]}`;
+            const lastFirstKey = `${itemTokens[itemTokens.length - 1]} ${itemTokens[0]}`;
+            if (!excelFirstLastMap.has(firstLastKey)) excelFirstLastMap.set(firstLastKey, item);
+            if (!excelFirstLastMap.has(lastFirstKey)) excelFirstLastMap.set(lastFirstKey, item);
+          }
         }
       }
     }
