@@ -1,52 +1,53 @@
-FROM node:20-alpine AS base
+# Multi-stage Dockerfile for DVLA NSS Portal (Next.js Standalone + MySQL)
+# Using Node 22 slim (Debian glibc) for stability
 
-# Install dependencies only when needed
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
+# Step 1: Dependencies Stage
+FROM node:22-slim AS deps
 WORKDIR /app
+RUN apt-get update && apt-get install -y openssl python3 make g++ && rm -rf /var/lib/apt/lists/*
+COPY package.json package-lock.json* bun.lock* ./
+RUN npm install --legacy-peer-deps
 
-# Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm ci --legacy-peer-deps
-
-# Rebuild the source code only when needed
-FROM base AS builder
+# Step 2: Builder Stage
+FROM node:22-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM base AS runner
+# Step 3: Production Runner Stage
+FROM node:22-slim AS runner
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y openssl default-mysql-client netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Install mysql-client and netcat for entrypoint database connectivity and auto-import
-RUN apk add --no-cache mysql-client netcat-openbsd
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/database ./database
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
-RUN chmod +x ./docker-entrypoint.sh
+# Create upload directory with correct permissions
+RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads /app
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["npm", "start"]

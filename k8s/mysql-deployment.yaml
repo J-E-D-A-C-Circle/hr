@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nss-mysql-app
+  namespace: nss-portal
+  labels:
+    app: nss-mysql-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nss-mysql-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nss-mysql-app
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: nss-portal-config
+                  key: DB_NAME
+            - name: MYSQL_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: nss-portal-config
+                  key: DB_USER
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nss-portal-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nss-portal-secret
+                  key: MYSQL_PASSWORD
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: nss-mysql-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nss-mysql-service
+  namespace: nss-portal
+spec:
+  selector:
+    app: nss-mysql-app
+  ports:
+    - port: 3306
+      targetPort: 3306

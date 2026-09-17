@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nss-portal-config
+  namespace: nss-portal
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  DB_HOST: "nss-mysql-service"
+  DB_PORT: "3306"
+  DB_USER: "hr_user"
+  DB_NAME: "dvla_nss_portal"
+  DATABASE_URL: "mysql://hr_user:hr_password@nss-mysql-service:3306/dvla_nss_portal"
+  ADMIN_EMAIL: "admin@dvla.gov.gh"
+  WIGAL_USERNAME: "DVLA"
+  WIGAL_SENDER_ID: "DVLA PLATES"

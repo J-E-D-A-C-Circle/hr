@@ -34,4 +34,8 @@ fi
 
 # Execute main process (Next.js server)
 echo "🌐 Launching Next.js server on port ${PORT:-3000}..."
-exec "$@"
+if [ "$#" -eq 0 ]; then
+  exec node server.js
+else
+  exec "$@"
+fi

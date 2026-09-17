@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nss-portal-app
+  namespace: nss-portal
+  labels:
+    app.kubernetes.io/name: nss-portal-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nss-portal-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nss-portal-app
+    spec:
+      containers:
+        - name: nss-portal
+          image: nss-portal-app:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: nss-portal-config
+            - secretRef:
+                name: nss-portal-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: nss-uploads-pvc
