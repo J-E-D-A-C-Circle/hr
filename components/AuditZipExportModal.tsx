@@ -1,18 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Download, Archive, RefreshCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import {
-  Download,
-  X,
-  Archive,
-  Calendar,
-  Filter,
-  Users,
-  Building,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCcw,
-} from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectTrigger,
@@ -34,36 +33,27 @@ interface AuditZipExportModalProps {
 
 export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportModalProps) {
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [loadingBranches, setLoadingBranches] = useState(false);
 
-  // Specific Filters requested by user: Month, Station, Department
-  const [month, setMonth] = useState<string>('8'); // August default
+  const [month, setMonth] = useState<string>('8');
   const [year, setYear] = useState<string>('2026');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('ALL');
   const [department, setDepartment] = useState<string>('ALL');
   const [status, setStatus] = useState<string>('ALL');
 
   const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  // Fetch branches on open
   useEffect(() => {
     if (!isOpen) return;
-    setLoadingBranches(true);
     fetch('/api/admin/branches')
       .then((res) => res.json())
       .then((data) => {
         if (data.branches) setBranches(data.branches);
-        setLoadingBranches(false);
       })
-      .catch(() => setLoadingBranches(false));
+      .catch(() => {});
   }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const handleDownload = async () => {
     setDownloading(true);
-    setDownloadError(null);
 
     try {
       const params = new URLSearchParams();
@@ -76,7 +66,7 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
       const res = await fetch(`/api/submissions/export-zip?${params.toString()}`);
 
       if (!res.ok) {
-        throw new Error('Failed to generate zip file. Please try again.');
+        throw new Error('Failed to generate zip file.');
       }
 
       const blob = await res.blob();
@@ -91,7 +81,6 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
       }
       if (month !== 'ALL') filename += `_Month${month}`;
       if (year !== 'ALL') filename += `_${year}`;
-      if (department !== 'ALL') filename += `_${department}`;
       filename += `.zip`;
 
       link.setAttribute('download', filename);
@@ -100,9 +89,10 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      toast.success('ZIP package generated & downloaded successfully.');
       onClose();
     } catch (err: any) {
-      setDownloadError(err.message || 'An error occurred while preparing your zip download.');
+      toast.error(err.message || 'An error occurred while generating ZIP archive.');
     } finally {
       setDownloading(false);
     }
@@ -114,42 +104,22 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
       : branches.find((b) => b.id === selectedBranchId)?.name || 'Selected Station';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-sans">
-      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="bg-emerald-900 text-white p-6 flex items-center justify-between border-b border-emerald-800">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-800 text-emerald-200 border border-emerald-700">
-              <Archive className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-normal text-white">Download Zip Files for Audit</h3>
-              <p className="text-xs text-emerald-200/80">
-                Select month, station, and department to download files for audit
-              </p>
-            </div>
-          </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg border-slate-200">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-slate-900">
+            <Archive className="h-5 w-5 text-emerald-600" />
+            <span>Download ZIP Files for Audit</span>
+          </DialogTitle>
+          <DialogDescription>
+            Select target month, station, and department filters to generate a ZIP archive package.
+          </DialogDescription>
+        </DialogHeader>
 
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-emerald-200 hover:bg-emerald-800 hover:text-white transition cursor-pointer"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Modal Form Content */}
-        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
-          {downloadError && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-normal flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-              <span>{downloadError}</span>
-            </div>
-          )}
-
-          {/* 1. Station Selector */}
+        <div className="space-y-4 py-2">
+          {/* Station */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-normal text-slate-700">Select Station *</label>
+            <label className="text-xs font-medium text-slate-700">Select Station</label>
             <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select station branch" />
@@ -165,10 +135,10 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
             </Select>
           </div>
 
-          {/* 2. Month & Year Selectors */}
+          {/* Month & Year */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="block text-xs font-normal text-slate-700">Select Month *</label>
+              <label className="text-xs font-medium text-slate-700">Select Month</label>
               <Select value={month} onValueChange={setMonth}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select month" />
@@ -180,7 +150,7 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
                     'July', 'August', 'September', 'October', 'November', 'December'
                   ].map((m, idx) => (
                     <SelectItem key={idx + 1} value={(idx + 1).toString()}>
-                      {m} ({idx + 1})
+                      {m}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -188,7 +158,7 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-normal text-slate-700">Select Year *</label>
+              <label className="text-xs font-medium text-slate-700">Select Year</label>
               <Select value={year} onValueChange={setYear}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select year" />
@@ -202,9 +172,9 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
             </div>
           </div>
 
-          {/* 3. Department / Staff Category Selector */}
+          {/* Department */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-normal text-slate-700">Select Department / Staff Type *</label>
+            <label className="text-xs font-medium text-slate-700">Staff Category / Department</label>
             <Select value={department} onValueChange={setDepartment}>
               <SelectTrigger>
                 <SelectValue placeholder="Select department" />
@@ -220,9 +190,9 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
             </Select>
           </div>
 
-          {/* 4. Approval Status Selector */}
+          {/* Status */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-normal text-slate-700">Approval Status</label>
+            <label className="text-xs font-medium text-slate-700">Approval Status</label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
                 <SelectValue placeholder="All Statuses" />
@@ -236,47 +206,39 @@ export default function AuditZipExportModal({ isOpen, onClose }: AuditZipExportM
             </Select>
           </div>
 
-          {/* Info Summary Box */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 leading-relaxed">
-            📁 <strong className="text-slate-800">Selected Filter Package:</strong>
-            <div className="mt-1 text-slate-700 font-normal space-y-0.5">
-              <div>• Station: <span className="font-semibold text-emerald-900">{selectedBranchName}</span></div>
-              <div>• Period: <span className="font-semibold text-emerald-900">{month === 'ALL' ? 'All Months' : `Month ${month}`}, {year}</span></div>
-              <div>• Department / Staff: <span className="font-semibold text-emerald-900">{department === 'ALL' ? 'All Departments' : department}</span></div>
+          {/* Summary Box */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+            <strong className="text-slate-900">Archive Scope:</strong>
+            <div className="mt-1 text-slate-700 space-y-0.5">
+              <div>• Station: <span className="font-semibold text-emerald-800">{selectedBranchName}</span></div>
+              <div>• Period: <span className="font-semibold text-emerald-800">{month === 'ALL' ? 'All Months' : (['January','February','March','April','May','June','July','August','September','October','November','December'][parseInt(month) - 1] || month)}, {year}</span></div>
             </div>
           </div>
         </div>
 
-        {/* Modal Actions */}
-        <div className="p-5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-normal transition cursor-pointer"
-          >
+        <DialogFooter className="pt-2">
+          <Button variant="outline" onClick={onClose}>
             Cancel
-          </button>
-
-          <button
-            type="button"
-            disabled={downloading}
+          </Button>
+          <Button
             onClick={handleDownload}
-            className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal transition shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            disabled={downloading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             {downloading ? (
               <>
-                <RefreshCcw className="h-4 w-4 animate-spin" />
-                <span>Creating Zip File...</span>
+                <RefreshCcw className="h-4 w-4 mr-2 animate-spin" />
+                <span>Creating Package...</span>
               </>
             ) : (
               <>
-                <Download className="h-4 w-4" />
-                <span>Download Zip File</span>
+                <Download className="h-4 w-4 mr-2" />
+                <span>Download ZIP Package</span>
               </>
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -58,6 +58,8 @@ model User {
   @@index([branchId])
   @@index([regionId])
   @@index([role])
+  @@index([role, branchId])
+  @@index([active])
 }
 
 model Submission {
@@ -89,9 +91,12 @@ model Submission {
   updatedAt DateTime @updatedAt
 
   @@index([branchId, year, month])
+  @@index([branchId, status, year, month])
   @@index([status])
   @@index([year, month])
   @@index([staffType])
+  @@index([uploadedById])
+  @@index([reviewerId])
 }
 
 model AuditLog {
@@ -114,4 +119,24 @@ model DeadlineConfig {
   cutoffDayOfMonth   Int      @default(21)
   reminderDaysBefore Int      @default(3)
   updatedAt          DateTime @updatedAt
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  priority  String   @default("INFO") // INFO | WARNING | URGENT
+  active    Boolean  @default(true)
+  author    String   @default("HR Administration")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PolicyConfig {
+  id               String   @id @default("default")
+  maxFileSizeMb    Int      @default(30)
+  requireSignature Boolean  @default(true)
+  allowedFormats   String   @default("PDF")
+  guidelinesText   String   @default("All monthly payroll validation documents must be signed by the Station Manager and uploaded in PDF format prior to the 21st monthly cutoff.")
+  updatedAt        DateTime @updatedAt
 }

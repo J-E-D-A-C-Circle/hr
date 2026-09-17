@@ -1,0 +1,11 @@
+.git
+.gitignore
+npm-debug.log
+Dockerfile
+.dockerignore
+k8s
+uploads/*
+!uploads/.gitkeep
+prisma/*.db
+prisma/*.db-journal
+.env*.local

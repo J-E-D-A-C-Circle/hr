@@ -3,14 +3,33 @@ import { getSession, hashPassword } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditAction } from '@/lib/audit';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getSession();
     if (!session || session.role !== 'HR_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || undefined;
+    const role = searchParams.get('role') || undefined;
+    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50;
+
+    const where: any = {};
+    if (role && role !== 'ALL') where.role = role;
+    if (query) {
+      where.OR = [
+        { name: { contains: query } },
+        { email: { contains: query } },
+        { branch: { name: { contains: query } } },
+      ];
+    }
+
+    const totalCount = await prisma.user.count({ where });
+
     const users = await prisma.user.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -24,9 +43,19 @@ export async function GET() {
         region: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
+      skip: limit > 0 ? (page - 1) * limit : 0,
+      take: limit > 0 ? limit : undefined,
     });
 
-    return NextResponse.json({ users });
+    return NextResponse.json({
+      users,
+      pagination: {
+        totalCount,
+        page,
+        limit,
+        totalPages: limit > 0 ? Math.ceil(totalCount / limit) : 1,
+      },
+    });
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json({ error: 'Failed to fetch user list' }, { status: 500 });

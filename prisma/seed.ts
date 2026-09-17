@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 export const Role = {
   STATION_MANAGER: 'STATION_MANAGER',
   HR_ADMIN: 'HR_ADMIN',
+  FINANCE_OFFICER: 'FINANCE_OFFICER',
 } as const;
 
 export const SubmissionStatus = {
@@ -145,7 +146,18 @@ async function main() {
     },
   });
 
-  console.log('✅ Core Admins created (admin@pvc.local, reviewer@pvc.local, exec@pvc.local)');
+  const financeUser = await prisma.user.upsert({
+    where: { email: 'finance@pvc.local' },
+    update: { role: Role.FINANCE_OFFICER, passwordHash },
+    create: {
+      name: 'Finance Officer',
+      email: 'finance@pvc.local',
+      passwordHash,
+      role: Role.FINANCE_OFFICER,
+    },
+  });
+
+  console.log('✅ Core Admins & Finance Officer created (admin@pvc.local, finance@pvc.local)');
 
   // 5. Authentic DVLA Ghana Offices & Stations Network (53 Stations across Ghana)
   const dvlaStationsList = [
@@ -272,142 +284,7 @@ async function main() {
   }
 
   console.log(`✅ ${branches.length} Official DVLA Ghana Stations & Station Manager Accounts created!`);
-
-  // 6. Submissions for 2026 (Months 1 to 8)
-  const currentYear = 2026;
-  const currentMonth = 8;
-  let submissionCount = 0;
-
-  for (let bIdx = 0; bIdx < branches.length; bIdx++) {
-    const branch = branches[bIdx];
-    const headUser = branchUsers[bIdx];
-
-    // Months 1 to 7 (Jan to July)
-    for (let m = 1; m < currentMonth; m++) {
-      const isApproved = (bIdx + m) % 12 !== 0;
-      const fileName = `payroll_${branch.code}_${currentYear}_${String(m).padStart(2, '0')}.pdf`;
-      const relativePath = `uploads/${fileName}`;
-      const fullPath = path.join(uploadDir, fileName);
-
-      fs.writeFileSync(fullPath, generateSamplePDFContent(branch.name, m, currentYear));
-
-      await prisma.submission.create({
-        data: {
-          branchId: branch.id,
-          month: m,
-          year: currentYear,
-          fileName,
-          filePath: relativePath,
-          fileSize: 1024 * 145,
-          note: `Monthly validation scan for ${branch.name} (${m}/${currentYear})`,
-          uploadedById: headUser.id,
-          uploadedAt: new Date(currentYear, m - 1, Math.min(18 + (bIdx % 4), 21)),
-          status: isApproved ? SubmissionStatus.APPROVED : SubmissionStatus.PENDING,
-          reviewerId: isApproved ? reviewerUser.id : null,
-          reviewerNotes: isApproved ? 'Verified and approved by HR Payroll.' : null,
-          reviewedAt: isApproved ? new Date(currentYear, m - 1, 22) : null,
-          ocrPassed: true,
-          ocrText: `PAYROLL VALIDATION DOCUMENT - ${branch.name}. Verified attendance & salary records.`,
-        },
-      });
-      submissionCount++;
-    }
-
-    // Month 8 (August 2026)
-    if (bIdx < 25) {
-      const fileName = `payroll_${branch.code}_${currentYear}_08.pdf`;
-      const relativePath = `uploads/${fileName}`;
-      fs.writeFileSync(path.join(uploadDir, fileName), generateSamplePDFContent(branch.name, 8, currentYear));
-
-      await prisma.submission.create({
-        data: {
-          branchId: branch.id,
-          month: 8,
-          year: currentYear,
-          fileName,
-          filePath: relativePath,
-          fileSize: 1024 * 160,
-          note: 'Submitted on time for August payroll review.',
-          uploadedById: headUser.id,
-          uploadedAt: new Date(2026, 7, 18),
-          status: SubmissionStatus.APPROVED,
-          reviewerId: reviewerUser.id,
-          reviewerNotes: 'Approved. All signatures verified.',
-          reviewedAt: new Date(2026, 7, 20),
-          ocrPassed: true,
-        },
-      });
-      submissionCount++;
-    } else if (bIdx < 42) {
-      const fileName = `payroll_${branch.code}_${currentYear}_08.pdf`;
-      const relativePath = `uploads/${fileName}`;
-      fs.writeFileSync(path.join(uploadDir, fileName), generateSamplePDFContent(branch.name, 8, currentYear));
-
-      await prisma.submission.create({
-        data: {
-          branchId: branch.id,
-          month: 8,
-          year: currentYear,
-          fileName,
-          filePath: relativePath,
-          fileSize: 1024 * 152,
-          note: 'August payroll validation attached. Awaiting HR review.',
-          uploadedById: headUser.id,
-          uploadedAt: new Date(2026, 7, 21),
-          status: SubmissionStatus.PENDING,
-          ocrPassed: true,
-        },
-      });
-      submissionCount++;
-    } else if (bIdx < 48) {
-      const fileName = `payroll_${branch.code}_${currentYear}_08.pdf`;
-      const relativePath = `uploads/${fileName}`;
-      fs.writeFileSync(path.join(uploadDir, fileName), generateSamplePDFContent(branch.name, 8, currentYear));
-
-      await prisma.submission.create({
-        data: {
-          branchId: branch.id,
-          month: 8,
-          year: currentYear,
-          fileName,
-          filePath: relativePath,
-          fileSize: 1024 * 90,
-          note: 'August scan',
-          uploadedById: headUser.id,
-          uploadedAt: new Date(2026, 7, 21),
-          status: SubmissionStatus.REJECTED,
-          reviewerId: reviewerUser.id,
-          reviewerNotes: 'Page 3 signature line is cut off and blurry. Please re-scan clearly and upload again.',
-          reviewedAt: new Date(2026, 7, 22),
-          ocrPassed: false,
-        },
-      });
-      submissionCount++;
-    }
-  }
-
-  console.log(`✅ ${submissionCount} Submissions seeded for 2026 across DVLA Stations!`);
-
-  // 7. Seed Initial Audit Logs
-  await prisma.auditLog.createMany({
-    data: [
-      {
-        actorId: adminUser.id,
-        action: 'SYSTEM_INIT',
-        targetType: 'SYSTEM',
-        metadata: JSON.stringify({ message: `PVC Platform Initialized with ${branches.length} DVLA Ghana Stations` }),
-      },
-      {
-        actorId: reviewerUser.id,
-        action: 'BULK_APPROVE',
-        targetType: 'SUBMISSION',
-        metadata: JSON.stringify({ month: 7, year: 2026, approvedCount: 48 }),
-      },
-    ],
-  });
-
-  console.log('✅ Audit logs seeded');
-  console.log('\n🎉 PVC Database Seeding Complete with DVLA Ghana Offices network!');
+  console.log('\n🎉 PVC Database Seeding Complete!');
 }
 
 main()

@@ -17,6 +17,10 @@ import {
 } from 'lucide-react';
 import Papa from 'papaparse';
 import AuditZipExportModal from '@/components/AuditZipExportModal';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectTrigger,
@@ -52,6 +56,7 @@ export default function CompliancePage() {
   const [showZipModal, setShowZipModal] = useState(false);
 
   const [regionFilter, setRegionFilter] = useState('ALL');
+  const [monthFilter, setMonthFilter] = useState('ALL');
   const [yearFilter, setYearFilter] = useState(2026);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -94,10 +99,10 @@ export default function CompliancePage() {
   };
 
   const filteredBranches = branches.filter((b: Branch) => {
-    if (regionFilter !== 'ALL' && b.region.id !== regionFilter) return false;
+    if (regionFilter !== 'ALL' && b.region?.id !== regionFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return b.name.toLowerCase().includes(q) || b.code.toLowerCase().includes(q);
+      return (b.name || '').toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q);
     }
     return true;
   });
@@ -107,8 +112,10 @@ export default function CompliancePage() {
   let totalPending = 0;
   let totalOverdue = 0;
 
+  const displayedMonths = monthFilter === 'ALL' ? months : [parseInt(monthFilter)];
+
   filteredBranches.forEach((b: Branch) => {
-    months.forEach((m) => {
+    displayedMonths.forEach((m) => {
       if (m <= currentMonth) {
         totalRequiredCells++;
         const sub = b.submissions.find((s: any) => s.month === m && s.year === yearFilter);
@@ -134,9 +141,9 @@ export default function CompliancePage() {
         else if (m <= currentMonth) cellStatus = 'Overdue / Missing';
 
         csvRows.push({
-          Station_Code: b.code,
-          Station_Name: b.name,
-          Region: b.region.name,
+          Station_Code: b.code || 'N/A',
+          Station_Name: b.name || 'Station',
+          Region: b.region?.name || '—',
           Month: m,
           Year: yearFilter,
           Status: cellStatus,
@@ -196,9 +203,9 @@ export default function CompliancePage() {
 
           <button
             onClick={exportCSV}
-            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition flex items-center gap-2 cursor-pointer border border-emerald-500"
           >
-            <Download className="h-4 w-4 text-white" />
+            <Download className="h-4 w-4 text-emerald-100" />
             <span>Export CSV</span>
           </button>
         </div>
@@ -262,12 +269,12 @@ export default function CompliancePage() {
       {/* Region Completion Progress Strip */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm space-y-2">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-bold text-slate-900 uppercase tracking-wider">Regional Compliance Status (Month {currentMonth}/{yearFilter})</span>
+          <span className="font-bold text-slate-900 uppercase tracking-wider">Regional Compliance Status (August {yearFilter})</span>
           <span className="text-slate-500 font-mono">50+ Station Grid Matrix</span>
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {regions.map((reg) => {
-            const regBranches = branches.filter((b) => b.region.id === reg.id);
+            const regBranches = branches.filter((b) => b.region?.id === reg.id);
             const regApproved = regBranches.filter((b) =>
               b.submissions.some((s) => s.month === currentMonth && s.year === yearFilter && s.status === 'APPROVED')
             ).length;
@@ -334,6 +341,27 @@ export default function CompliancePage() {
             </Select>
           </div>
 
+          {/* Month Dropdown */}
+          <div className="space-y-1 min-w-[130px]">
+            <label className="block text-[11px] text-slate-500 font-normal">Month</label>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Month" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Months</SelectItem>
+                {[
+                  'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'
+                ].map((m, idx) => (
+                  <SelectItem key={idx + 1} value={(idx + 1).toString()}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Year Dropdown */}
           <div className="space-y-1 min-w-[110px]">
             <label className="block text-[11px] text-slate-500 font-normal">Year</label>
@@ -380,13 +408,13 @@ export default function CompliancePage() {
                   Station Name
                 </th>
                 <th className="p-4 min-w-[120px] border-r border-slate-800">Region</th>
-                {months.map((m) => {
+                {displayedMonths.map((m) => {
                   const mName = [
-                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
                   ][m - 1];
                   return (
-                    <th key={m} className="p-3 text-center min-w-[65px] border-r border-slate-800">
+                    <th key={m} className="p-3 text-center min-w-[95px] border-r border-slate-800">
                       {mName}
                     </th>
                   );
@@ -417,16 +445,20 @@ export default function CompliancePage() {
 
                     {/* Region */}
                     <td className="p-3.5 border-r border-slate-200 text-slate-700 font-bold text-[11px]">
-                      {b.region.name}
+                      {b.region?.name || '—'}
                     </td>
 
-                    {/* Months 1-12 Status Cells */}
-                    {months.map((m) => {
+                    {/* Months Status Cells */}
+                    {displayedMonths.map((m) => {
+                      const mName = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                      ][m - 1];
                       const sub = b.submissions.find((s: any) => s.month === m && s.year === yearFilter);
 
                       let bgClass = 'bg-slate-100 text-slate-400';
                       let statusText = '—';
-                      let statusTitle = `Month ${m}: Not due yet`;
+                      let statusTitle = `${mName}: Not due yet`;
 
                       if (sub) {
                         if (sub.status === 'APPROVED') {

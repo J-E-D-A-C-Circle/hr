@@ -79,8 +79,8 @@ export default function Header({ onOpenMobileMenu }: HeaderProps) {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
-              <PageIcon className="h-5 w-5 text-emerald-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white p-1 border border-slate-200 shadow-2xs overflow-hidden shrink-0">
+              <img src="/oop.png" alt="PVC Logo" className="h-full w-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-2">

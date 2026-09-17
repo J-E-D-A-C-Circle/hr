@@ -33,9 +33,9 @@ export async function POST(request: Request) {
       select: { branchId: true },
     });
 
-    const submittedBranchIds = new Set(existingSubmissions.map((s) => s.branchId));
+    const submittedBranchIds = new Set(existingSubmissions.map((s: { branchId: string }) => s.branchId));
 
-    const pendingReminderBranches = activeBranches.filter((b) => !submittedBranchIds.has(b.id));
+    const pendingReminderBranches = activeBranches.filter((b: { id: string }) => !submittedBranchIds.has(b.id));
 
     const isOverdue = now.getDate() > cutoffDay;
 

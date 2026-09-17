@@ -8,17 +8,16 @@ import {
   Search,
   CheckCircle2,
   XCircle,
-  Clock,
   Download,
   AlertCircle,
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
   RefreshCw,
-  Building2,
-  Calendar,
-  Filter,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import AuditZipExportModal from '@/components/AuditZipExportModal';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectTrigger,
@@ -50,12 +49,21 @@ interface Submission {
   reviewer?: { name: string; email: string };
 }
 
+const ITEMS_PER_PAGE = 8;
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export default function ReviewPage() {
   const router = useRouter();
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination state
+  const [queuePage, setQueuePage] = useState(1);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('PENDING');
@@ -80,6 +88,16 @@ export default function ReviewPage() {
   const [rejecting, setRejecting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) setCurrentUser(d.user);
+      })
+      .catch(() => {});
+  }, []);
 
   const toggleSelectAll = () => {
     if (selectedIds.length === submissions.length) {
@@ -112,13 +130,14 @@ export default function ReviewPage() {
 
       const data = await res.json();
       if (res.ok) {
+        toast.success(`Successfully approved ${selectedIds.length} submission(s)`);
         setSelectedIds([]);
         loadSubmissions();
       } else {
-        alert(data.error || 'Failed to process bulk review');
+        toast.error(data.error || 'Failed to process bulk review');
       }
     } catch (e) {
-      alert('Network error executing bulk review action');
+      toast.error('Network error executing bulk review action');
     } finally {
       setBulkActionLoading(false);
     }
@@ -128,7 +147,7 @@ export default function ReviewPage() {
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (!data.user || data.user.role !== 'HR_ADMIN') {
+        if (!data.user || (data.user.role !== 'HR_ADMIN' && data.user.role !== 'FINANCE_OFFICER')) {
           router.push('/upload');
         } else {
           loadSubmissions();
@@ -136,6 +155,10 @@ export default function ReviewPage() {
         }
       });
   }, [statusFilter, staffTypeFilter, regionFilter, monthFilter, yearFilter]);
+
+  useEffect(() => {
+    setQueuePage(1);
+  }, [statusFilter, staffTypeFilter, regionFilter, searchQuery, monthFilter, yearFilter]);
 
   const loadSubmissions = async () => {
     setLoading(true);
@@ -158,6 +181,7 @@ export default function ReviewPage() {
       }
     } catch (e) {
       console.error('Failed to load submissions:', e);
+      toast.error('Failed to load submissions queue');
     } finally {
       setLoading(false);
     }
@@ -194,7 +218,9 @@ export default function ReviewPage() {
       const data = await res.json();
       if (!res.ok) {
         setActionError(data.error || 'Failed to submit review');
+        toast.error(data.error || 'Failed to submit review');
       } else {
+        toast.success(action === 'APPROVE' ? 'Submission approved' : 'Submission sent back for correction');
         setReviewNotes('');
         setRejecting(false);
         loadSubmissions();
@@ -204,10 +230,18 @@ export default function ReviewPage() {
       }
     } catch {
       setActionError('Network error executing review action');
+      toast.error('Network error executing review action');
     } finally {
       setActionLoading(false);
     }
   };
+
+  // Pagination for Queue
+  const totalPages = Math.ceil(submissions.length / ITEMS_PER_PAGE) || 1;
+  const paginatedSubmissions = submissions.slice(
+    (queuePage - 1) * ITEMS_PER_PAGE,
+    queuePage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -232,7 +266,7 @@ export default function ReviewPage() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setShowZipModal(true)}
-            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 transition flex items-center gap-2 shadow-md cursor-pointer"
+            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 transition flex items-center gap-2 shadow-md cursor-pointer"
           >
             <Archive className="h-4 w-4 text-emerald-200" />
             <span>Download Zip Files for Audit</span>
@@ -240,7 +274,7 @@ export default function ReviewPage() {
 
           <button
             onClick={loadSubmissions}
-            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
+            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
           >
             <RefreshCw className="h-4 w-4 text-emerald-300" />
             <span>Refresh Queue</span>
@@ -267,7 +301,7 @@ export default function ReviewPage() {
         <div className="space-y-1 min-w-[150px]">
           <label className="block text-[11px] font-normal text-slate-500">Staff Category</label>
           <Select value={staffTypeFilter} onValueChange={setStaffTypeFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs">
               <SelectValue placeholder="Staff type" />
             </SelectTrigger>
             <SelectContent>
@@ -282,7 +316,7 @@ export default function ReviewPage() {
         <div className="space-y-1 min-w-[140px]">
           <label className="block text-[11px] font-normal text-slate-500">Status</label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -298,7 +332,7 @@ export default function ReviewPage() {
         <div className="space-y-1 min-w-[130px]">
           <label className="block text-[11px] font-normal text-slate-500">Region</label>
           <Select value={regionFilter} onValueChange={setRegionFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs">
               <SelectValue placeholder="Region" />
             </SelectTrigger>
             <SelectContent>
@@ -313,17 +347,20 @@ export default function ReviewPage() {
         </div>
 
         {/* Month Filter */}
-        <div className="space-y-1 min-w-[120px]">
+        <div className="space-y-1 min-w-[150px]">
           <label className="block text-[11px] font-normal text-slate-500">Month</label>
           <Select value={monthFilter} onValueChange={setMonthFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs">
               <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All Months</SelectItem>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
-                <SelectItem key={m} value={m.toString()}>
-                  Month {m}
+              {[
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+              ].map((m, idx) => (
+                <SelectItem key={idx + 1} value={(idx + 1).toString()}>
+                  {m}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -335,134 +372,168 @@ export default function ReviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Submissions Queue Table (5 cols on lg) */}
         <div className="lg:col-span-5 space-y-3">
-          <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-4 bg-emerald-900 text-white flex items-center justify-between border-b border-emerald-800">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={submissions.length > 0 && selectedIds.length === submissions.length}
-                  onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-emerald-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                  title="Select All Submissions"
-                />
-                <span className="text-xs font-semibold uppercase tracking-wider">
-                  Submissions Queue ({submissions.length})
-                </span>
-              </div>
-              <span className="text-xs text-emerald-200/80 font-normal">Click item to preview</span>
-            </div>
-
-            {/* Batch Actions Toolbar */}
-            {selectedIds.length > 0 && (
-              <div className="p-3 bg-emerald-800 text-white flex items-center justify-between text-xs border-b border-emerald-700 animate-fadeIn">
-                <span className="font-semibold">{selectedIds.length} station(s) selected</span>
+          <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="p-4 bg-emerald-900 text-white flex items-center justify-between border-b border-emerald-800">
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleBulkAction('APPROVE')}
-                    disabled={bulkActionLoading}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-xs transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Approve Selected ({selectedIds.length})</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedIds([])}
-                    className="px-2.5 py-1.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 font-medium transition cursor-pointer"
-                  >
-                    Clear
-                  </button>
+                  <input
+                    type="checkbox"
+                    checked={submissions.length > 0 && selectedIds.length === submissions.length}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-emerald-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    title="Select All Submissions"
+                  />
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    Submissions Queue ({submissions.length})
+                  </span>
                 </div>
+                <span className="text-xs text-emerald-200/80 font-normal">Click item to preview</span>
               </div>
-            )}
 
-            {loading ? (
-              <div className="py-16 text-center text-xs font-bold text-slate-600">Loading submission queue...</div>
-            ) : submissions.length === 0 ? (
-              <div className="py-16 text-center text-xs font-semibold text-slate-500">No submissions matching filters.</div>
-            ) : (
-              <div className="divide-y divide-slate-200 max-h-[680px] overflow-y-auto">
-                {submissions.map((sub) => {
-                  const isSelected = selectedSub?.id === sub.id;
-                  const isChecked = selectedIds.includes(sub.id);
-                  let parsedNote: any = {};
-                  try {
-                    if (sub.note && sub.note.startsWith('{')) {
-                      parsedNote = JSON.parse(sub.note);
-                    }
-                  } catch (e) {}
-
-                  const staffCategory = sub.staffType || parsedNote.staffType || 'PERMANENT';
-
-                  return (
-                    <div
-                      key={sub.id}
-                      onClick={() => setSelectedSub(sub)}
-                      className={`p-4 cursor-pointer transition flex items-center justify-between gap-3 ${
-                        isSelected
-                          ? 'bg-emerald-50/90 border-l-4 border-emerald-600 shadow-2xs'
-                          : 'hover:bg-slate-50'
-                      }`}
+              {/* Batch Actions Toolbar */}
+              {selectedIds.length > 0 && (
+                <div className="p-3 bg-emerald-800 text-white flex items-center justify-between text-xs border-b border-emerald-700 animate-fadeIn">
+                  <span className="font-semibold">{selectedIds.length} station(s) selected</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleBulkAction('APPROVE')}
+                      disabled={bulkActionLoading}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-xs transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
                     >
-                      <div className="flex items-center gap-3 space-y-0">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onClick={(e) => toggleSelectId(sub.id, e)}
-                          onChange={() => {}}
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600 cursor-pointer shrink-0"
-                        />
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-slate-900">{sub.branch.name}</span>
-                            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                              {sub.branch.code}
-                            </span>
-                            {/* Staff Category Badge */}
-                            <span
-                              className={`px-2 py-0.5 text-[10px] font-medium rounded-md border ${
-                                staffCategory === 'CONTRACT'
-                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Approve Selected ({selectedIds.length})</span>
+                    </button>
+                    <button
+                      onClick={() => setSelectedIds([])}
+                      className="px-2.5 py-1.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 font-medium transition cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {loading ? (
+                <div className="py-16 text-center text-xs font-bold text-slate-600">Loading submission queue...</div>
+              ) : submissions.length === 0 ? (
+                <div className="py-16 text-center text-xs font-semibold text-slate-500">No submissions matching filters.</div>
+              ) : (
+                <div className="divide-y divide-slate-200">
+                  {paginatedSubmissions.map((sub) => {
+                    const isSelected = selectedSub?.id === sub.id;
+                    const isChecked = selectedIds.includes(sub.id);
+                    let parsedNote: any = {};
+                    try {
+                      if (sub.note && sub.note.startsWith('{')) {
+                        parsedNote = JSON.parse(sub.note);
+                      }
+                    } catch (e) {}
+
+                    const staffCategory = sub.staffType || parsedNote.staffType || 'PERMANENT';
+
+                    return (
+                      <div
+                        key={sub.id}
+                        onClick={() => setSelectedSub(sub)}
+                        className={`p-4 cursor-pointer transition flex items-center justify-between gap-3 ${
+                          isSelected
+                            ? 'bg-emerald-50/90 border-l-4 border-emerald-600 shadow-2xs'
+                            : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 space-y-0">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onClick={(e) => toggleSelectId(sub.id, e)}
+                            onChange={() => {}}
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600 cursor-pointer shrink-0"
+                          />
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-slate-900">{sub.branch.name}</span>
+                              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                {sub.branch.code}
+                              </span>
+                              {/* Staff Category Badge */}
+                              <span
+                                className={`px-2 py-0.5 text-[10px] font-medium rounded-md border ${
+                                  staffCategory === 'CONTRACT'
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : staffCategory === 'BOTH'
+                                    ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                    : 'bg-teal-50 text-teal-800 border-teal-200'
+                                }`}
+                              >
+                                {staffCategory === 'CONTRACT'
+                                  ? 'Contract Staff'
                                   : staffCategory === 'BOTH'
-                                  ? 'bg-purple-50 text-purple-800 border-purple-200'
-                                  : 'bg-teal-50 text-teal-800 border-teal-200'
-                              }`}
-                            >
-                              {staffCategory === 'CONTRACT'
-                                ? 'Contract Staff'
-                                : staffCategory === 'BOTH'
-                                ? 'Permanent & Contract'
-                                : 'Permanent Staff'}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-normal flex items-center gap-2">
-                            <span>{sub.branch.region.name}</span>
-                            <span>•</span>
-                            <span>
-                              {sub.month}/{sub.year} Cycle
-                            </span>
+                                  ? 'Permanent & Contract'
+                                  : 'Permanent Staff'}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-normal flex items-center gap-2">
+                              <span>{sub.branch.region.name}</span>
+                              <span>•</span>
+                              <span>
+                                {MONTH_NAMES[sub.month - 1] || sub.month} {sub.year} Cycle
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span
-                          className={`px-2.5 py-1 text-[10px] font-normal rounded-lg border ${
-                            sub.status === 'APPROVED'
-                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                              : sub.status === 'PENDING'
-                              ? 'bg-amber-100 text-amber-900 border-amber-300'
-                              : 'bg-rose-100 text-rose-900 border-rose-300'
-                          }`}
-                        >
-                          {sub.status === 'APPROVED' && 'Approved'}
-                          {sub.status === 'PENDING' && 'Pending'}
-                          {sub.status === 'REJECTED' && 'Needs Correction'}
-                        </span>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`px-2.5 py-1 text-[10px] font-semibold rounded-lg border ${
+                              sub.status === 'APPROVED'
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                : sub.status === 'PENDING'
+                                ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                : 'bg-rose-100 text-rose-900 border-rose-300'
+                            }`}
+                          >
+                            {sub.status === 'APPROVED' && 'Approved'}
+                            {sub.status === 'PENDING' && 'Pending'}
+                            {sub.status === 'REJECTED' && 'Needs Correction'}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {submissions.length > 0 && (
+              <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                <span>
+                  Page <span className="font-semibold">{queuePage}</span> of{' '}
+                  <span className="font-semibold">{totalPages}</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={queuePage === 1}
+                    onClick={() => setQueuePage((p) => Math.max(p - 1, 1))}
+                    className="h-8 px-2.5 text-xs flex items-center gap-1"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Prev
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={queuePage >= totalPages}
+                    onClick={() => setQueuePage((p) => Math.min(p + 1, totalPages))}
+                    className="h-8 px-2.5 text-xs flex items-center gap-1"
+                  >
+                    Next
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -482,7 +553,7 @@ export default function ReviewPage() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1 font-normal">
-                    {selectedSub.month}/{selectedSub.year} Cycle • Uploaded by {selectedSub.uploadedBy.name}
+                    {MONTH_NAMES[selectedSub.month - 1] || selectedSub.month} {selectedSub.year} Cycle • Uploaded by {selectedSub.uploadedBy?.name || selectedSub.uploadedBy?.email || 'Station Manager'}
                   </p>
                 </div>
 
@@ -490,9 +561,9 @@ export default function ReviewPage() {
                   <a
                     href={`/api/submissions/${selectedSub.id}/file`}
                     download={selectedSub.fileName}
-                    className="px-3.5 py-2 text-xs font-normal rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition flex items-center gap-1.5"
+                    className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-sm"
                   >
-                    <Download className="h-4 w-4 text-emerald-400" />
+                    <Download className="h-4 w-4 text-emerald-100" />
                     <span>Download PDF</span>
                   </a>
                 </div>
@@ -601,9 +672,19 @@ export default function ReviewPage() {
                   </div>
                 )}
 
-                {rejecting ? (
+                {currentUser?.role === 'FINANCE_OFFICER' ? (
+                  <div className="p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-700/60 text-emerald-100 text-xs font-normal flex items-center gap-3">
+                    <ShieldCheck className="h-5 w-5 text-teal-300 shrink-0" />
+                    <div>
+                      <div className="font-bold text-white">Finance Officer View-Only Mode</div>
+                      <div className="text-[11px] text-emerald-200/90 mt-0.5">
+                        You have read-only access to inspect uploaded payroll validation documents. Approval and rejection actions are managed by HR Administration.
+                      </div>
+                    </div>
+                  </div>
+                ) : rejecting ? (
                   <div className="space-y-3">
-                    <label className="block text-xs font-black text-rose-300">
+                    <label className="block text-xs font-semibold text-rose-300">
                       Rejection Reason (Mandatory note sent to Station Manager):
                     </label>
                     <textarea
@@ -620,14 +701,14 @@ export default function ReviewPage() {
                           setRejecting(false);
                           setReviewNotes('');
                         }}
-                        className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
+                        className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleReviewAction('REJECT')}
                         disabled={actionLoading || !reviewNotes.trim()}
-                        className="px-4 py-2 text-xs font-black rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-md disabled:opacity-50 transition cursor-pointer"
+                        className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-md disabled:opacity-50 transition cursor-pointer"
                       >
                         Confirm Rejection
                       </button>
@@ -638,7 +719,7 @@ export default function ReviewPage() {
                     <button
                       onClick={() => setRejecting(true)}
                       disabled={actionLoading}
-                      className="px-4 py-2.5 text-xs font-black rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition flex items-center gap-2 cursor-pointer"
+                      className="px-4 py-2.5 text-xs font-bold rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition flex items-center gap-2 cursor-pointer"
                     >
                       <XCircle className="h-4 w-4" />
                       <span>Reject & Require Resubmission</span>
@@ -647,7 +728,7 @@ export default function ReviewPage() {
                     <button
                       onClick={() => handleReviewAction('APPROVE')}
                       disabled={actionLoading}
-                      className="px-5 py-2.5 text-xs font-black rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+                      className="px-5 py-2.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
                     >
                       <CheckCircle2 className="h-4 w-4" />
                       <span>Approve Submission</span>

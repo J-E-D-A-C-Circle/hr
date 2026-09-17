@@ -19,6 +19,9 @@ export async function GET(request: Request) {
     const branchId = searchParams.get('branchId') || undefined;
     const query = searchParams.get('q') || undefined;
 
+    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50;
+
     // Scope rules: If authenticated as Station Manager, force their own branch
     let effectiveBranchId = branchId;
     if (session && session.role === 'STATION_MANAGER') {
@@ -42,6 +45,8 @@ export async function GET(request: Request) {
       ];
     }
 
+    const totalCount = await prisma.submission.count({ where });
+
     const submissions = await prisma.submission.findMany({
       where,
       include: {
@@ -56,9 +61,19 @@ export async function GET(request: Request) {
         },
       },
       orderBy: [{ year: 'desc' }, { month: 'desc' }, { uploadedAt: 'desc' }],
+      skip: limit > 0 ? (page - 1) * limit : 0,
+      take: limit > 0 ? limit : undefined,
     });
 
-    return NextResponse.json({ submissions });
+    return NextResponse.json({
+      submissions,
+      pagination: {
+        totalCount,
+        page,
+        limit,
+        totalPages: limit > 0 ? Math.ceil(totalCount / limit) : 1,
+      },
+    });
   } catch (error) {
     console.error('Error fetching submissions:', error);
     return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 });
@@ -85,10 +100,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File, month, and year are required' }, { status: 400 });
     }
 
-    // Check size limit: 15MB
-    const MAX_SIZE = 15 * 1024 * 1024;
+    // Check size limit: 30MB
+    const MAX_SIZE = 30 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File size exceeds maximum 15MB limit' }, { status: 400 });
+      return NextResponse.json({ error: 'File size exceeds maximum 30MB limit' }, { status: 400 });
     }
 
     // Validate mime type / filename
@@ -134,6 +149,11 @@ export async function POST(request: Request) {
     });
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+    // Security: Check PDF magic header bytes (%PDF-)
+    if (fileBuffer.length < 5 || fileBuffer.toString('utf-8', 0, 5) !== '%PDF-') {
+      return NextResponse.json({ error: 'Uploaded file is not a valid PDF document' }, { status: 400 });
+    }
 
     // Run OCR Legibility check
     const ocrResult = await checkPDFLegibility(fileBuffer);

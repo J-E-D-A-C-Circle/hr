@@ -5,20 +5,14 @@ import { useRouter } from 'next/navigation';
 import {
   ShieldAlert,
   Search,
-  Filter,
-  User,
-  Clock,
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Upload,
-  Bell,
-  Database,
-  Terminal,
   RefreshCw,
   Archive,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import AuditZipExportModal from '@/components/AuditZipExportModal';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectTrigger,
@@ -42,12 +36,17 @@ interface AuditLog {
   };
 }
 
+const ITEMS_PER_PAGE = 12;
+
 export default function AuditPage() {
   const router = useRouter();
 
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showZipModal, setShowZipModal] = useState(false);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
 
   const [actionFilter, setActionFilter] = useState('ALL');
   const [targetTypeFilter, setTargetTypeFilter] = useState('ALL');
@@ -65,6 +64,10 @@ export default function AuditPage() {
       });
   }, [actionFilter, targetTypeFilter]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [actionFilter, targetTypeFilter, searchQuery]);
+
   const loadAuditLogs = async () => {
     setLoading(true);
     try {
@@ -80,6 +83,7 @@ export default function AuditPage() {
       }
     } catch (e) {
       console.error('Failed to load audit logs:', e);
+      toast.error('Failed to load audit logs');
     } finally {
       setLoading(false);
     }
@@ -105,8 +109,12 @@ export default function AuditPage() {
     EXEC: 'HR Admin',
   };
 
+  // Pagination slicing
+  const totalPages = Math.ceil(logs.length / ITEMS_PER_PAGE) || 1;
+  const paginatedLogs = logs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Zip Export Modal */}
       <AuditZipExportModal isOpen={showZipModal} onClose={() => setShowZipModal(false)} />
 
@@ -116,10 +124,10 @@ export default function AuditPage() {
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs">
               <ShieldAlert className="h-3.5 w-3.5 text-emerald-300" />
-              Activity Log
+              History Logs
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">Audit Trail Log</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-normal">History Logs</h1>
           <p className="text-xs sm:text-sm text-emerald-100/90 font-normal max-w-2xl mt-1">
             Complete history of form uploads, approvals, rejections, and user logins.
           </p>
@@ -128,7 +136,7 @@ export default function AuditPage() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setShowZipModal(true)}
-            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"
           >
             <Archive className="h-4 w-4 text-emerald-200" />
             <span>Download Zip Files for Audit</span>
@@ -136,10 +144,10 @@ export default function AuditPage() {
 
           <button
             onClick={loadAuditLogs}
-            className="px-4 py-2.5 text-xs font-normal rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
+            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white border border-emerald-800 transition flex items-center gap-2 shadow-md cursor-pointer"
           >
             <RefreshCw className="h-4 w-4 text-emerald-300" />
-            <span>Refresh Audit Log</span>
+            <span>Refresh History Logs</span>
           </button>
         </div>
       </div>
@@ -162,7 +170,7 @@ export default function AuditPage() {
         <div className="space-y-1 min-w-[140px]">
           <label className="block text-[11px] text-slate-500 font-normal">Action</label>
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs">
               <SelectValue placeholder="Action" />
             </SelectTrigger>
             <SelectContent>
@@ -181,7 +189,7 @@ export default function AuditPage() {
         <div className="space-y-1 min-w-[140px]">
           <label className="block text-[11px] text-slate-500 font-normal">Target Type</label>
           <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs">
               <SelectValue placeholder="Target" />
             </SelectTrigger>
             <SelectContent>
@@ -196,7 +204,7 @@ export default function AuditPage() {
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
@@ -211,17 +219,17 @@ export default function AuditPage() {
             {loading ? (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-slate-500 font-sans">
-                  Loading audit logs...
+                  Loading history logs...
                 </td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-slate-500 font-sans">
-                  No audit log entries matching filters.
+                  No history log entries matching filters.
                 </td>
               </tr>
             ) : (
-              logs.map((log) => {
+              paginatedLogs.map((log) => {
                 let parsedMeta = null;
                 if (log.metadata) {
                   try {
@@ -273,6 +281,43 @@ export default function AuditPage() {
             )}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        {logs.length > 0 && (
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+            <div>
+              Showing <span className="font-semibold">{((page - 1) * ITEMS_PER_PAGE) + 1}</span> to{' '}
+              <span className="font-semibold">{Math.min(page * ITEMS_PER_PAGE, logs.length)}</span> of{' '}
+              <span className="font-semibold">{logs.length}</span> log entries
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                className="h-8 px-3 text-xs flex items-center gap-1"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Previous
+              </Button>
+              <span className="text-slate-700 font-medium px-2">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                className="h-8 px-3 text-xs flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

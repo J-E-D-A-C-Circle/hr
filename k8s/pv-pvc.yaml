@@ -1,0 +1,27 @@
+---
+# PersistentVolumeClaim for SQLite Database storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hr-validation-db-pvc
+  namespace: hr-validation
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# PersistentVolumeClaim for Uploaded Files storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hr-validation-uploads-pvc
+  namespace: hr-validation
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi

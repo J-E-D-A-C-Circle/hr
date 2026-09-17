@@ -16,6 +16,7 @@ import {
   ChevronRight,
   X,
   UserCheck,
+  FolderKanban,
 } from 'lucide-react';
 
 interface UserSession {
@@ -29,6 +30,8 @@ interface UserSession {
 interface SidebarProps {
   mobileOpen?: boolean;
   setMobileOpen?: (open: boolean) => void;
+  collapsed?: boolean;
+  setCollapsed?: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 interface NavItem {
@@ -40,11 +43,20 @@ interface NavItem {
   activeMatch: (p: string) => boolean;
 }
 
-export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarProps) {
+export default function Sidebar({
+  mobileOpen = false,
+  setMobileOpen,
+  collapsed: externalCollapsed,
+  setCollapsed: externalSetCollapsed,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<UserSession | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
+
+  // Internal state fallback if props not provided
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
+  const setCollapsed = externalSetCollapsed || setInternalCollapsed;
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -70,48 +82,72 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
   }
 
   const isHrAdmin = user?.role === 'HR_ADMIN';
+  const isFinanceOfficer = user?.role === 'FINANCE_OFFICER';
 
   const mainNav: NavItem[] = [
-    {
-      name: 'Review Queue',
-      href: '/review',
-      icon: ClipboardCheck,
-      badge: 'Review',
-      badgeColor: 'bg-emerald-800 text-emerald-200 border-emerald-700',
-      activeMatch: (p: string) => p === '/review',
-    },
+    ...(isHrAdmin
+      ? [
+          {
+            name: 'Dashboard',
+            href: '/admin',
+            icon: LayoutGrid,
+            activeMatch: (p: string) => p === '/admin',
+          },
+          {
+            name: 'Review Queue',
+            href: '/review',
+            icon: ClipboardCheck,
+            badge: 'HR',
+            badgeColor: 'bg-emerald-800 text-emerald-200 border-emerald-700',
+            activeMatch: (p: string) => p === '/review',
+          },
+        ]
+      : isFinanceOfficer
+      ? [
+          {
+            name: 'Review Queue',
+            href: '/review',
+            icon: ClipboardCheck,
+            badge: 'Finance',
+            badgeColor: 'bg-teal-800 text-teal-200 border-teal-700',
+            activeMatch: (p: string) => p === '/review',
+          },
+        ]
+      : [
+          {
+            name: 'Upload Portal',
+            href: '/upload',
+            icon: FileUp,
+            activeMatch: (p: string) => p === '/' || p === '/upload',
+          },
+        ]),
     {
       name: 'Compliance Grid',
       href: '/compliance',
-      icon: LayoutGrid,
-      badge: 'Matrix',
-      badgeColor: 'bg-emerald-800 text-emerald-200 border-emerald-700',
+      icon: FileCheck2,
       activeMatch: (p: string) => p === '/compliance',
-    },
-    {
-      name: 'Public Form Preview',
-      href: '/upload',
-      icon: FileUp,
-      badge: 'Public',
-      badgeColor: 'bg-emerald-800 text-emerald-200 border-emerald-700',
-      activeMatch: (p: string) => p === '/' || p === '/upload',
     },
   ];
 
-  const adminNav: NavItem[] = [
-    {
-      name: 'Station Directory',
-      href: '/admin/branches-users',
-      icon: Building2,
-      activeMatch: (p: string) => p === '/admin/branches-users',
-    },
-    {
-      name: 'Audit Trail Log',
-      href: '/admin/audit',
-      icon: ShieldAlert,
-      activeMatch: (p: string) => p === '/admin/audit',
-    },
-  ];
+  const adminNav: NavItem[] = isHrAdmin
+    ? [
+        {
+          name: 'Content Management',
+          href: '/admin/content-management',
+          icon: FolderKanban,
+          activeMatch: (p: string) =>
+            p.startsWith('/admin/content-management') ||
+            p === '/admin/branches-users' ||
+            p === '/admin/deadlines',
+        },
+        {
+          name: 'History Logs',
+          href: '/admin/audit',
+          icon: ShieldAlert,
+          activeMatch: (p: string) => p === '/admin/audit',
+        },
+      ]
+    : [];
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -133,34 +169,34 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
           key={item.href}
           href={item.href}
           onClick={() => setMobileOpen?.(false)}
-          title={collapsed ? item.name : undefined}
-          className={`group flex items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm transition-all duration-150 ${
+          className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-semibold transition-all duration-200 ${
             isActive
-              ? 'bg-emerald-800 text-white border border-emerald-700 shadow-sm'
-              : 'text-emerald-100 hover:bg-emerald-800/50 hover:text-white border border-transparent'
+              ? 'bg-white text-emerald-900 shadow-md font-bold'
+              : 'text-emerald-100/90 hover:bg-emerald-800/70 hover:text-white'
           }`}
+          title={collapsed ? item.name : undefined}
         >
-          <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${
+          <Icon
+            className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
               isActive
-                ? 'bg-white text-emerald-900 shadow-xs'
-                : 'bg-emerald-950/40 text-emerald-200 group-hover:bg-emerald-800 group-hover:text-white'
+                ? 'text-emerald-700 scale-110'
+                : 'text-emerald-300 group-hover:scale-110 group-hover:text-white'
             }`}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-          </div>
-
+          />
           {!collapsed && (
-            <div className="flex flex-1 items-center justify-between overflow-hidden">
-              <span className="truncate">{item.name}</span>
-              {item.badge && (
-                <span
-                  className={`ml-2 shrink-0 rounded-md border px-2 py-0.5 text-xs ${item.badgeColor}`}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </div>
+            <span className="flex-1 truncate tracking-normal font-semibold">
+              {item.name}
+            </span>
+          )}
+
+          {!collapsed && item.badge && (
+            <span
+              className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+                item.badgeColor || 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30'
+              }`}
+            >
+              {item.badge}
+            </span>
           )}
         </Link>
       );
@@ -176,19 +212,14 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
             href="/"
             className="flex items-center gap-3 transition group overflow-hidden"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-900 shadow-md group-hover:scale-105 transition-transform">
-              <FileCheck2 className="h-5 w-5 text-emerald-800" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-md group-hover:scale-105 transition-transform overflow-hidden">
+              <img src="/oop.png" alt="PVC Portal Logo" className="h-full w-full object-contain" />
             </div>
             {!collapsed && (
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg text-white">
-                    PVC Portal
-                  </span>
-                  <span className="rounded-md bg-emerald-800 px-1.5 py-0.5 text-xs text-emerald-200 border border-emerald-700">
-                    v1.0
-                  </span>
-                </div>
+                <span className="text-lg text-white font-semibold">
+                  PVC Portal
+                </span>
                 <span className="text-xs text-emerald-200/80 truncate">
                   Payroll Validation Collection
                 </span>
@@ -232,12 +263,12 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
             <nav className="space-y-1">{renderNavLinks(mainNav)}</nav>
           </div>
 
-          {/* Admin Navigation Group */}
+          {/* Content Management Navigation Group */}
           {adminNav.length > 0 && (
             <div>
               {!collapsed && (
                 <h2 className="mb-2 px-3 text-xs uppercase tracking-wider text-emerald-300/80">
-                  Administration
+                  Content Management
                 </h2>
               )}
               <nav className="space-y-1">{renderNavLinks(adminNav)}</nav>
@@ -251,20 +282,20 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
         {user ? (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-900 text-xs shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-800 text-emerald-100 font-bold border border-emerald-700 text-xs shadow-inner">
                 {getInitials(user.name)}
               </div>
-
               {!collapsed && (
-                <div className="flex flex-col truncate">
-                  <span className="text-xs text-white truncate">
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-xs font-bold text-white truncate">
                     {user.name}
                   </span>
-                  <span className="text-xs text-emerald-200/80 truncate">
-                    {user.branchName || user.email}
-                  </span>
-                  <span className="inline-block mt-0.5 text-xs text-emerald-300 uppercase tracking-wider">
-                    {user.role === 'HR_ADMIN' ? 'HR Administrator' : 'Station Manager'}
+                  <span className="text-[10px] text-emerald-300 truncate">
+                    {user.role === 'HR_ADMIN'
+                      ? 'HR Administrator'
+                      : user.role === 'FINANCE_OFFICER'
+                      ? 'Finance Officer'
+                      : user.branchName || 'Station Manager'}
                   </span>
                 </div>
               )}
@@ -283,7 +314,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
         ) : (
           <Link
             href="/login"
-            className="flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-emerald-50 py-2.5 text-xs text-emerald-900 transition shadow-sm"
+            className="flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-emerald-50 py-2.5 text-xs text-emerald-900 font-semibold transition shadow-sm"
           >
             <UserCheck className="h-4 w-4" />
             {!collapsed && <span>Sign In</span>}
@@ -295,7 +326,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
 
   return (
     <>
-      {/* Desktop Fixed Sidebar (w-80) */}
+      {/* Desktop Fixed Sidebar */}
       <aside
         className={`hidden lg:block fixed left-0 top-0 bottom-0 z-30 transition-all duration-300 ${
           collapsed ? 'w-20' : 'w-80'

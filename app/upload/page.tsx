@@ -26,6 +26,18 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectTrigger,
@@ -151,8 +163,8 @@ export default function PublicValidationFormPage() {
         setSubmitError('Please select a valid PDF file (.pdf)');
         return;
       }
-      if (file.size > 15 * 1024 * 1024) {
-        setSubmitError('File size exceeds 15MB limit.');
+      if (file.size > 30 * 1024 * 1024) {
+        setSubmitError('File size exceeds 30MB limit.');
         return;
       }
       setPdfFile(file);
@@ -428,10 +440,17 @@ export default function PublicValidationFormPage() {
           </button>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-normal text-white">Station Payroll Validation Form</h1>
-        <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed max-w-2xl font-normal">
-          Select your station, enter monthly payroll declaration details, and attach your physical signed PDF scan (or generate a PDF from up to 12 photo scans).
-        </p>
+        <div className="flex items-center gap-3 pt-1">
+          <div className="h-12 w-12 rounded-2xl bg-white p-1.5 shadow-md flex items-center justify-center shrink-0 border border-emerald-700 overflow-hidden">
+            <img src="/oop.png" alt="PVC Portal Logo" className="h-full w-full object-contain" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-normal text-white">Station Payroll Validation Form</h1>
+            <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed max-w-2xl font-normal">
+              Select your station, enter monthly payroll declaration details, and attach your physical signed PDF scan (or generate a PDF from up to 12 photo scans).
+            </p>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -490,7 +509,7 @@ export default function PublicValidationFormPage() {
                       'July', 'August', 'September', 'October', 'November', 'December'
                     ].map((m, idx) => (
                       <SelectItem key={idx + 1} value={(idx + 1).toString()}>
-                        {m} ({idx + 1})
+                        {m}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -644,7 +663,7 @@ export default function PublicValidationFormPage() {
                   <div className="text-xs font-normal text-slate-900">
                     Click to select PDF document or drag file here
                   </div>
-                  <div className="text-xs text-slate-500 mt-1">Official signed PDF scan up to 15MB</div>
+                  <div className="text-xs text-slate-500 mt-1">Official signed PDF scan up to 30MB</div>
                 </div>
               </div>
 

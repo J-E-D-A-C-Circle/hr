@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hr-validation-app
+  namespace: hr-validation
+  labels:
+    app.kubernetes.io/name: hr-validation-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hr-validation-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: hr-validation-app
+      annotations:
+        build: "v2"
+    spec:
+      containers:
+        - name: hr-validation
+          image: hr-validation-app:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: hr-validation-config
+            - secretRef:
+                name: hr-validation-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: db-storage
+              mountPath: /app/prisma
+            - name: uploads-storage
+              mountPath: /app/uploads
+      volumes:
+        - name: db-storage
+          persistentVolumeClaim:
+            claimName: hr-validation-db-pvc
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: hr-validation-uploads-pvc

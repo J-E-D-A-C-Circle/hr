@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 
-export type Role = 'STATION_MANAGER' | 'HR_ADMIN';
+export type Role = 'STATION_MANAGER' | 'HR_ADMIN' | 'FINANCE_OFFICER';
 
 const SECRET_KEY = process.env.NEXTAUTH_SECRET || 'pvc-super-secret-jwt-key-2026-development';
 
@@ -26,7 +26,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-// Simple crypto-signed payload for server session token
+// Secure crypto-signed payload for server session token
 export function encryptSession(session: UserSession): string {
   const payloadStr = JSON.stringify({ ...session, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   const hmac = crypto.createHmac('sha256', SECRET_KEY).update(payloadStr).digest('hex');
@@ -36,11 +36,19 @@ export function encryptSession(session: UserSession): string {
 export function decryptSession(token: string): UserSession | null {
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const parts = decoded.split('::');
-    if (parts.length !== 2) return null;
-    const [payloadStr, hmac] = parts;
+    const lastSepIndex = decoded.lastIndexOf('::');
+    if (lastSepIndex === -1) return null;
+    const payloadStr = decoded.substring(0, lastSepIndex);
+    const hmac = decoded.substring(lastSepIndex + 2);
+
     const expectedHmac = crypto.createHmac('sha256', SECRET_KEY).update(payloadStr).digest('hex');
-    if (hmac !== expectedHmac) return null;
+    const hmacBuf = Buffer.from(hmac, 'utf-8');
+    const expectedBuf = Buffer.from(expectedHmac, 'utf-8');
+
+    if (hmacBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(hmacBuf, expectedBuf)) {
+      return null;
+    }
+
     const payload = JSON.parse(payloadStr);
     if (payload.exp && Date.now() > payload.exp) return null;
     return payload as UserSession;

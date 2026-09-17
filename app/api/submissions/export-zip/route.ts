@@ -106,9 +106,9 @@ export async function GET(request: Request) {
 
       manifestRows.push({
         'Submission ID': sub.id,
-        'Station Name': sub.branch.name,
-        'Station Code': sub.branch.code,
-        'Region': sub.branch.region.name,
+        'Station Name': sub.branch?.name || 'Unknown',
+        'Station Code': sub.branch?.code || 'N/A',
+        'Region': sub.branch?.region?.name || 'N/A',
         'Month': monthName,
         'Year': sub.year,
         'Staff Category': staffTypeLabel,
@@ -116,7 +116,7 @@ export async function GET(request: Request) {
         'Status': sub.status,
         'File Name': sub.fileName,
         'Uploaded Date': new Date(sub.uploadedAt).toLocaleString(),
-        'Uploaded By': sub.uploadedBy.name,
+        'Uploaded By': sub.uploadedBy?.name || sub.uploadedBy?.email || 'N/A',
         'Reviewed Date': sub.reviewedAt ? new Date(sub.reviewedAt).toLocaleString() : 'N/A',
         'Reviewer Name': sub.reviewer?.name || 'N/A',
         'Reviewer Notes': sub.reviewerNotes || 'None',
@@ -130,7 +130,7 @@ export async function GET(request: Request) {
 
       if (fs.existsSync(fullPath)) {
         const fileContent = fs.readFileSync(fullPath);
-        const zipFileName = `${sub.branch.code}_${sub.year}_M${String(sub.month).padStart(2, '0')}_${sub.fileName}`;
+        const zipFileName = `${sub.branch?.code || 'STATION'}_${sub.year}_M${String(sub.month).padStart(2, '0')}_${sub.fileName}`;
         filesFolder?.file(zipFileName, fileContent);
       }
     }

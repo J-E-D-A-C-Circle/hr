@@ -45,8 +45,13 @@ export async function POST(
         reviewedAt: new Date(),
       },
       include: {
-        branch: true,
-        reviewer: { select: { id: true, name: true } },
+        branch: {
+          include: {
+            region: true,
+          },
+        },
+        uploadedBy: { select: { id: true, name: true, email: true } },
+        reviewer: { select: { id: true, name: true, email: true } },
       },
     });
 
