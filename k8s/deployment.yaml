@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
         - name: hr-validation
-          image: hr-validation-app:v1
-          imagePullPolicy: IfNotPresent
+          image: hr-validation-app:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 3000
               name: http
@@ -52,7 +52,7 @@ spec:
             periodSeconds: 20
           volumeMounts:
             - name: db-storage
-              mountPath: /app/prisma
+              mountPath: /app/db
             - name: uploads-storage
               mountPath: /app/uploads
       volumes:

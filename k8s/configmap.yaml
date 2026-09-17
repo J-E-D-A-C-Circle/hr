@@ -6,4 +6,4 @@ metadata:
 data:
   NODE_ENV: "production"
   PORT: "3000"
-  DATABASE_URL: "file:/app/prisma/dev.db"
+  DATABASE_URL: "file:/app/db/sqlite.db"

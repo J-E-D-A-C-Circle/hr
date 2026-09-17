@@ -17,9 +17,13 @@ if command -v microk8s &> /dev/null; then
     KUBECTL="microk8s kubectl"
 elif command -v k3s &> /dev/null; then
     echo "📦 Detected K3s on Ubuntu server."
-    echo "🔨 Building Docker image and importing to K3s..."
+    echo "🔨 Building Docker image and importing to K3s (k8s.io namespace)..."
     docker build -t hr-validation-app:latest .
-    docker save hr-validation-app:latest | sudo k3s ctr images import -
+    if sudo k3s image import --help &> /dev/null; then
+        docker save hr-validation-app:latest | sudo k3s image import -
+    else
+        docker save hr-validation-app:latest | sudo k3s ctr -n k8s.io images import -
+    fi
     KUBECTL="k3s kubectl"
 else
     echo "📦 Standard Docker & kubectl environment detected."
@@ -36,6 +40,9 @@ $KUBECTL apply -f k8s/pv-pvc.yaml
 $KUBECTL apply -f k8s/deployment.yaml
 $KUBECTL apply -f k8s/service.yaml
 $KUBECTL apply -f k8s/ingress.yaml
+
+echo "🔄 Triggering pod rollout restart..."
+$KUBECTL rollout restart deployment/hr-validation-app -n hr-validation
 
 echo "⏳ Waiting for deployment rollout to complete..."
 $KUBECTL rollout status deployment/hr-validation-app -n hr-validation --timeout=120s
