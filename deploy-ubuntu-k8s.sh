@@ -13,28 +13,30 @@ echo "============================================================"
 echo "🔨 Building Docker image..."
 docker build -t nss-portal-app:latest .
 
-# Determine Kubernetes CLI tool
-if command -v k3s &> /dev/null || [ -f /usr/local/bin/k3s ]; then
-    echo "📦 Detected K3s on Ubuntu server."
-    echo "📥 Importing Docker image to K3s (k8s.io namespace)..."
+# Determine Kubernetes CLI tool & import method
+if command -v kubectl &> /dev/null; then
+    echo "📦 Standard kubectl detected."
+    KUBECTL="kubectl"
+elif command -v k3s &> /dev/null; then
+    echo "📦 Detected K3s on server."
     if sudo k3s image import --help &> /dev/null 2>&1; then
         docker save nss-portal-app:latest | sudo k3s image import -
     else
         docker save nss-portal-app:latest | sudo k3s ctr -n k8s.io images import -
     fi
-    KUBECTL="sudo k3s kubectl"
+    KUBECTL="k3s kubectl"
+elif [ -x /usr/local/bin/k3s ]; then
+    echo "📦 Detected K3s at /usr/local/bin/k3s."
+    docker save nss-portal-app:latest | sudo /usr/local/bin/k3s ctr -n k8s.io images import -
+    KUBECTL="sudo /usr/local/bin/k3s kubectl"
 elif command -v microk8s &> /dev/null; then
-    echo "📦 Detected MicroK8s on Ubuntu server."
-    echo "📥 Importing image to MicroK8s..."
+    echo "📦 Detected MicroK8s on server."
     microk8s ctr image build -t nss-portal-app:latest .
     KUBECTL="microk8s kubectl"
-elif command -v kubectl &> /dev/null; then
-    echo "📦 Standard Docker & kubectl environment detected."
-    KUBECTL="kubectl"
-elif sudo kubectl version --client &> /dev/null 2>&1; then
-    KUBECTL="sudo kubectl"
+elif [ -x /usr/local/bin/kubectl ]; then
+    KUBECTL="/usr/local/bin/kubectl"
 else
-    KUBECTL="sudo k3s kubectl"
+    KUBECTL="kubectl"
 fi
 
 echo "📄 Applying Kubernetes manifests using $KUBECTL..."
