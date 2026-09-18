@@ -13,33 +13,31 @@ echo "============================================================"
 echo "🔨 Building Docker image..."
 docker build -t nss-portal-app:latest .
 
-# Detect available Kubernetes CLI tool
-KUBECTL=""
+# Dynamically locate K3s or kubectl binary
+K3S_PATH=$(which k3s 2>/dev/null || find /usr -name k3s 2>/dev/null | head -n 1 || echo "")
+KUBECTL_PATH=$(which kubectl 2>/dev/null || find /usr -name kubectl 2>/dev/null | head -n 1 || echo "")
 
-if [ -x /usr/local/bin/k3s ] || command -v k3s &> /dev/null; then
-    K3S_BIN=$(command -v k3s || echo "/usr/local/bin/k3s")
-    echo "📦 Detected K3s ($K3S_BIN)."
+if [ -n "$K3S_PATH" ]; then
+    echo "📦 Detected K3s at $K3S_PATH."
     echo "📥 Importing Docker image into K3s (k8s.io containerd namespace)..."
-    if sudo $K3S_BIN image import --help &> /dev/null 2>&1; then
-        docker save nss-portal-app:latest | sudo $K3S_BIN image import -
+    if sudo $K3S_PATH image import --help &> /dev/null 2>&1; then
+        docker save nss-portal-app:latest | sudo $K3S_PATH image import -
     else
-        docker save nss-portal-app:latest | sudo $K3S_BIN ctr -n k8s.io images import -
+        docker save nss-portal-app:latest | sudo $K3S_PATH ctr -n k8s.io images import -
     fi
-    KUBECTL="sudo $K3S_BIN kubectl"
+    KUBECTL="sudo $K3S_PATH kubectl"
 elif command -v microk8s &> /dev/null; then
     echo "📦 Detected MicroK8s."
     microk8s ctr image build -t nss-portal-app:latest .
     KUBECTL="microk8s kubectl"
-elif command -v kubectl &> /dev/null; then
-    echo "📦 Standard kubectl detected."
-    KUBECTL="kubectl"
-elif [ -x /usr/local/bin/kubectl ]; then
-    KUBECTL="/usr/local/bin/kubectl"
-elif [ -x /usr/bin/kubectl ]; then
-    KUBECTL="/usr/bin/kubectl"
+elif [ -n "$KUBECTL_PATH" ]; then
+    echo "📦 Standard kubectl detected at $KUBECTL_PATH."
+    KUBECTL="$KUBECTL_PATH"
 else
-    echo "⚠️ Kubernetes CLI not found in PATH. Defaulting to 'sudo k3s kubectl'."
-    KUBECTL="sudo /usr/local/bin/k3s kubectl"
+    echo "❌ Error: Neither K3s nor kubectl was found on this server."
+    echo "👉 To install K3s on this Ubuntu server, run:"
+    echo "   curl -sfL https://get.k3s.io | sh -"
+    exit 1
 fi
 
 echo "📄 Applying Kubernetes manifests using $KUBECTL..."
