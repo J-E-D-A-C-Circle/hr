@@ -9,30 +9,35 @@ echo "============================================================"
 echo "🚀 Starting DVLA NSS Portal Kubernetes Deployment"
 echo "============================================================"
 
-# Check if Docker or MicroK8s container tool is available
-if command -v microk8s &> /dev/null; then
-    echo "📦 Detected MicroK8s on Ubuntu server."
-    echo "🔨 Building Docker container image directly into MicroK8s..."
-    microk8s ctr image build -t nss-portal-app:latest .
-    KUBECTL="microk8s kubectl"
-elif command -v k3s &> /dev/null; then
+# Build image
+echo "🔨 Building Docker image..."
+docker build -t nss-portal-app:latest .
+
+# Determine Kubernetes CLI tool
+if command -v k3s &> /dev/null || [ -f /usr/local/bin/k3s ]; then
     echo "📦 Detected K3s on Ubuntu server."
-    echo "🔨 Building Docker image and importing to K3s (k8s.io namespace)..."
-    docker build -t nss-portal-app:latest .
-    if sudo k3s image import --help &> /dev/null; then
+    echo "📥 Importing Docker image to K3s (k8s.io namespace)..."
+    if sudo k3s image import --help &> /dev/null 2>&1; then
         docker save nss-portal-app:latest | sudo k3s image import -
     else
         docker save nss-portal-app:latest | sudo k3s ctr -n k8s.io images import -
     fi
-    KUBECTL="k3s kubectl"
-else
+    KUBECTL="sudo k3s kubectl"
+elif command -v microk8s &> /dev/null; then
+    echo "📦 Detected MicroK8s on Ubuntu server."
+    echo "📥 Importing image to MicroK8s..."
+    microk8s ctr image build -t nss-portal-app:latest .
+    KUBECTL="microk8s kubectl"
+elif command -v kubectl &> /dev/null; then
     echo "📦 Standard Docker & kubectl environment detected."
-    echo "🔨 Building Docker image..."
-    docker build -t nss-portal-app:latest .
     KUBECTL="kubectl"
+elif sudo kubectl version --client &> /dev/null 2>&1; then
+    KUBECTL="sudo kubectl"
+else
+    KUBECTL="sudo k3s kubectl"
 fi
 
-echo "📄 Applying Kubernetes manifests..."
+echo "📄 Applying Kubernetes manifests using $KUBECTL..."
 $KUBECTL apply -f k8s/namespace.yaml
 $KUBECTL apply -f k8s/configmap.yaml
 $KUBECTL apply -f k8s/secret.yaml
