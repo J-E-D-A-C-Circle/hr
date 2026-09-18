@@ -49,11 +49,14 @@ $KUBECTL apply -f k8s/mysql-deployment.yaml
 $KUBECTL apply -f k8s/deployment.yaml
 $KUBECTL apply -f k8s/service.yaml
 
-echo "🔄 Triggering pod rollout restart..."
+echo "⏳ Waiting for MySQL database initialization..."
+$KUBECTL rollout status deployment/nss-mysql-app -n nss-portal --timeout=180s
+
+echo "🔄 Triggering web application rollout..."
 $KUBECTL rollout restart deployment/nss-portal-app -n nss-portal
 
-echo "⏳ Waiting for deployment rollout to complete..."
-$KUBECTL rollout status deployment/nss-portal-app -n nss-portal --timeout=120s
+echo "⏳ Waiting for DVLA NSS Portal app rollout..."
+$KUBECTL rollout status deployment/nss-portal-app -n nss-portal --timeout=180s
 
 echo "============================================================"
 echo "✅ DVLA NSS Portal successfully deployed to Kubernetes!"
