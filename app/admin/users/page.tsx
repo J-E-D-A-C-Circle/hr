@@ -414,12 +414,14 @@ export default function AdminUsersPage() {
                     let defaultRole = "HR_OFFICER";
                     if (sys === "TEMPSTAFF") defaultRole = "HR Manager";
                     if (sys === "SUPER_ADMIN") defaultRole = "Super Administrator";
+                    if (sys === "HR_LETTERS") defaultRole = "HR_OFFICER";
                     setCreateForm({ ...createForm, system: sys, role: defaultRole });
                   }}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
                 >
                   <option value="RETIREMENT">Retirement Management System (/retirement)</option>
                   <option value="TEMPSTAFF">TempStaff System (/dashboard)</option>
+                  <option value="HR_LETTERS">HR Letters &amp; Documents Portal (/hrletters)</option>
                   <option value="SUPER_ADMIN">Super Admin Command Center (/admin)</option>
                 </select>
               </div>
@@ -476,6 +478,12 @@ export default function AdminUsersPage() {
                     )}
                     {createForm.system === "TEMPSTAFF" && (
                       <option value="HR Manager">HR Manager</option>
+                    )}
+                    {createForm.system === "HR_LETTERS" && (
+                      <>
+                        <option value="HR_OFFICER">HR Officer — Draft &amp; Submit letters</option>
+                        <option value="HR_DIRECTOR">HR Director — Approve, Sign &amp; Issue letters</option>
+                      </>
                     )}
                     {createForm.system === "SUPER_ADMIN" && (
                       <option value="Super Administrator">Super Administrator</option>
