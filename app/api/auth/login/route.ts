@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json({
           success: true,
-          redirectUrl: "/retirement/dashboard",
+          redirectUrl: "/retirement",
           message: "Logged in to Retirement Portal as Super Admin",
           system: "RETIREMENT",
         });
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
 
           return NextResponse.json({
             success: true,
-            redirectUrl: "/retirement/dashboard",
+            redirectUrl: "/retirement",
             message: "Logged in successfully",
             system: "RETIREMENT",
           });

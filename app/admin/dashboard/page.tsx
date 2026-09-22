@@ -235,7 +235,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center gap-1.5"><UserCheck className="w-3 h-3 text-blue-500" /> {stat(data?.retirement?.activeStaff)} active staff</div>
                   <div className="flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 text-amber-500" /> {stat(data?.retirement?.dueThisYear)} retiring soon</div>
                 </div>
-                <Link href="/retirement/dashboard" target="_blank" className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition">
+                <Link href="/retirement" target="_blank" className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition">
                   Open <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>

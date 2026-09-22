@@ -89,7 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const subsystems = [
     { label: "TempStaff System", href: "/dashboard", dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200" },
-    { label: "Retirement Portal", href: "/retirement/dashboard", dot: "bg-blue-500", text: "text-blue-700", bg: "bg-blue-50 hover:bg-blue-100 border-blue-200" },
+    { label: "Retirement Portal", href: "/retirement", dot: "bg-blue-500", text: "text-blue-700", bg: "bg-blue-50 hover:bg-blue-100 border-blue-200" },
     { label: "HR Letters Portal", href: "/hrletters/dashboard", dot: "bg-green-500", text: "text-green-700", bg: "bg-green-50 hover:bg-green-100 border-green-200" },
   ];
 
