@@ -4,7 +4,7 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: tempstaff_db
-      MYSQL_ROOT_PASSWORD: hr_root_password 
+      MYSQL_ROOT_PASSWORD: "!p.ln8YtXAx*tcEJ"
       MYSQL_USER: hr_user
       MYSQL_PASSWORD: hr_password
     ports:
