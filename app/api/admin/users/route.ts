@@ -9,79 +9,38 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch users from all three sources
-    const [adminUsers, retirementUsers, tempStaffUsers] = await Promise.all([
+    // Fetch users from all sources
+    const [adminUsers, retirementUsers, tempStaffUsers, hrLetterUsers] = await Promise.all([
       prisma.adminUser.findMany({
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          name: true,
-          status: true,
-          lastLoginAt: true,
-          createdAt: true,
-        },
+        select: { id: true, username: true, email: true, name: true, status: true, lastLoginAt: true, createdAt: true },
       }),
       prisma.retirementUser.findMany({
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          fullName: true,
-          role: true,
-          active: true,
-          lastLogin: true,
-          created_at: true,
-        },
+        select: { id: true, username: true, email: true, fullName: true, role: true, active: true, lastLogin: true, created_at: true },
       }),
       prisma.tempStaffUser.findMany({
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          name: true,
-          role: true,
-          status: true,
-          lastLoginAt: true,
-          createdAt: true,
-        },
+        select: { id: true, username: true, email: true, name: true, role: true, status: true, lastLoginAt: true, createdAt: true },
+      }),
+      prisma.hrLetterUser.findMany({
+        select: { id: true, username: true, email: true, fullName: true, role: true, active: true, lastLogin: true, createdAt: true },
       }),
     ]);
 
-    // Format into unified user model list
     const unifiedUsers = [
       ...adminUsers.map((u: any) => ({
-        id: u.id,
-        system: "SUPER_ADMIN",
-        username: u.username,
-        email: u.email,
-        name: u.name,
-        role: "Super Administrator",
-        status: u.status,
-        lastLogin: u.lastLoginAt,
-        createdAt: u.createdAt,
+        id: u.id, system: "SUPER_ADMIN", username: u.username, email: u.email, name: u.name,
+        role: "Super Administrator", status: u.status, lastLogin: u.lastLoginAt, createdAt: u.createdAt,
       })),
       ...retirementUsers.map((u: any) => ({
-        id: String(u.id),
-        system: "RETIREMENT",
-        username: u.username,
-        email: u.email,
-        name: u.fullName,
-        role: u.role,
-        status: u.active ? "ACTIVE" : "SUSPENDED",
-        lastLogin: u.lastLogin,
-        createdAt: u.created_at,
+        id: String(u.id), system: "RETIREMENT", username: u.username, email: u.email, name: u.fullName,
+        role: u.role, status: u.active ? "ACTIVE" : "SUSPENDED", lastLogin: u.lastLogin, createdAt: u.created_at,
       })),
       ...tempStaffUsers.map((u: any) => ({
-        id: u.id,
-        system: "TEMPSTAFF",
-        username: u.username,
-        email: u.email,
-        name: u.name,
-        role: u.role,
-        status: u.status,
-        lastLogin: u.lastLoginAt,
-        createdAt: u.createdAt,
+        id: u.id, system: "TEMPSTAFF", username: u.username, email: u.email, name: u.name,
+        role: u.role, status: u.status, lastLogin: u.lastLoginAt, createdAt: u.createdAt,
+      })),
+      ...hrLetterUsers.map((u: any) => ({
+        id: u.id, system: "HR_LETTERS", username: u.username, email: u.email, name: u.fullName,
+        role: u.role, status: u.active ? "ACTIVE" : "SUSPENDED", lastLogin: u.lastLogin, createdAt: u.createdAt,
       })),
     ];
 
@@ -142,14 +101,14 @@ export async function POST(req: NextRequest) {
 
     if (system === "TEMPSTAFF") {
       const newUser = await prisma.tempStaffUser.create({
-        data: {
-          username: cleanUsername,
-          email: cleanEmail,
-          name,
-          passwordHash,
-          role: role || "HR Manager",
-          status: "ACTIVE",
-        },
+        data: { username: cleanUsername, email: cleanEmail, name, passwordHash, role: role || "HR Manager", status: "ACTIVE" },
+      });
+      return NextResponse.json({ success: true, user: newUser });
+    }
+
+    if (system === "HR_LETTERS") {
+      const newUser = await prisma.hrLetterUser.create({
+        data: { username: cleanUsername, email: cleanEmail, fullName: name, passwordHash, role: role || "HR_OFFICER", active: true },
       });
       return NextResponse.json({ success: true, user: newUser });
     }
@@ -194,10 +153,12 @@ export async function PATCH(req: NextRequest) {
       }
 
       if (system === "TEMPSTAFF") {
-        const updated = await prisma.tempStaffUser.update({
-          where: { id },
-          data: { status: status || "ACTIVE" },
-        });
+        const updated = await prisma.tempStaffUser.update({ where: { id }, data: { status: status || "ACTIVE" } });
+        return NextResponse.json({ success: true, user: updated });
+      }
+
+      if (system === "HR_LETTERS") {
+        const updated = await prisma.hrLetterUser.update({ where: { id }, data: { active: status === "ACTIVE" } });
         return NextResponse.json({ success: true, user: updated });
       }
     }
@@ -226,11 +187,13 @@ export async function PATCH(req: NextRequest) {
       }
 
       if (system === "TEMPSTAFF") {
-        await prisma.tempStaffUser.update({
-          where: { id },
-          data: { passwordHash: hash },
-        });
+        await prisma.tempStaffUser.update({ where: { id }, data: { passwordHash: hash } });
         return NextResponse.json({ success: true, message: "TempStaff user password reset successfully" });
+      }
+
+      if (system === "HR_LETTERS") {
+        await prisma.hrLetterUser.update({ where: { id }, data: { passwordHash: hash } });
+        return NextResponse.json({ success: true, message: "HR Letters user password reset successfully" });
       }
     }
 
@@ -253,10 +216,12 @@ export async function PATCH(req: NextRequest) {
       }
 
       if (system === "TEMPSTAFF") {
-        const updated = await prisma.tempStaffUser.update({
-          where: { id },
-          data: { name, email, role },
-        });
+        const updated = await prisma.tempStaffUser.update({ where: { id }, data: { name, email, role } });
+        return NextResponse.json({ success: true, user: updated });
+      }
+
+      if (system === "HR_LETTERS") {
+        const updated = await prisma.hrLetterUser.update({ where: { id }, data: { fullName: name, email, role } });
         return NextResponse.json({ success: true, user: updated });
       }
     }
@@ -299,6 +264,11 @@ export async function DELETE(req: NextRequest) {
     if (system === "TEMPSTAFF") {
       await prisma.tempStaffUser.delete({ where: { id } });
       return NextResponse.json({ success: true, message: "TempStaff user deleted" });
+    }
+
+    if (system === "HR_LETTERS") {
+      await prisma.hrLetterUser.delete({ where: { id } });
+      return NextResponse.json({ success: true, message: "HR Letters user deleted" });
     }
 
     return NextResponse.json({ error: "Invalid system" }, { status: 400 });

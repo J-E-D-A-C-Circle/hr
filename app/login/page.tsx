@@ -1,11 +1,101 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Lock,
+  User,
+  AlertCircle,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  FileText,
+  Clock,
+  Users,
+  CheckCircle2,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export default function LoginPage() {
+type SystemKey = "TEMPSTAFF" | "RETIREMENT" | "HR_LETTERS";
+
+interface SystemConfig {
+  id: SystemKey;
+  title: string;
+  subtitle: string;
+  description: string;
+  badge: string;
+  icon: React.ElementType;
+  accentColor: string;
+  bgGradient: string;
+  badgeBg: string;
+  badgeText: string;
+  borderFocus: string;
+  buttonBg: string;
+  features: string[];
+}
+
+const SYSTEMS: Record<SystemKey, SystemConfig> = {
+  TEMPSTAFF: {
+    id: "TEMPSTAFF",
+    title: "TempStaff Management Portal",
+    subtitle: "6-Month Rolling Contracts & Payroll",
+    description: "Official DVLA portal for tracking temporary staff, contract renewals, SSNIT deductions, and monthly payroll validation.",
+    badge: "TempStaff Portal",
+    icon: Users,
+    accentColor: "emerald",
+    bgGradient: "from-emerald-50 via-teal-50 to-emerald-100/60",
+    badgeBg: "bg-emerald-100 border-emerald-200",
+    badgeText: "text-emerald-800",
+    borderFocus: "focus:border-emerald-600 focus:ring-emerald-500/20",
+    buttonBg: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30",
+    features: ["Contract Tracking", "SSNIT Tier 1 & 3", "Payroll Export", "Staff Auditing"],
+  },
+  RETIREMENT: {
+    id: "RETIREMENT",
+    title: "Retirement Tracking System",
+    subtitle: "Statutory Age 60 & Tenure Analytics",
+    description: "Statutory retirement tracking portal monitoring employee age milestones, exit timelines, and pension projections.",
+    badge: "Retirement Tracking",
+    icon: Clock,
+    accentColor: "amber",
+    bgGradient: "from-amber-50 via-orange-50 to-amber-100/60",
+    badgeBg: "bg-amber-100 border-amber-200",
+    badgeText: "text-amber-800",
+    borderFocus: "focus:border-amber-600 focus:ring-amber-500/20",
+    buttonBg: "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/30",
+    features: ["Retirement Milestones", "Tenure Analytics", "Alert Notifications", "Exit Projections"],
+  },
+  HR_LETTERS: {
+    id: "HR_LETTERS",
+    title: "HR Letters & Documents System",
+    subtitle: "Digital Signatures & Appointment Verification",
+    description: "Enterprise issuance portal for official appointment letters, promotions, digital signatures, and QR code verification.",
+    badge: "HR Letters System",
+    icon: FileText,
+    accentColor: "emerald",
+    bgGradient: "from-emerald-50 via-green-50 to-teal-100/60",
+    badgeBg: "bg-emerald-100 border-emerald-200",
+    badgeText: "text-emerald-800",
+    borderFocus: "focus:border-emerald-600 focus:ring-emerald-500/20",
+    buttonBg: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30",
+    features: ["Appointment Letters", "Digital Signatures", "QR Code Verification", "Official Templates"],
+  },
+};
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialSys = (searchParams.get("system")?.toUpperCase() as SystemKey) || "TEMPSTAFF";
+
+  const [selectedSystem, setSelectedSystem] = useState<SystemKey>(
+    SYSTEMS[initialSys] ? initialSys : "TEMPSTAFF"
+  );
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -13,7 +103,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // If already logged in, skip straight to dashboard
+  // Check if session exists on load
   useEffect(() => {
     fetch("/api/auth/check")
       .then((res) => {
@@ -22,6 +112,9 @@ export default function LoginPage() {
       })
       .catch(() => setCheckingSession(false));
   }, [router]);
+
+  const activeConfig = SYSTEMS[selectedSystem] || SYSTEMS.TEMPSTAFF;
+  const ActiveIcon = activeConfig.icon;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,130 +129,171 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usernameOrEmail, password }),
+        body: JSON.stringify({
+          system: selectedSystem,
+          usernameOrEmail,
+          password,
+        }),
       });
+
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Invalid passcode. Please try again.");
+
+      if (!res.ok || !data.success) {
+        setError(data.error || "Authentication failed for the selected interface.");
         setLoading(false);
         return;
       }
-      window.location.href = "/dashboard";
+
+      window.location.href = data.redirectUrl || "/dashboard";
     } catch {
-      setError("Network error. Please check your connection.");
+      setError("Network error. Please check your connection and try again.");
       setLoading(false);
     }
   };
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 lg:p-8 font-sans">
-      <div className="w-full max-w-4xl bg-slate-950 rounded-2xl shadow-2xl border border-slate-800 grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-4 lg:p-8 font-sans relative overflow-hidden">
+      {/* Background Subtle Gradient Glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-r from-emerald-200/40 via-teal-100/40 to-emerald-300/30 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* ── Left Branding Panel ── */}
-        <div className="p-8 lg:p-12 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-teal-500/10 rounded-full blur-2xl pointer-events-none" />
+      {/* Main Single Light Mode Login Card */}
+      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl border border-slate-200 grid grid-cols-1 lg:grid-cols-2 overflow-hidden relative z-10">
 
-          <div>
-            {/* Logo + Org Name */}
-            <div className="flex items-center gap-3 relative">
-              <div className="h-14 w-14 rounded-xl bg-white/10 border border-white/10 p-1.5 flex items-center justify-center shadow-lg shrink-0">
+        {/* ── Left Dynamic Branding Panel ── */}
+        <div className={`p-8 lg:p-12 bg-gradient-to-br ${activeConfig.bgGradient} border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col justify-between relative overflow-hidden transition-all duration-500`}>
+          <div className="space-y-8">
+            {/* Header / Authority Logo */}
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 rounded-2xl bg-white border border-slate-200 p-2 flex items-center justify-center shadow-md shrink-0">
                 <img src="/oop.png" alt="DVLA Logo" className="h-full w-full object-contain" />
               </div>
               <div>
-                <h1 className="font-bold text-lg text-white tracking-wide">DVLA GHANA</h1>
-                <p className="text-[11px] text-emerald-400 font-semibold uppercase tracking-widest">
+                <h1 className="font-bold text-lg text-slate-900 tracking-wide">DVLA GHANA</h1>
+                <p className="text-[11px] text-emerald-700 font-semibold uppercase tracking-widest">
                   Driver &amp; Vehicle Licensing Authority
                 </p>
               </div>
             </div>
 
-            {/* Title */}
-            <div className="mt-12 space-y-4 relative">
-              <h2 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug">
-                Temporary Staff<br />Management Portal
+            {/* Dynamic Portal Information */}
+            <div className="space-y-4">
+              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${activeConfig.badgeBg} text-xs font-bold ${activeConfig.badgeText}`}>
+                <ActiveIcon className="w-4 h-4 text-emerald-700" />
+                <span>{activeConfig.badge}</span>
+              </div>
+
+              <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                {activeConfig.title}
               </h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Official HR portal for managing DVLA temporary staff, 6-month rolling contracts,
-                SSNIT deductions, payroll exports, and audit logs.
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {activeConfig.description}
               </p>
-              <div className="pt-4 flex flex-wrap gap-2">
-                {["Contract Tracking", "SSNIT Deductions", "Payroll Export", "Audit Logs"].map((f) => (
+
+              {/* Dynamic Feature Tags */}
+              <div className="pt-2 flex flex-wrap gap-2">
+                {activeConfig.features.map((feat) => (
                   <span
-                    key={f}
-                    className="px-2.5 py-1 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full uppercase tracking-wide"
+                    key={feat}
+                    className="px-2.5 py-1 text-[10px] font-bold bg-white text-emerald-800 border border-emerald-200 rounded-full uppercase tracking-wide flex items-center gap-1.5 shadow-xs"
                   >
-                    {f}
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    {feat}
                   </span>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="mt-12 pt-6 border-t border-slate-800/80">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Internal HR Network &bull; Access Restricted</span>
+          <div className="mt-8 pt-6 border-t border-slate-200/80">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
+              <span>DVLA HR Enterprise Network &bull; System Access Restricted</span>
             </div>
           </div>
         </div>
 
-        {/* ── Right Login Form Panel ── */}
-        <div className="p-8 lg:p-12 bg-slate-950 flex flex-col justify-center">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-white">HR Staff Sign In</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Enter your HR administrator passcode to access the portal.
+        {/* ── Right Login Form Panel (Light Mode) ── */}
+        <div className="p-8 lg:p-12 bg-white flex flex-col justify-center">
+          <div className="mb-6 space-y-1">
+            <h3 className="text-xl font-bold text-slate-900">Unified Sign In</h3>
+            <p className="text-xs text-slate-500">
+              Select target system interface &amp; enter your credentials.
             </p>
           </div>
 
-          {/* Role Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg w-fit">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">HR Officer</span>
-          </div>
-
+          {/* Error Alert */}
           {error && (
-            <div className="mb-5 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle size={15} className="shrink-0" />
-              <span>{error}</span>
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={16} className="shrink-0 text-rose-600 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* ── Shadcn UI System Access Dropdown ── */}
             <div>
-              <label htmlFor="username-input" className="block text-xs font-medium text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>System Access</span>
+                <span className="text-[10px] text-emerald-700 font-medium">Required Verification</span>
+              </label>
+
+              <Select
+                value={selectedSystem}
+                onValueChange={(val) => {
+                  setSelectedSystem(val as SystemKey);
+                  setError(null);
+                }}
+              >
+                <SelectTrigger className="w-full bg-slate-50 border-slate-300 rounded-xl h-11 text-xs lg:text-sm font-semibold text-slate-900 focus:bg-white">
+                  <SelectValue placeholder="Select System Access" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TEMPSTAFF">🏢 TempStaff Management Portal</SelectItem>
+                  <SelectItem value="RETIREMENT">👴 Retirement Tracking System</SelectItem>
+                  <SelectItem value="HR_LETTERS">📄 HR Letters &amp; Appointment System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Username input */}
+            <div>
+              <label htmlFor="username-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Username or Email
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <input
                   id="username-input"
                   type="text"
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  placeholder="hr.admin or admin@dvla.gov.gh"
+                  placeholder="Enter your assigned username or email"
                   autoComplete="username"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition"
+                  className={`w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none ${activeConfig.borderFocus} transition focus:bg-white`}
                   required
                 />
               </div>
             </div>
 
+            {/* Password input */}
             <div>
-              <label htmlFor="password-input" className="block text-xs font-medium text-slate-300 mb-1.5">
+              <label htmlFor="password-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <input
                   id="password-input"
                   type={showPassword ? "text" : "password"}
@@ -167,13 +301,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition"
+                  className={`w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none ${activeConfig.borderFocus} transition focus:bg-white`}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition"
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -181,38 +315,48 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Submit Button */}
             <button
               id="login-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-lg shadow-md shadow-emerald-900/40 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${activeConfig.buttonBg}`}
             >
               {loading ? (
                 <>
                   <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  <span>Authenticating...</span>
+                  <span>Verifying System Access...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In to Portal</span>
-                  <ArrowRight size={15} />
+                  <span>Sign In to {activeConfig.badge}</span>
+                  <ArrowRight size={16} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-900 text-center space-y-2">
-            <p className="text-[11px] text-slate-500">Forgot your passcode? Contact your IT administrator.</p>
-            <a
-              href="/retirement/login"
-              className="text-[11px] text-slate-500 hover:text-amber-400 transition underline underline-offset-2"
-            >
-              → Access Retirement Tracking System
-            </a>
+          {/* Info note */}
+          <div className="mt-6 pt-5 border-t border-slate-200 text-center space-y-1">
+            <p className="text-[11px] text-slate-500">
+              Need access to another portal or forgot credentials? Contact IT Administrator.
+            </p>
           </div>
         </div>
 
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

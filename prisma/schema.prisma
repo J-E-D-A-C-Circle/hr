@@ -266,5 +266,117 @@ model RetirementGrade {
   @@map("retirement_grades")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HR LETTERS MODULE
+// ─────────────────────────────────────────────────────────────────────────────
 
+model HrLetterUser {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  fullName     String
+  passwordHash String
+  role         String    @default("HR_OFFICER") // HR_OFFICER, HR_DIRECTOR
+  active       Boolean   @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("hr_letter_users")
+}
+
+model HrLetterStaff {
+  id              String              @id @default(uuid())
+  staffId         String              @unique
+  fullName        String
+  department      String
+  jobTitle        String
+  email           String              @unique
+  phone           String
+  appointmentDate String
+  status          String              @default("ACTIVE") // ACTIVE, PROBATION, ON_LEAVE, TERMINATED
+  salaryGrade     String?
+  reportingOfficer String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  letters         HrLetterDocument[]
+
+  @@map("hr_letter_staff")
+}
+
+model HrLetterTemplate {
+  id          String             @id @default(uuid())
+  title       String
+  type        String             // APPOINTMENT, PROMOTION, CONFIRMATION, TRANSFER, WARNING, LEAVE_APPROVAL, CONTRACT_RENEWAL
+  description String?
+  content     String             @db.Text
+  version     Int                @default(1)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  letters     HrLetterDocument[]
+
+  @@map("hr_letter_templates")
+}
+
+model HrLetterDocument {
+  id               String               @id @default(uuid())
+  staffId          String
+  staff            HrLetterStaff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  templateId       String?
+  template         HrLetterTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  verificationCode String               @unique
+  title            String
+  letterType       String               // APPOINTMENT, PROMOTION, CONFIRMATION, TRANSFER, WARNING, LEAVE_APPROVAL, CONTRACT_RENEWAL
+  content          String               @db.Text
+  salutation       String?              @default("Dear Sir/Madam,")
+  customRefNumber  String?
+  yourRef          String?
+  effectiveDate    String?
+  salaryGrade      String?
+  status           String               @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, ISSUED, ACKNOWLEDGED, REJECTED
+  qrCodeData       String?              @db.Text
+  digitalSignature String?              @db.LongText
+  signatoryName    String?
+  signatoryTitle   String?
+  signatoryForTitle String?
+  ccText           String?              @db.Text
+  applicantAddress String?
+  signedAt         DateTime?
+  issuedAt         DateTime?
+  acknowledgedAt   DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  approvalWorkflows HrApprovalWorkflow[]
+
+  @@map("hr_letter_documents")
+}
+
+model HrApprovalWorkflow {
+  id           String           @id @default(uuid())
+  letterId     String
+  letter       HrLetterDocument @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  stepNumber   Int
+  approverRole String
+  approverName String
+  status       String           @default("PENDING") // PENDING, APPROVED, REJECTED
+  comments     String?          @db.Text
+  decidedAt    DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@map("hr_approval_workflows")
+}
+
+model HrLetterAuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  actorName  String
+  actorRole  String
+  targetId   String?
+  targetType String?
+  details    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  @@map("hr_letter_audit_logs")
+}
 

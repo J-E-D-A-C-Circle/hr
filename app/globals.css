@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
@@ -5,11 +6,39 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+
+  /* HR Letters / Shared design tokens */
+  --color-bg:             #F9FAFB;
+  --color-surface:        #FFFFFF;
+  --color-border:         rgba(0, 0, 0, 0.07);
+  --color-border-subtle:  rgba(0, 0, 0, 0.03);
+  --color-text-1:         #111827;
+  --color-text-2:         #374151;
+  --color-text-3:         #6B7280;
+  --color-text-4:         #9CA3AF;
+  --color-accent:         #4F46E5;
+  --color-accent-hover:   #4338CA;
+  --color-accent-subtle:  #EEF2FF;
+  --radius-card:          12px;
+  --shadow-xs:            0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-sm:            0 1px 3px 0 rgba(0,0,0,0.10), 0 1px 2px -1px rgba(0,0,0,0.10);
 }
 
 .dark {
   --background: #020617;
   --foreground: #f8fafc;
+
+  --color-bg:             #0A0F1E;
+  --color-surface:        #0F1629;
+  --color-border:         rgba(255, 255, 255, 0.08);
+  --color-border-subtle:  rgba(255, 255, 255, 0.04);
+  --color-text-1:         #F1F5F9;
+  --color-text-2:         #CBD5E1;
+  --color-text-3:         #64748B;
+  --color-text-4:         #475569;
+  --color-accent:         #818CF8;
+  --color-accent-hover:   #6366F1;
+  --color-accent-subtle:  rgba(99,102,241,0.1);
 }
 
 @theme inline {
@@ -19,9 +48,91 @@
   --font-mono: var(--font-geist-mono);
 }
 
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Shared utility classes used by HR Letters components */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+}
+
+.input-base {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-1);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.5rem 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  outline: none;
+}
+.input-base::placeholder { color: var(--color-text-4); font-weight: 400; }
+.input-base:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-4); }
+
+/* Animations */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.18s ease both; }
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+.skeleton {
+  background: var(--color-border);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+/* Print styles for official letterhead */
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  html, body {
+    background: #FDF3C0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body * { visibility: hidden; }
+  #official-letterhead, #official-letterhead * { visibility: visible; }
+  #official-letterhead {
+    position: absolute;
+    top: 0; left: 0;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 16mm 18mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background-color: #FDF3C0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }

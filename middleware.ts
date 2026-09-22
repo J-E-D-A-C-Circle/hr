@@ -5,11 +5,13 @@ const TEMPSTAFF_SESSION_COOKIE = "staff_admin_session";
 const TEMPSTAFF_SESSION_VALUE = "authenticated_admin_active";
 const RETIREMENT_SESSION_COOKIE = "dvla_retirement_session";
 const ADMIN_SESSION_COOKIE = "dvla_super_admin_session";
+const HRLETTERS_SESSION_COOKIE = "dvla_hrletters_session";
 
 // Public paths that never need auth
 const TEMPSTAFF_PUBLIC = ["/login", "/api/auth"];
 const RETIREMENT_PUBLIC = ["/retirement/login", "/api/retirement/auth"];
 const ADMIN_PUBLIC = ["/admin/login", "/api/admin/auth"];
+const HR_LETTERS_PUBLIC = ["/hrletters/login", "/api/hrletters/auth"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -58,6 +60,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── HR Letters portal ─────────────────────────────────────────────────────
+  if (pathname.startsWith("/hrletters")) {
+    const isPublic = HR_LETTERS_PUBLIC.some((p) => pathname.startsWith(p));
+    if (isPublic) return NextResponse.next();
+
+    const session = request.cookies.get(HRLETTERS_SESSION_COOKIE);
+    let isValid = false;
+    if (session?.value && session.value !== "logged_out") {
+      try {
+        const parsed = JSON.parse(session.value);
+        isValid = !!(parsed?.id && parsed?.role);
+      } catch {
+        isValid = false;
+      }
+    }
+    if (!isValid) {
+      const loginUrl = new URL("/hrletters/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
   // ── TempStaff portal ───────────────────────────────────────────────────────
   const isTempstaffPublic = TEMPSTAFF_PUBLIC.some((p) => pathname.startsWith(p));
   if (isTempstaffPublic) return NextResponse.next();
@@ -98,5 +122,6 @@ export const config = {
     "/export/:path*",
     "/payslip/:path*",
     "/retirement/:path*",
+    "/hrletters/:path*",
   ],
 };

@@ -11,7 +11,7 @@ export async function GET() {
 
     const startTime = Date.now();
 
-    // Run parallel queries across both systems
+    // Run parallel queries across all three systems
     const [
       tempstaffCount,
       activeContractsCount,
@@ -23,7 +23,12 @@ export async function GET() {
       adminUsersCount,
       retirementUsersCount,
       tempstaffUsersCount,
+      hrLettersUsersCount,
       announcementsCount,
+      hrLettersTotalCount,
+      hrLettersPendingCount,
+      hrLettersIssuedCount,
+      hrLettersDraftCount,
     ] = await Promise.all([
       prisma.staff.count(),
       prisma.contract.count({ where: { is_current: true, is_terminated: false } }),
@@ -34,7 +39,7 @@ export async function GET() {
         where: {
           active: true,
           retirementDate: {
-            lte: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Within 1 year
+            lte: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
           },
         },
       }),
@@ -42,7 +47,12 @@ export async function GET() {
       prisma.adminUser.count(),
       prisma.retirementUser.count(),
       prisma.tempStaffUser.count(),
+      prisma.hrLetterUser.count(),
       prisma.systemAnnouncement.count({ where: { isActive: true } }),
+      prisma.hrLetterDocument.count(),
+      prisma.hrLetterDocument.count({ where: { status: "PENDING_APPROVAL" } }),
+      prisma.hrLetterDocument.count({ where: { status: "ISSUED" } }),
+      prisma.hrLetterDocument.count({ where: { status: "DRAFT" } }),
     ]);
 
     const dbLatencyMs = Date.now() - startTime;
@@ -61,11 +71,19 @@ export async function GET() {
           dueThisYear: upcomingRetirementsCount,
           totalDepartments: retirementDeptsCount,
         },
+        hrLetters: {
+          totalLetters: hrLettersTotalCount,
+          pendingApproval: hrLettersPendingCount,
+          issued: hrLettersIssuedCount,
+          drafts: hrLettersDraftCount,
+          totalUsers: hrLettersUsersCount,
+        },
         users: {
           totalAdmins: adminUsersCount,
           totalRetirementUsers: retirementUsersCount,
           totalTempstaffUsers: tempstaffUsersCount,
-          grandTotalUsers: adminUsersCount + retirementUsersCount + tempstaffUsersCount,
+          totalHrLettersUsers: hrLettersUsersCount,
+          grandTotalUsers: adminUsersCount + retirementUsersCount + tempstaffUsersCount + hrLettersUsersCount,
         },
         system: {
           activeAnnouncements: announcementsCount,

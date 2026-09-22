@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "100", 10);
 
-    const [tempstaffLogs, retirementLogs] = await Promise.all([
+    const [tempstaffLogs, retirementLogs, hrLettersLogs] = await Promise.all([
       prisma.auditLog.findMany({
         take: limit,
         orderBy: { created_at: "desc" },
@@ -20,6 +20,10 @@ export async function GET(req: NextRequest) {
       prisma.retirementAuditLog.findMany({
         take: limit,
         orderBy: { created_at: "desc" },
+      }),
+      prisma.hrLetterAuditLog.findMany({
+        take: limit,
+        orderBy: { createdAt: "desc" },
       }),
     ]);
 
@@ -41,6 +45,15 @@ export async function GET(req: NextRequest) {
         action: log.action,
         details: log.details,
         createdAt: log.created_at,
+      })),
+      ...hrLettersLogs.map((log: any) => ({
+        id: `hrl_${log.id}`,
+        system: "HR_LETTERS",
+        userName: log.actorName,
+        userRole: log.actorRole,
+        action: log.action,
+        details: log.details || "",
+        createdAt: log.createdAt,
       })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 

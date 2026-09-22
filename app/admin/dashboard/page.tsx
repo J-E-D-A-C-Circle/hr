@@ -6,18 +6,39 @@ import {
   Users,
   Briefcase,
   UserCheck,
-  Building2,
   Clock,
   ShieldCheck,
   ExternalLink,
   Activity,
   Server,
-  TrendingUp,
   AlertTriangle,
   Megaphone,
   RefreshCw,
   Plus,
+  FileText,
+  CheckCircle2,
+  PenTool,
+  Archive,
+  Database,
 } from "lucide-react";
+
+function SystemBadge({ system }: { system: string }) {
+  const styles: Record<string, string> = {
+    TEMPSTAFF: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    RETIREMENT: "bg-blue-100 text-blue-700 border-blue-200",
+    HR_LETTERS: "bg-green-100 text-green-700 border-green-200",
+  };
+  const labels: Record<string, string> = {
+    TEMPSTAFF: "TempStaff",
+    RETIREMENT: "Retirement",
+    HR_LETTERS: "HR Letters",
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0 border ${styles[system] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+      {labels[system] || system}
+    </span>
+  );
+}
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -30,12 +51,10 @@ export default function AdminDashboardPage() {
       setRefreshing(true);
       const [statsRes, logsRes] = await Promise.all([
         fetch("/api/admin/stats"),
-        fetch("/api/admin/audit?limit=6"),
+        fetch("/api/admin/audit?limit=8"),
       ]);
-
       const statsData = await statsRes.json();
       const logsData = await logsRes.json();
-
       if (statsData.success) setData(statsData.metrics);
       if (logsData.success) setLogs(logsData.logs || []);
     } catch (err) {
@@ -46,276 +65,231 @@ export default function AdminDashboardPage() {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useEffect(() => { fetchDashboardData(); }, []);
+
+  const stat = (val: any) => loading ? "…" : (val ?? 0).toLocaleString();
 
   return (
     <div className="space-y-6">
-      {/* Top Welcome Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="space-y-1 z-10">
-          <div className="flex items-center gap-2 text-xs text-cyan-400 font-semibold uppercase tracking-wider">
-            <Activity className="w-4 h-4 text-cyan-400" /> Executive Overview
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            System Mission Control
-          </h1>
-          <p className="text-xs text-slate-400 max-w-xl">
-            Unified management interface across DVLA TempStaff Payroll & Retirement Portal Systems.
-          </p>
-        </div>
 
-        <div className="flex items-center gap-3 z-10">
-          <button
-            onClick={fetchDashboardData}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 text-xs font-medium border border-slate-700 transition cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-cyan-400" : ""}`} />
-            Refresh Realtime Metrics
-          </button>
-          <Link
-            href="/admin/users?action=new"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Add System User
-          </Link>
+      {/* ── Welcome Banner ── */}
+      <div className="relative bg-white border border-gray-200 rounded-2xl p-6 shadow-sm overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-cyan-50 rounded-full blur-3xl pointer-events-none opacity-60" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs text-cyan-600 font-semibold uppercase tracking-wider">
+              <Activity className="w-4 h-4" /> Executive Overview
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">System Mission Control</h1>
+            <p className="text-xs text-gray-500 max-w-xl">
+              Unified Super Admin dashboard across DVLA TempStaff, Retirement, and HR Letters systems.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchDashboardData}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium border border-gray-200 transition cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-cyan-500" : "text-gray-500"}`} />
+              Refresh Metrics
+            </button>
+            <Link
+              href="/admin/users?action=new"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold shadow-sm shadow-cyan-200 transition"
+            >
+              <Plus className="w-4 h-4" /> Add User
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: TempStaff Active Payroll */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl space-y-3 relative overflow-hidden">
+      {/* ── KPI Stats Row ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
+        {/* TempStaff */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">TempStaff System</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="text-xs font-medium text-gray-500">TempStaff Portal</span>
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
               <Briefcase className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-white">
-              {loading ? "..." : (data?.tempstaff?.activeContracts || 0).toLocaleString()}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Active Contracts ({data?.tempstaff?.totalStaff || 0} Total Personnel)
-            </p>
+            <div className="text-2xl font-extrabold text-gray-900">{stat(data?.tempstaff?.activeContracts)}</div>
+            <p className="text-[11px] text-gray-500 mt-1">Active Contracts ({stat(data?.tempstaff?.totalStaff)} Staff)</p>
           </div>
-          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Monthly Payroll:</span>
-            <span className="font-bold text-emerald-400">
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+            <span className="text-gray-400">Monthly Payroll:</span>
+            <span className="font-bold text-emerald-600">
               GHS {(data?.tempstaff?.totalMonthlyPayroll || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
 
-        {/* Card 2: Retirement System Status */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl space-y-3 relative overflow-hidden">
+        {/* Retirement */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Retirement System</span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="text-xs font-medium text-gray-500">Retirement Portal</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
               <UserCheck className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-white">
-              {loading ? "..." : (data?.retirement?.activeStaff || 0).toLocaleString()}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Active Personnel ({data?.retirement?.totalDepartments || 0} Depts & Stations)
-            </p>
+            <div className="text-2xl font-extrabold text-gray-900">{stat(data?.retirement?.activeStaff)}</div>
+            <p className="text-[11px] text-gray-500 mt-1">Active Personnel ({stat(data?.retirement?.totalDepartments)} Depts)</p>
           </div>
-          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Due Within 1 Year:</span>
-            <span className="font-bold text-amber-400 flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
-              {data?.retirement?.dueThisYear || 0} Retiring Soon
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+            <span className="text-gray-400">Due Within 1 Year:</span>
+            <span className="font-bold text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> {stat(data?.retirement?.dueThisYear)} Retiring
             </span>
           </div>
         </div>
 
-        {/* Card 3: Total System Users */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl space-y-3 relative overflow-hidden">
+        {/* HR Letters */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Cross User Management</span>
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <span className="text-xs font-medium text-gray-500">HR Letters Portal</span>
+            <div className="p-2 rounded-xl bg-green-50 text-green-600 border border-green-100">
+              <FileText className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold text-gray-900">{stat(data?.hrLetters?.totalLetters)}</div>
+            <p className="text-[11px] text-gray-500 mt-1">
+              Total Letters &bull; {stat(data?.hrLetters?.issued)} Issued
+            </p>
+          </div>
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+            <span className="text-gray-400">Pending Approval:</span>
+            <span className="font-bold text-amber-600">{stat(data?.hrLetters?.pendingApproval)} Letters</span>
+          </div>
+        </div>
+
+        {/* All Users */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-500">System Accounts</span>
+            <div className="p-2 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-100">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-white">
-              {loading ? "..." : (data?.users?.grandTotalUsers || 0).toLocaleString()}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Authorized Portal System Accounts
-            </p>
+            <div className="text-2xl font-extrabold text-gray-900">{stat(data?.users?.grandTotalUsers)}</div>
+            <p className="text-[11px] text-gray-500 mt-1">Total Authorized Accounts</p>
           </div>
-          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Admins: <b className="text-white">{data?.users?.totalAdmins || 0}</b></span>
-            <span>Retirement: <b className="text-white">{data?.users?.totalRetirementUsers || 0}</b></span>
-            <span>TempStaff: <b className="text-white">{data?.users?.totalTempstaffUsers || 0}</b></span>
-          </div>
-        </div>
-
-        {/* Card 4: System Health Gauge */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl space-y-3 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Database & Engine</span>
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              <Server className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-extrabold text-emerald-400 flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-              HEALTHY
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              MySQL 127.0.0.1:3307 (`tempstaff_db`)
-            </p>
-          </div>
-          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Query Response:</span>
-            <span className="font-mono text-cyan-400 font-bold">{data?.system?.dbLatencyMs || 0} ms</span>
+          <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-1 text-[11px] text-gray-400">
+            <span>TempStaff: <b className="text-gray-700">{data?.users?.totalTempstaffUsers ?? 0}</b></span>
+            <span>Retirement: <b className="text-gray-700">{data?.users?.totalRetirementUsers ?? 0}</b></span>
+            <span>HR Letters: <b className="text-gray-700">{data?.users?.totalHrLettersUsers ?? 0}</b></span>
+            <span>Admins: <b className="text-gray-700">{data?.users?.totalAdmins ?? 0}</b></span>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: Subsystem Launchpad & Announcements */}
+      {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 cols): System Launchpad Cards */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Subsystem Direct Tunnel Launcher */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-              Subsystem Direct Tunnel Launchpad
-            </h2>
-            <p className="text-xs text-slate-400">
-              Direct access portal tunnels to inspect or manage individual application views.
-            </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              {/* TempStaff Launch Card */}
-              <div className="bg-slate-950/80 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl p-5 space-y-4 transition group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
-                      TS
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-white group-hover:text-emerald-400 transition">
-                        TempStaff System
-                      </h3>
-                      <p className="text-[11px] text-slate-400">Payroll, SSNIT & Contracts</p>
-                    </div>
+        {/* Left (2 cols) */}
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* Portal Launchpad */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Server className="w-4 h-4 text-cyan-500" /> Subsystem Portal Launchpad
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">Direct tunnel access to all three DVLA HR portals.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+              {/* TempStaff Card */}
+              <div className="bg-gray-50 border border-emerald-200 hover:border-emerald-400 rounded-xl p-4 space-y-3 transition group">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 font-bold text-sm">TS</div>
+                  <div>
+                    <h3 className="font-bold text-sm text-gray-900 group-hover:text-emerald-700 transition leading-tight">TempStaff</h3>
+                    <p className="text-[10px] text-gray-500">Payroll & Contracts</p>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
-                    LIVE
-                  </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Manage temporary personnel, contract renewals, allowance calculations, and tier deductions.
-                </p>
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-500">Route: `/dashboard`</span>
-                  <Link
-                    href="/dashboard"
-                    target="_blank"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold border border-emerald-500/30 transition cursor-pointer"
-                  >
-                    Open System
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
+                <div className="space-y-1 text-[11px] text-gray-500">
+                  <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3 text-emerald-500" /> {stat(data?.tempstaff?.activeContracts)} active contracts</div>
+                  <div className="flex items-center gap-1.5"><Users className="w-3 h-3 text-emerald-500" /> {stat(data?.tempstaff?.totalStaff)} personnel</div>
                 </div>
+                <Link href="/dashboard" target="_blank" className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition">
+                  Open <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
 
-              {/* Retirement Launch Card */}
-              <div className="bg-slate-950/80 border border-blue-500/20 hover:border-blue-500/40 rounded-xl p-5 space-y-4 transition group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
-                      RM
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-white group-hover:text-blue-400 transition">
-                        Retirement Portal
-                      </h3>
-                      <p className="text-[11px] text-slate-400">Pensions & Clearance</p>
-                    </div>
+              {/* Retirement Card */}
+              <div className="bg-gray-50 border border-blue-200 hover:border-blue-400 rounded-xl p-4 space-y-3 transition group">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm">RM</div>
+                  <div>
+                    <h3 className="font-bold text-sm text-gray-900 group-hover:text-blue-700 transition leading-tight">Retirement</h3>
+                    <p className="text-[10px] text-gray-500">Pensions & Clearance</p>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">
-                    LIVE
-                  </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Monitor pension clearance milestones, staff age forecasting, station departments, and alert triggers.
-                </p>
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-500">Route: `/retirement`</span>
-                  <Link
-                    href="/retirement"
-                    target="_blank"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-semibold border border-blue-500/30 transition cursor-pointer"
-                  >
-                    Open Portal
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
+                <div className="space-y-1 text-[11px] text-gray-500">
+                  <div className="flex items-center gap-1.5"><UserCheck className="w-3 h-3 text-blue-500" /> {stat(data?.retirement?.activeStaff)} active staff</div>
+                  <div className="flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 text-amber-500" /> {stat(data?.retirement?.dueThisYear)} retiring soon</div>
                 </div>
+                <Link href="/retirement/dashboard" target="_blank" className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition">
+                  Open <ExternalLink className="w-3 h-3" />
+                </Link>
+              </div>
+
+              {/* HR Letters Card */}
+              <div className="bg-gray-50 border border-green-200 hover:border-green-400 rounded-xl p-4 space-y-3 transition group">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-green-100 border border-green-200 flex items-center justify-center text-green-700 font-bold text-sm">HL</div>
+                  <div>
+                    <h3 className="font-bold text-sm text-gray-900 group-hover:text-green-700 transition leading-tight">HR Letters</h3>
+                    <p className="text-[10px] text-gray-500">Documents & Signatures</p>
+                  </div>
+                </div>
+                <div className="space-y-1 text-[11px] text-gray-500">
+                  <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-green-500" /> {stat(data?.hrLetters?.issued)} letters issued</div>
+                  <div className="flex items-center gap-1.5"><PenTool className="w-3 h-3 text-amber-500" /> {stat(data?.hrLetters?.pendingApproval)} awaiting approval</div>
+                </div>
+                <Link href="/hrletters/dashboard" target="_blank" className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition">
+                  Open <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
             </div>
           </div>
 
-          {/* Combined Audit Log Stream */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-4">
+          {/* Audit Log Stream */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-indigo-400" />
-                  Unified Live Audit Stream
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-cyan-500" /> Unified Live Audit Stream
                 </h2>
-                <p className="text-xs text-slate-400">Real-time system events merged from all portals</p>
+                <p className="text-xs text-gray-500">Real-time events merged from all three portals</p>
               </div>
-              <Link
-                href="/admin/audit"
-                className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
-              >
-                View Full Audit Logs &rarr;
+              <Link href="/admin/audit" className="text-xs text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1">
+                View All Logs →
               </Link>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {logs.length === 0 ? (
-                <div className="text-center py-6 text-xs text-slate-500">No recent system audit events logged.</div>
+                <div className="text-center py-8 text-xs text-gray-400">No recent system audit events.</div>
               ) : (
                 logs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800/60 text-xs"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0 mt-0.5 ${
-                          log.system === "TEMPSTAFF"
-                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                            : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                        }`}
-                      >
-                        {log.system}
-                      </span>
+                  <div key={log.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs hover:bg-gray-100 transition">
+                    <div className="flex items-start gap-2.5">
+                      <SystemBadge system={log.system} />
                       <div>
-                        <div className="font-semibold text-slate-200">
-                          {log.userName} <span className="text-slate-500 font-normal">({log.userRole})</span>
+                        <div className="font-semibold text-gray-800">
+                          {log.userName} <span className="text-gray-400 font-normal">({log.userRole})</span>
                         </div>
-                        <p className="text-slate-400 text-[11px] mt-0.5">{log.action}: {log.details}</p>
+                        <p className="text-gray-500 text-[11px] mt-0.5">{log.action}: {log.details}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] text-slate-500 shrink-0 font-mono">
+                    <span className="text-[10px] text-gray-400 shrink-0 font-mono whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
@@ -325,59 +299,66 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Right Column (1 col): System Announcements & Admin Shortcuts */}
+        {/* Right (1 col) */}
         <div className="space-y-6">
-          {/* Global Announcement Banner CMS Card */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-cyan-400" />
-                Global Banners
-              </h2>
-              <Link href="/admin/announcements" className="text-xs text-cyan-400 hover:text-cyan-300 font-medium">
-                Manage
-              </Link>
-            </div>
-            <p className="text-xs text-slate-400">
-              Broadcast active message banners across application dashboards.
-            </p>
 
-            <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 space-y-2">
-              <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs">
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                System Notice Active
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Super Admin command center connected to DVLA `tempstaff_db` MySQL service.
-              </p>
+          {/* System Health */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Database className="w-4 h-4 text-cyan-500" /> System Health
+            </h2>
+            <div className="space-y-3">
+              {[
+                { label: "Database Engine", value: "HEALTHY", sub: `Latency: ${data?.system?.dbLatencyMs ?? 0}ms`, valueClass: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
+                { label: "Active Announcements", value: String(data?.system?.activeAnnouncements ?? 0), sub: "Broadcast banners", valueClass: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
+                { label: "Total HR Accounts", value: String(data?.users?.grandTotalUsers ?? 0), sub: "Across all portals", valueClass: "text-cyan-600", bg: "bg-cyan-50 border-cyan-100" },
+              ].map(({ label, value, sub, valueClass, bg }) => (
+                <div key={label} className={`flex items-center justify-between p-3 rounded-xl border ${bg}`}>
+                  <div>
+                    <p className="text-[11px] text-gray-700 font-medium">{label}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                  </div>
+                  <span className={`text-xs font-bold ${valueClass}`}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Quick Management Tools */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-3">
-            <h2 className="text-base font-bold text-white">System Tools</h2>
-            <div className="space-y-2 pt-1">
-              <Link
-                href="/admin/users"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs font-medium text-slate-200 hover:border-slate-700 transition"
-              >
-                <span>Unified User Management</span>
-                <Users className="w-4 h-4 text-cyan-400" />
-              </Link>
-              <Link
-                href="/admin/settings"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs font-medium text-slate-200 hover:border-slate-700 transition"
-              >
-                <span>Deduction & Rules CMS</span>
-                <Building2 className="w-4 h-4 text-indigo-400" />
-              </Link>
-              <Link
-                href="/admin/audit"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs font-medium text-slate-200 hover:border-slate-700 transition"
-              >
-                <span>Compliance & Audit Stream</span>
-                <Clock className="w-4 h-4 text-emerald-400" />
-              </Link>
+          {/* Quick Actions */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
+            <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
+            <div className="space-y-1.5">
+              {[
+                { label: "User Management", href: "/admin/users", icon: Users, color: "text-cyan-500" },
+                { label: "Announcements", href: "/admin/announcements", icon: Megaphone, color: "text-amber-500" },
+                { label: "System CMS", href: "/admin/cms", icon: Database, color: "text-blue-500" },
+                { label: "Compliance & Audit", href: "/admin/audit", icon: Archive, color: "text-emerald-500" },
+              ].map(({ label, href, icon: Icon, color }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-medium text-gray-700 hover:bg-gray-100 hover:border-gray-200 transition"
+                >
+                  <span>{label}</span>
+                  <Icon className={`w-4 h-4 ${color}`} />
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Access Notice */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-cyan-500" /> Access Notice
+              </h2>
+              <Link href="/admin/announcements" className="text-xs text-cyan-600 hover:text-cyan-700 font-medium">Manage</Link>
+            </div>
+            <div className="p-3.5 rounded-xl bg-cyan-50 border border-cyan-100 space-y-1.5">
+              <p className="text-xs font-semibold text-cyan-700">Super Admin Session Active</p>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Full governance access across TempStaff, Retirement, and HR Letters portals.
+              </p>
             </div>
           </div>
         </div>
