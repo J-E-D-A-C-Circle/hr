@@ -44,7 +44,7 @@ export async function createHrLettersSession(user: {
 
   cookieStore.set(HR_LETTERS_COOKIE, JSON.stringify(sessionData), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // Allow over HTTP server IP addresses (http://localhost:3002 or docker :8080)
     sameSite: "lax",
     maxAge: 60 * 60 * 8, // 8 hours
     path: "/",
@@ -55,7 +55,7 @@ export async function clearHrLettersSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(HR_LETTERS_COOKIE, "logged_out", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false,
     sameSite: "lax",
     maxAge: 0,
     path: "/",
