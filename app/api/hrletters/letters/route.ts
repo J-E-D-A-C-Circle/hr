@@ -7,7 +7,14 @@ export async function GET() {
     const session = await getHrLettersSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // HR_OFFICER sees only their own letters (drafts + submitted)
+    // HR_DIRECTOR sees all letters
+    const where = session.role === "HR_OFFICER"
+      ? { createdByUsername: session.username }
+      : {};
+
     const letters = await prisma.hrLetterDocument.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       include: { staff: true, approvalWorkflows: true },
     });
@@ -22,6 +29,11 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getHrLettersSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Only HR_OFFICER and HR_DIRECTOR can create letters
+    if (!["HR_OFFICER", "HR_DIRECTOR"].includes(session.role)) {
+      return NextResponse.json({ error: "Forbidden: Insufficient role" }, { status: 403 });
+    }
 
     const body = await req.json();
     const verificationCode = `V-DVLA-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -73,6 +85,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // HR_OFFICER can only save DRAFT or submit as PENDING_APPROVAL
+    // HR_DIRECTOR can set any status on creation
+    const allowedStatus = session.role === "HR_OFFICER"
+      ? ["DRAFT", "PENDING_APPROVAL"].includes(body.status) ? body.status : "DRAFT"
+      : body.status || "DRAFT";
+
     const letter = await prisma.hrLetterDocument.create({
       data: {
         staffId: targetStaffId,
@@ -91,19 +109,19 @@ export async function POST(req: NextRequest) {
         signatoryTitle: body.signatoryTitle || "AG. DIRECTOR, HUMAN RESOURCE",
         signatoryForTitle: body.signatoryForTitle || "FOR: CHIEF EXECUTIVE",
         ccText: body.ccText || null,
-        status: body.status || "DRAFT",
+        status: allowedStatus,
         qrCodeData: `https://dvla.gov.gh/verify?code=${verificationCode}`,
       },
       include: { staff: true },
     });
 
-    // Create approval workflow if submitted
-    if (body.status === "PENDING_APPROVAL") {
+    // Create approval workflow entry when submitted for approval
+    if (allowedStatus === "PENDING_APPROVAL") {
       await prisma.hrApprovalWorkflow.create({
         data: {
           letterId: letter.id,
           stepNumber: 1,
-          approverRole: "HR Director",
+          approverRole: "HR_DIRECTOR",
           approverName: "Director HR",
           status: "PENDING",
         },
@@ -113,12 +131,12 @@ export async function POST(req: NextRequest) {
     // Audit log
     await prisma.hrLetterAuditLog.create({
       data: {
-        action: "LETTER_GENERATED",
+        action: allowedStatus === "PENDING_APPROVAL" ? "LETTER_SUBMITTED" : "LETTER_DRAFTED",
         actorName: session.fullName,
         actorRole: session.role,
         targetId: letter.id,
         targetType: "HrLetterDocument",
-        details: `Generated ${letter.letterType} letter (${verificationCode}) for ${letter.staff.fullName}`,
+        details: `${allowedStatus === "PENDING_APPROVAL" ? "Submitted for approval" : "Saved as draft"}: ${letter.letterType} letter (${verificationCode}) for ${letter.staff.fullName}`,
       },
     });
 

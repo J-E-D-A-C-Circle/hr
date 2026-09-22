@@ -72,37 +72,66 @@ Kindly sign and return the duplicate of this letter to indicate your acceptance 
   },
 ];
 
+const DEFAULT_USERS = [
+  {
+    username: "hr.officer",
+    email: "hr.officer@dvla.gov.gh",
+    fullName: "HR Officer",
+    passwordHash: "plain:HRoff@DVLA2026",
+    role: "HR_OFFICER",
+  },
+  {
+    username: "hr.director",
+    email: "hr.director@dvla.gov.gh",
+    fullName: "HR Director",
+    passwordHash: "plain:HRdir@DVLA2026",
+    role: "HR_DIRECTOR",
+  },
+];
+
 export async function POST() {
   try {
     // Seed default templates
     let templatesCreated = 0;
     for (const tmpl of DEFAULT_TEMPLATES) {
-      const existing = await prisma.hrLetterTemplate.findFirst({ where: { type: tmpl.type, title: tmpl.title } });
+      const existing = await prisma.hrLetterTemplate.findFirst({
+        where: { type: tmpl.type, title: tmpl.title },
+      });
       if (!existing) {
         await prisma.hrLetterTemplate.create({ data: tmpl });
         templatesCreated++;
       }
     }
 
-    // Seed a default admin user if none exists
-    let userCreated = false;
-    const existingUser = await prisma.hrLetterUser.findFirst();
-    if (!existingUser) {
-      await prisma.hrLetterUser.create({
-        data: {
-          username: "hr.letters",
-          email: "hr.letters@dvla.gov.gh",
-          fullName: "HR Letters Admin",
-          passwordHash: "plain:admin123",
-          role: "HR_DIRECTOR",
-        },
+    // Seed default users (upsert by username)
+    let usersCreated = 0;
+    let usersUpdated = 0;
+    for (const u of DEFAULT_USERS) {
+      const existing = await prisma.hrLetterUser.findFirst({
+        where: { OR: [{ username: u.username }, { email: u.email }] },
       });
-      userCreated = true;
+      if (!existing) {
+        await prisma.hrLetterUser.create({ data: u });
+        usersCreated++;
+      } else {
+        // Ensure role is correct on existing users
+        await prisma.hrLetterUser.update({
+          where: { id: existing.id },
+          data: { role: u.role, active: true },
+        });
+        usersUpdated++;
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Seeded ${templatesCreated} template(s). User created: ${userCreated}`,
+      message: `Seeded ${templatesCreated} template(s). Users created: ${usersCreated}, updated: ${usersUpdated}.`,
+      credentials: DEFAULT_USERS.map((u) => ({
+        role: u.role,
+        username: u.username,
+        email: u.email,
+        password: u.passwordHash.replace("plain:", ""),
+      })),
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
