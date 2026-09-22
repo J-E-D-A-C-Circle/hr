@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { authenticateAdmin, createAdminSession, getAdminSession, clearAdminSession } from "@/lib/admin-auth";
+import { clearRetirementSession } from "@/lib/retirement-auth";
+import { clearHrLettersSession } from "@/lib/hrletters-auth";
+import { clearAdminSession as clearTempStaffSession } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -56,10 +60,26 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// DELETE — clears ALL portal sessions so cache doesn't bleed across portals
 export async function DELETE() {
   try {
-    await clearAdminSession();
-    return NextResponse.json({ success: true, message: "Logged out successfully" });
+    // Clear every portal session cookie at once
+    await Promise.allSettled([
+      clearAdminSession(),        // /admin
+      clearTempStaffSession(),    // /dashboard
+      clearRetirementSession(),   // /retirement
+      clearHrLettersSession(),    // /hrletters
+    ]);
+
+    // Build response with explicit cookie expiration headers as a safety net
+    const res = NextResponse.json({ success: true, message: "Logged out from all portals" });
+    const cookieOpts = { httpOnly: true, secure: false, sameSite: "lax" as const, maxAge: 0, path: "/" };
+    res.cookies.set("dvla_super_admin_session", "", cookieOpts);
+    res.cookies.set("staff_admin_session", "", cookieOpts);
+    res.cookies.set("dvla_retirement_session", "", cookieOpts);
+    res.cookies.set("dvla_hrletters_session", "", cookieOpts);
+
+    return res;
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Logout failed" }, { status: 500 });
   }

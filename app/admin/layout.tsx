@@ -59,12 +59,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/admin/auth", { method: "DELETE" });
-      router.push("/admin/login");
-      router.refresh();
+      await fetch("/api/auth/logout-all?redirect=/admin/login", { method: "POST" });
     } catch {
-      router.push("/admin/login");
+      // Proceed regardless
     }
+    window.location.href = "/admin/login";
   };
 
   const navGroups = [

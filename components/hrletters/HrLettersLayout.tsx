@@ -78,8 +78,12 @@ export function HrLettersLayout({ children }: HrLettersLayoutProps) {
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const handleLogout = async () => {
-    await fetch("/api/hrletters/auth/logout", { method: "POST" });
-    router.push("/hrletters/login");
+    try {
+      await fetch("/api/auth/logout-all?redirect=/hrletters/login", { method: "POST" });
+    } catch {
+      // Proceed regardless
+    }
+    window.location.href = "/hrletters/login";
   };
 
   if (pathname === "/hrletters/login") return <>{children}</>;

@@ -99,11 +99,11 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/retirement/auth", { method: "DELETE" });
-      router.push("/retirement/login");
-    } catch (e) {
-      console.error(e);
+      await fetch("/api/auth/logout-all?redirect=/retirement/login", { method: "POST" });
+    } catch {
+      // Proceed regardless
     }
+    window.location.href = "/retirement/login";
   };
 
   const markAlertsRead = async () => {

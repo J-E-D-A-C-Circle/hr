@@ -412,7 +412,7 @@ export default function AdminUsersPage() {
                   onChange={(e) => {
                     const sys = e.target.value;
                     let defaultRole = "HR_OFFICER";
-                    if (sys === "TEMPSTAFF") defaultRole = "HR Manager";
+                    if (sys === "TEMPSTAFF") defaultRole = "HR Officer";
                     if (sys === "SUPER_ADMIN") defaultRole = "Super Administrator";
                     if (sys === "HR_LETTERS") defaultRole = "HR_OFFICER";
                     setCreateForm({ ...createForm, system: sys, role: defaultRole });
@@ -477,7 +477,7 @@ export default function AdminUsersPage() {
                       </>
                     )}
                     {createForm.system === "TEMPSTAFF" && (
-                      <option value="HR Manager">HR Manager</option>
+                      <option value="HR Officer">HR Officer</option>
                     )}
                     {createForm.system === "HR_LETTERS" && (
                       <>
