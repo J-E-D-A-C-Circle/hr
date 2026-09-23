@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dvla TempStaff Management",
-  description: "Dvla TempStaff Management",
+  title: "DVLA Integrated HR Management Systems",
+  description: "DVLA Integrated HR Management Systems",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

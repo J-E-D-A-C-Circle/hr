@@ -1,0 +1,11 @@
+﻿-- ============================================================
+-- DVLA HR Staff Management + HR Letters Combined DB Backup
+-- Database: tempstaff_db
+-- Date: 2026-09-23
+-- Note: This is a schema-reference file. On container startup,
+--   docker-entrypoint.sh auto-selects the most recent dated
+--   sql_backup_*.sql. Prisma db push then syncs any new tables.
+-- ============================================================
+-- Restore instruction (on server):
+--   docker exec -i <db_container> mysql -u root -p tempstaff_db < sql_backup_2026_09_23.sql
+-- ============================================================

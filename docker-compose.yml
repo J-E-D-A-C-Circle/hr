@@ -37,6 +37,12 @@ services:
     environment:
       DATABASE_URL: mysql://hr_user:hr_password@db:3306/tempstaff_db
       NODE_ENV: production
+      # DB connection vars for docker-entrypoint.sh
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: tempstaff_db
+      DB_USER: root
+      DB_PASSWORD: "!p.ln8YtXAx*tcEJ"
       # Generate on the server: openssl rand -base64 32
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       # TempStaff HR portal credentials (change all in production)
@@ -47,8 +53,12 @@ services:
       SUPER_ADMIN_USERNAME: ${SUPER_ADMIN_USERNAME:-hr.admin}
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@dvla.gov.gh}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-admin123}
+      # HR Letters module — served at /hrletters (same DB, same container)
+      HRLETTERS_DB_URL: mysql://hr_user:hr_password@db:3306/tempstaff_db
+      NEXT_PUBLIC_HRLETTERS_BASE: /hrletters
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   mysql_data:
