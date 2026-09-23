@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: hr-validation-config
-  namespace: hr-validation
-data:
-  NODE_ENV: "production"
-  PORT: "3000"
-  DATABASE_URL: "file:/app/db/sqlite.db"
