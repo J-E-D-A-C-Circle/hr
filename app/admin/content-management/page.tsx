@@ -114,6 +114,10 @@ function ContentManagementContent() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
 
+  // Confirmation Dialog States (Replaces native browser window.confirm popups)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [clearTarget, setClearTarget] = useState<'SUBMISSIONS_ONLY' | 'FULL_RESET' | null>(null);
+
   useEffect(() => {
     fetch('/api/auth/me')
       .then((res) => res.json())
@@ -220,8 +224,14 @@ function ContentManagementContent() {
     }
   };
 
-  const handleDeleteBranch = async (branchId: string, branchName: string) => {
-    if (!confirm(`Are you sure you want to delete "${branchName}"?`)) return;
+  const confirmDeleteBranch = (branchId: string, branchName: string) => {
+    setDeleteTarget({ id: branchId, name: branchName });
+  };
+
+  const executeDeleteBranch = async () => {
+    if (!deleteTarget) return;
+    const { id: branchId, name: branchName } = deleteTarget;
+    setDeleteTarget(null);
 
     try {
       const res = await fetch(`/api/admin/branches?id=${branchId}`, { method: 'DELETE' });
@@ -301,13 +311,14 @@ function ContentManagementContent() {
     }
   };
 
-  const handleClearData = async (mode: 'SUBMISSIONS_ONLY' | 'FULL_RESET') => {
-    const confirmMsg =
-      mode === 'FULL_RESET'
-        ? 'WARNING: Are you sure you want to clear ALL stations, manager accounts, and submissions? Real data can be entered right after.'
-        : 'Are you sure you want to clear all submissions and uploaded PDF files?';
+  const confirmClearData = (mode: 'SUBMISSIONS_ONLY' | 'FULL_RESET') => {
+    setClearTarget(mode);
+  };
 
-    if (!confirm(confirmMsg)) return;
+  const executeClearData = async () => {
+    if (!clearTarget) return;
+    const mode = clearTarget;
+    setClearTarget(null);
 
     try {
       const res = await fetch('/api/admin/clear-data', {
@@ -569,7 +580,7 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                             <span>Edit</span>
                           </button>
                           <button
-                            onClick={() => handleDeleteBranch(b.id, b.name)}
+                            onClick={() => confirmDeleteBranch(b.id, b.name)}
                             className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 className="h-3 w-3 text-rose-600" />
@@ -903,7 +914,7 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                 Deletes all validation form submissions and removes uploaded PDF files from disk storage. Keeps station branches and user accounts intact.
               </p>
               <button
-                onClick={() => handleClearData('SUBMISSIONS_ONLY')}
+                onClick={() => confirmClearData('SUBMISSIONS_ONLY')}
                 className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow-sm cursor-pointer"
               >
                 Clear Submissions Only
@@ -919,7 +930,7 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
                 Deletes all stations, manager accounts, test submissions, and audit logs. Preserves HR Admin access and region definitions.
               </p>
               <button
-                onClick={() => handleClearData('FULL_RESET')}
+                onClick={() => confirmClearData('FULL_RESET')}
                 className="px-4 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold transition shadow-sm cursor-pointer"
               >
                 Full Database Reset
@@ -1142,6 +1153,82 @@ DVLA-ASH-01,DVLA Kumasi Regional Office (Asokwa),Ashanti Region,Kwame Mensah,hea
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* SHADCN UI MODAL: Confirm Delete Station */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-700 text-lg font-bold">
+              <div className="h-9 w-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 className="h-5 w-5 text-rose-600" />
+              </div>
+              Delete Station Office
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600 pt-1 leading-relaxed">
+              Are you sure you want to delete station office <strong className="text-slate-900 font-semibold">{deleteTarget?.name}</strong>? This action will permanently remove the record and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex items-center justify-end gap-2 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              className="text-xs rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={executeDeleteBranch}
+              className="text-xs rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm"
+            >
+              Delete Station
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* SHADCN UI MODAL: Confirm Clear Data */}
+      <Dialog open={!!clearTarget} onOpenChange={(open) => !open && setClearTarget(null)}>
+        <DialogContent className="max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-700 text-lg font-bold">
+              <div className="h-9 w-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                <ShieldAlert className="h-5 w-5 text-rose-600" />
+              </div>
+              {clearTarget === 'FULL_RESET' ? 'Confirm Full Database Reset' : 'Clear Submission Records'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600 pt-1 leading-relaxed">
+              {clearTarget === 'FULL_RESET'
+                ? 'WARNING: This will permanently wipe ALL stations, manager accounts, test submissions, and uploaded PDF files from the system. You will be able to enter real production data immediately.'
+                : 'Are you sure you want to clear all submitted monthly validation records and uploaded PDF files? Station offices and user accounts will be kept.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex items-center justify-end gap-2 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setClearTarget(null)}
+              className="text-xs rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={executeClearData}
+              className={`text-xs rounded-xl font-bold shadow-sm ${
+                clearTarget === 'FULL_RESET'
+                  ? 'bg-rose-700 hover:bg-rose-800 text-white'
+                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+              }`}
+            >
+              {clearTarget === 'FULL_RESET' ? 'Yes, Reset Database' : 'Yes, Clear Submissions'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
