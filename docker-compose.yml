@@ -12,6 +12,8 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/prisma/dev.db
       - PORT=3000
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-pvc-super-secret-jwt-key-2026-production}
     volumes:
       - hr_validation_db:/app/prisma
       - hr_validation_uploads:/app/uploads

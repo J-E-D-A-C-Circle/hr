@@ -39,8 +39,13 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/lib/db ./lib/db
 
-# Create upload directory with correct permissions
-RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads /app
+# Copy DB init script (pure CJS, no build step needed)
+COPY scripts/init-db.js /app/scripts/init-db.js
+
+# Create upload and DB-storage directories with correct permissions
+# /app/prisma is the default volume mount for the SQLite file
+RUN mkdir -p /app/uploads /app/prisma && \
+    chown -R nextjs:nodejs /app/uploads /app/prisma /app/scripts /app
 
 # Copy startup script
 COPY entrypoint.sh /app/entrypoint.sh
