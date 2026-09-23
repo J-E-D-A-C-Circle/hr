@@ -17,7 +17,7 @@ spec:
       labels:
         app: hr-validation-app
       annotations:
-        build: "v2"
+        build: "v3"
     spec:
       containers:
         - name: hr-validation
@@ -52,7 +52,7 @@ spec:
             periodSeconds: 20
           volumeMounts:
             - name: db-storage
-              mountPath: /app/db
+              mountPath: /app/prisma
             - name: uploads-storage
               mountPath: /app/uploads
       volumes:
