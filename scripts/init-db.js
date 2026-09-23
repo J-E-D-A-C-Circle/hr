@@ -164,10 +164,15 @@ console.log('🌱 Seeding initial data...');
 // We do it dynamically here so the hash is always valid.
 let bcrypt;
 try { bcrypt = require('bcryptjs'); } catch { bcrypt = null; }
+
+if (!bcrypt) {
+  console.error('❌ bcryptjs not found — cannot seed passwords. Ensure node_modules are installed.');
+  db.close();
+  process.exit(1);
+}
+
 const PASSWORD = 'password123';
-const passwordHash = bcrypt
-  ? bcrypt.hashSync(PASSWORD, 10)
-  : '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVdlJXNGh6'; // fallback hash for "password123"
+const passwordHash = bcrypt.hashSync(PASSWORD, 10);
 
 // Deadline & Policy
 db.prepare(`INSERT OR IGNORE INTO "DeadlineConfig" (id, cutoffDayOfMonth, reminderDaysBefore, updatedAt) VALUES ('default', 21, 3, ?)`).run(now());
