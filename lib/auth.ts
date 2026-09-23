@@ -66,9 +66,10 @@ export async function getSession(): Promise<UserSession | null> {
 export async function setSessionCookie(session: UserSession) {
   const cookieStore = await cookies();
   const token = encryptSession(session);
+  const isSecure = process.env.COOKIE_SECURE === 'true' || process.env.NEXTAUTH_URL?.startsWith('https') === true;
   cookieStore.set('pvc_session', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days
