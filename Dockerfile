@@ -42,6 +42,12 @@ COPY --from=builder /app/lib/db ./lib/db
 # Copy DB init script (pure CJS, no build step needed)
 COPY scripts/init-db.js /app/scripts/init-db.js
 
+# Copy the native modules needed by init-db.js (not bundled by Next.js standalone)
+COPY --from=deps /app/node_modules/bcryptjs ./node_modules/bcryptjs
+COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=deps /app/node_modules/bindings ./node_modules/bindings
+COPY --from=deps /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
+
 # Create upload and DB-storage directories with correct permissions
 # /app/prisma is the default volume mount for the SQLite file
 RUN mkdir -p /app/uploads /app/prisma && \
