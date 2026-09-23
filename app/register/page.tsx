@@ -162,12 +162,12 @@ export default function RegisterPage() {
             } else {
               setCurrentStep(3); // Default to step 3 if they have an account but no step saved
             }
-          } else {
-            // Not a draft, or fully completed
+          } else if (data.application && data.application.status !== 'draft') {
+            // Only redirect to dashboard if the application has been finalized/submitted
             router.replace('/dashboard');
           }
         } catch (e) {
-          router.replace('/dashboard');
+          // If error checking draft, stay on /register
         }
       }
     };

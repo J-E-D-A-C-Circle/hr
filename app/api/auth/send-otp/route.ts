@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verificationTokens } from '@/db/schema';
 import { rateLimit } from '@/lib/rate-limit';
+import { sendWigalSms, generateFrogOtp } from '@/lib/wigal';
 
 export async function POST(request: Request) {
   try {
@@ -24,56 +25,43 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate a 6-digit OTP
+    // Generate local 6-digit OTP token
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Expire in 10 minutes
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Save token to database
+    console.log(`🔑 [OTP GENERATED] Verification code for ${phoneNumber}: ${otp}`);
+
+    // Save token to local database for fast & resilient verification
     await db.insert(verificationTokens).values({
       phoneNumber,
       token: otp,
       expiresAt,
     });
 
-    // Send SMS via Wigal API
-    const wigalUsername = process.env.WIGAL_USERNAME;
-    const wigalPassword = process.env.WIGAL_PASSWORD;
-    const senderId = process.env.WIGAL_SENDER_ID || 'DVLA NSS';
+    // Send via Frog v3 OTP Generate API first, fallback to Frog v3 Quick SMS
+    let smsResult = await generateFrogOtp({
+      destination: phoneNumber,
+      senderId: 'DVLA NSS',
+      expiryMinutes: 10,
+      length: 6,
+      messageTemplate: 'Your DVLA NSS verification code is : %OTPCODE%. It will expire after %EXPIRY% mins',
+    });
 
-    if (wigalUsername && wigalPassword) {
-      const response = await fetch('https://frog.wigal.com.gh/api/v2/sendmsg', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: wigalUsername,
-          password: wigalPassword,
-          source: senderId,
-          destination: phoneNumber,
-          message: `Your DVLA NSS verification code is: ${otp}. It will expire in 10 minutes.`,
-        }),
+    if (!smsResult.success) {
+      console.warn('⚠️ [OTP Generate] v3 OTP Endpoint returned non-success, attempting v3 Quick SMS fallback...');
+      smsResult = await sendWigalSms({
+        destination: phoneNumber,
+        message: `Your DVLA NSS verification code is: ${otp}. Valid for 10 minutes.`,
+        senderId: 'DVLA NSS',
       });
-
-      const responseData = await response.text();
-      console.log('Wigal API response:', response.status, responseData);
-
-      if (!response.ok) {
-        console.error('Failed to send SMS via Wigal:', responseData);
-        // Even if SMS fails in dev, we might still want to let the user proceed if we log the OTP, 
-        // but in production, we should probably fail. For now, we'll return success so UI can continue,
-        // or we could throw. Let's not throw, but log it.
-      }
-    } else {
-      console.warn('Wigal API credentials not set. OTP is:', otp);
-      // Fallback for development if credentials are not configured
     }
 
     return NextResponse.json({
       message: 'OTP sent successfully',
-      // We don't return the OTP in production, but for testing it can be logged on server
+      formattedNumber: smsResult.formattedNumber,
+      smsDelivered: smsResult.success,
+      smsResponse: smsResult.data,
+      debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
     }, { status: 200 });
   } catch (error: any) {
     console.error('Error sending OTP:', error);

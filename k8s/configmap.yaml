@@ -12,5 +12,4 @@ data:
   DB_NAME: "dvla_nss_portal"
   DATABASE_URL: "mysql://hr_user:hr_password@nss-mysql-service:3306/dvla_nss_portal"
   ADMIN_EMAIL: "admin@dvla.gov.gh"
-  WIGAL_USERNAME: "DVLA"
-  WIGAL_SENDER_ID: "DVLA PLATES"
+  WIGAL_SENDER_ID: "DVLA NSS"

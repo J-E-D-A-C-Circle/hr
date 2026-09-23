@@ -1,49 +1,73 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { AlertTriangle, Home, ArrowLeft } from 'lucide-react';
+'use client';
 
-export default function NotFound() {
+import Image from 'next/image';
+import Link from 'next/link';
+import { NotFound, Illustration } from "@/components/ui/not-found";
+
+export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-emerald-100 rounded-full blur-3xl opacity-50 pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-72 h-72 bg-emerald-200 rounded-full blur-3xl opacity-30 pointer-events-none" />
-      
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8 md:p-10 text-center relative z-10 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-600 via-emerald-400 to-emerald-600" />
-        
-        {/* Logo or Icon */}
-        <div className="mx-auto w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 border-8 border-white shadow-sm ring-1 ring-slate-100">
-          <AlertTriangle className="w-10 h-10 text-emerald-600" />
-        </div>
-        
-        <h1 className="text-6xl font-black text-slate-900 mb-2 tracking-tighter">
-          4<span className="text-emerald-500">0</span>4
-        </h1>
-        
-        <h2 className="text-xl font-bold text-slate-800 mb-4">
-          Page Not Found
-        </h2>
-        
-        <p className="text-slate-500 mb-8 text-sm leading-relaxed">
-          The page you are looking for might have been removed, had its name changed, or is temporarily unavailable in the DVLA NSS Portal.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link 
-            href="/"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-all active:scale-95 shadow-md hover:shadow-lg"
-          >
-            <Home className="w-4 h-4" />
-            Return Home
+    <div className="relative flex flex-col w-full min-h-screen bg-slate-50 overflow-hidden">
+      {/* Top Header Navigation Bar */}
+      <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 p-1 bg-white rounded-xl shadow-md border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105">
+              <Image
+                src="/oop.png"
+                alt="DVLA Logo"
+                width={36}
+                height={36}
+                className="w-full h-full object-contain"
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-base md:text-lg text-slate-900 tracking-tight leading-tight group-hover:text-[#0d5c2e] transition-colors">
+                DVLA NSS Portal
+              </span>
+              <span className="text-[11px] text-slate-500 font-medium hidden sm:inline-block">
+                Driver & Vehicle Licensing Authority
+              </span>
+            </div>
           </Link>
+
+          <nav className="flex items-center gap-2 sm:gap-4">
+            <Link
+              href="/"
+              className="px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-[#0d5c2e] hover:bg-emerald-50/60 rounded-lg transition-colors"
+            >
+              Home
+            </Link>
+            <Link
+              href="/login"
+              className="px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-[#0d5c2e] hover:bg-emerald-50/60 rounded-lg transition-colors"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-[#0d5c2e] hover:bg-[#073e1e] rounded-xl transition-all shadow-sm active:scale-95"
+            >
+              Register
+            </Link>
+          </nav>
         </div>
-      </div>
-      
+      </header>
+
+      {/* Main 404 Content (Pushed Down) */}
+      <main className="relative flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6">
+        <Illustration className="absolute inset-0 w-full h-[55vh] opacity-[0.07] text-[#0d5c2e] pointer-events-none" />
+        <NotFound
+          title="Page Not Found"
+          description="The page you are looking for might have been removed, had its name changed, or is temporarily unavailable in the DVLA NSS Portal."
+          searchPlaceholder="Search DVLA NSS Portal..."
+        />
+      </main>
+
       {/* Footer text */}
-      <div className="mt-12 text-center text-slate-400 text-xs font-medium relative z-10">
-        &copy; {new Date().getFullYear()} Driver and Vehicle Licensing Authority
-      </div>
+      <footer className="mt-auto text-center text-slate-400 text-xs font-medium relative z-10 py-6 border-t border-slate-200/60 bg-white/50">
+        &copy; {new Date().getFullYear()} Driver and Vehicle Licensing Authority. All rights reserved.
+      </footer>
     </div>
   );
 }

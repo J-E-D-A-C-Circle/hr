@@ -56,7 +56,7 @@ export const nssApplications = mysqlTable('nss_applications', {
   
   additionalInfo: text('additional_info'),
   
-  status: mysqlEnum('status', ['pending', 'under_review', 'approved', 'rejected']).default('pending'),
+  status: mysqlEnum('status', ['draft', 'pending', 'under_review', 'approved', 'rejected']).default('pending'),
   reviewedBy: int('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
   reviewNotes: text('review_notes'),
   reviewedAt: timestamp('reviewed_at'),
@@ -73,7 +73,7 @@ export const nssApplications = mysqlTable('nss_applications', {
 
 export const verificationTokens = mysqlTable('verification_tokens', {
   id: int('id').primaryKey().autoincrement(),
-  phoneNumber: varchar('phone_number', { length: 20 }).notNull(),
+  phoneNumber: varchar('phone_number', { length: 255 }).notNull(),
   token: varchar('token', { length: 10 }).notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   isUsed: boolean('is_used').default(false),

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verificationTokens } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, or, sql } from 'drizzle-orm';
 import { rateLimit } from '@/lib/rate-limit';
+import { verifyFrogOtp } from '@/lib/wigal';
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const cleanDigits = String(phoneNumber).replace(/\D/g, '');
+
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     const isAllowed = rateLimit(`verify-otp:${phoneNumber}:${ip}`, 5, 10 * 60 * 1000);
     if (!isAllowed) {
@@ -25,7 +28,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find the latest active token for this phone number
+    // Attempt Frog v3 OTP Verify API check
+    const frogVerify = await verifyFrogOtp({
+      destination: String(phoneNumber),
+      code: String(token).trim(),
+    });
+
+    if (frogVerify.success) {
+      return NextResponse.json({
+        message: 'Phone number verified successfully via Frog API v3',
+      }, { status: 200 });
+    }
+
+    // Find the latest active token matching this phone number (exact or digit suffix match)
     const records = await db
       .select({
         id: verificationTokens.id,
@@ -34,7 +49,12 @@ export async function POST(request: Request) {
         isUsed: verificationTokens.isUsed,
       })
       .from(verificationTokens)
-      .where(eq(verificationTokens.phoneNumber, phoneNumber))
+      .where(
+        or(
+          eq(verificationTokens.phoneNumber, String(phoneNumber)),
+          sql`REPLACE(REPLACE(REPLACE(${verificationTokens.phoneNumber}, ' ', ''), '-', ''), '+', '') LIKE ${'%' + (cleanDigits.length > 9 ? cleanDigits.slice(-9) : cleanDigits)}`
+        )
+      )
       .orderBy(desc(verificationTokens.createdAt))
       .limit(1);
 
@@ -61,7 +81,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (record.token !== token) {
+    if (record.token !== String(token).trim()) {
       return NextResponse.json(
         { error: 'Invalid verification token.' },
         { status: 400 }

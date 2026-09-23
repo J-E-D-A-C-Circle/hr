@@ -8,7 +8,7 @@ services:
       MYSQL_USER: hr_user
       MYSQL_PASSWORD: hr_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 5s
@@ -34,6 +34,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:3000"
+    env_file:
+      - .env
     environment:
       DB_HOST: db
       DB_PORT: 3306
@@ -42,15 +44,13 @@ services:
       DB_NAME: dvla_nss_portal
       DATABASE_URL: mysql://hr_user:hr_password@db:3306/dvla_nss_portal
       NODE_ENV: production
-      # Generate on the server: openssl rand -base64 32
       JWT_SECRET: ${JWT_SECRET:-dvla_nss_portal_jwt_secret_key_2026}
-      # DVLA NSS portal credentials (change all in production)
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dvla.gov.gh}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
-      # Wigal SMS API Credentials
-      WIGAL_USERNAME: ${WIGAL_USERNAME:-DVLA}
-      WIGAL_PASSWORD: ${WIGAL_PASSWORD:-Devapps@123}
-      WIGAL_SENDER_ID: ${WIGAL_SENDER_ID:-DVLA PLATES}
+      WIGAL_API_KEY: ${WIGAL_API_KEY}
+      WIGAL_USERNAME: ${WIGAL_USERNAME}
+      WIGAL_PASSWORD: ${WIGAL_PASSWORD}
+      WIGAL_SENDER_ID: ${WIGAL_SENDER_ID:-DVLA NSS}
     depends_on:
       db:
         condition: service_healthy

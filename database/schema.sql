@@ -1,5 +1,4 @@
 -- DVLA NSS Portal Database Schema
--- Create database
 CREATE DATABASE IF NOT EXISTS dvla_nss_portal CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE dvla_nss_portal;
 
@@ -49,13 +48,13 @@ CREATE TABLE IF NOT EXISTS nss_applications (
     passport_photo VARCHAR(255),
     id_card_copy VARCHAR(255),
     appointment_letter VARCHAR(255),
-    certificates VARCHAR(500), -- Used for CV
+    certificates VARCHAR(500),
     
     -- Additional information
     additional_info TEXT,
     
     -- Application status
-    status ENUM('pending', 'under_review', 'approved', 'rejected') DEFAULT 'pending',
+    status ENUM('draft', 'pending', 'under_review', 'approved', 'rejected') DEFAULT 'pending',
     reviewed_by INT NULL,
     review_notes TEXT,
     reviewed_at TIMESTAMP NULL,
@@ -70,8 +69,7 @@ CREATE TABLE IF NOT EXISTS nss_applications (
     INDEX idx_nss_number (nss_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default admin user (password: admin123 - change this in production!)
--- Password hash for 'admin123' using bcrypt
+-- Insert default admin user (password: admin123)
 INSERT INTO users (email, password_hash, role, full_name) 
 VALUES ('admin@dvla.gov.gh', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System Administrator')
 ON DUPLICATE KEY UPDATE email=email;
@@ -95,7 +93,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- Verification Tokens table
 CREATE TABLE IF NOT EXISTS verification_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    phone_number VARCHAR(20) NOT NULL,
+    phone_number VARCHAR(255) NOT NULL,
     token VARCHAR(10) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     is_used BOOLEAN DEFAULT FALSE,
