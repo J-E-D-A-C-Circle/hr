@@ -74,7 +74,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          <button className="mt-6 w-full py-2.5 px-4 rounded-lg bg-[#0F5132] hover:bg-[#0B3D26] text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onLogin('HR_OFFICER'); }}
+            className="mt-6 w-full py-2.5 px-4 rounded-lg bg-[#0F5132] hover:bg-[#0B3D26] text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5"
+          >
             Login as HR Officer <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -119,7 +123,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          <button className="mt-6 w-full py-2.5 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onLogin('HR_DIRECTOR'); }}
+            className="mt-6 w-full py-2.5 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5"
+          >
             Login as HR Director <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -164,7 +172,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          <button className="mt-6 w-full py-2.5 px-4 rounded-lg bg-[#0F5132] hover:bg-[#0B3D26] text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onLogin('DEPT_HEAD'); }}
+            className="mt-6 w-full py-2.5 px-4 rounded-lg bg-[#0F5132] hover:bg-[#0B3D26] text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5"
+          >
             Login as Dept Head <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -218,7 +230,21 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          <button className="mt-6 w-full py-2.5 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onLogin('STAFF', {
+                id: 'staff-constance',
+                fullName: 'Constance Akua Essuman',
+                staffId: 'DVLA-883012',
+                email: 'constanceakua.essuman@dvla.gov.gh',
+                department: 'Driver Licensing & Executive Administration',
+                jobTitle: 'Senior Licensing & HR Director',
+              });
+            }}
+            className="mt-6 w-full py-2.5 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition group-hover:translate-x-0.5"
+          >
             Login as Employee Portal <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  FileText, Send, PenTool, Eye, Tag, Stamp, User, Building2, Briefcase, Hash, MapPin, Printer, RefreshCw, Sparkles, Mail, CheckCircle2,
+  FileText, Send, PenTool, Eye, Tag, Stamp, User, Building2, Briefcase, Hash, MapPin, Printer, RefreshCw, Sparkles, Mail, CheckCircle2, Download, Lock,
 } from "lucide-react";
 import { SignaturePad } from "../SignaturePad";
 import { LetterPreviewModal } from "../LetterPreviewModal";
@@ -174,6 +174,41 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole, selec
     });
   };
 
+  // Print a specific issued letter from the table
+  const handlePrintIssuedLetter = (doc: any) => {
+    printOfficialLetter({
+      verificationCode: doc.verificationCode,
+      customRefNumber: doc.customRefNumber || doc.verificationCode,
+      yourRef: doc.yourRef,
+      issueDate: doc.issuedAt
+        ? new Date(doc.issuedAt).toLocaleDateString("en-GB", { month: "long", day: "numeric", year: "numeric" }).toUpperCase()
+        : new Date().toLocaleDateString("en-GB", { month: "long", day: "numeric", year: "numeric" }).toUpperCase(),
+      applicantName: doc.staff?.fullName || "Staff Member",
+      applicantAddress: doc.applicantAddress || "ACCRA - GHANA",
+      salutation: doc.salutation || "Dear Sir/Madam,",
+      customSubject: doc.title,
+      customBodyText: doc.content,
+      salaryGrade: doc.salaryGrade,
+      signatoryName: doc.signatoryName || "EPHRAIM NII TAN SACKEY",
+      signatoryTitle: doc.signatoryTitle || "AG. DIRECTOR HR",
+      signatoryForTitle: doc.signatoryForTitle || "FOR: CHIEF EXECUTIVE",
+      ccList: doc.ccList,
+      digitalSignature: doc.digitalSignature,
+      letterType: doc.letterType,
+    });
+  };
+
+  // Download the issued letter as PDF via print-to-PDF
+  const handleDownloadIssuedLetter = (doc: any) => {
+    // Uses the same print helper — the browser print dialog allows "Save as PDF"
+    handlePrintIssuedLetter(doc);
+  };
+
+  // A letter is print/download-ready only when it has been signed & issued by HR Director
+  const isLetterReady = (doc: any) => doc.status === "ISSUED";
+  // For the page-level button: active if the current live-form letter matches an ISSUED record
+  const hasAnyIssuedLetter = letters.some((l) => l.status === "ISSUED");
+
   const handleGenerateLetter = async (submitForApproval: boolean) => {
     if (!recipientName || !content) return;
     setSaving(true);
@@ -264,9 +299,32 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole, selec
           <Button variant="secondary" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={resetDefaults}>
             Reset Defaults
           </Button>
-          <Button variant="primary" size="sm" icon={<Printer className="w-3.5 h-3.5" />} onClick={handlePrintCurrentLetter}>
-            Print / Download PDF
-          </Button>
+          {/* Print/Download only active after HR Director has signed & issued a letter */}
+          <div
+            className="relative group"
+            title={
+              currentRole !== "HR_OFFICER"
+                ? "Only HR Officer can print issued letters"
+                : !hasAnyIssuedLetter
+                ? "Available after HR Director approves, signs & issues the letter"
+                : undefined
+            }
+          >
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Printer className="w-3.5 h-3.5" />}
+              onClick={handlePrintCurrentLetter}
+              disabled={currentRole !== "HR_OFFICER" || !hasAnyIssuedLetter}
+            >
+              Print / Download PDF
+            </Button>
+            {(currentRole !== "HR_OFFICER" || !hasAnyIssuedLetter) && (
+              <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-amber-500">
+                <Lock className="w-2.5 h-2.5 text-white" />
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -651,6 +709,68 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole, selec
                     >
                       DVLA Mail
                     </Button>
+
+                    {/* ── Print & Download — only active when ISSUED and viewer is HR_OFFICER ── */}
+                    {currentRole === "HR_OFFICER" && (
+                      <>
+                        <div
+                          className="relative group/print"
+                          title={
+                            !isLetterReady(doc)
+                              ? `Locked — awaiting HR Director approval & signature (status: ${doc.status.replace(/_/g, " ")})`
+                              : "Print issued letter"
+                          }
+                        >
+                          <button
+                            type="button"
+                            disabled={!isLetterReady(doc)}
+                            onClick={() => isLetterReady(doc) && handlePrintIssuedLetter(doc)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              isLetterReady(doc)
+                                ? "cursor-pointer border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
+                                : "cursor-not-allowed border-dashed opacity-50"
+                            }`}
+                            style={!isLetterReady(doc) ? { borderColor: "var(--color-border)", color: "var(--color-text-4)" } : {}}
+                          >
+                            {isLetterReady(doc) ? (
+                              <Printer className="w-3.5 h-3.5" />
+                            ) : (
+                              <Lock className="w-3.5 h-3.5" />
+                            )}
+                            Print
+                          </button>
+                        </div>
+
+                        <div
+                          className="relative group/dl"
+                          title={
+                            !isLetterReady(doc)
+                              ? `Locked — awaiting HR Director approval & signature (status: ${doc.status.replace(/_/g, " ")})`
+                              : "Download as PDF"
+                          }
+                        >
+                          <button
+                            type="button"
+                            disabled={!isLetterReady(doc)}
+                            onClick={() => isLetterReady(doc) && handleDownloadIssuedLetter(doc)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              isLetterReady(doc)
+                                ? "cursor-pointer border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20"
+                                : "cursor-not-allowed border-dashed opacity-50"
+                            }`}
+                            style={!isLetterReady(doc) ? { borderColor: "var(--color-border)", color: "var(--color-text-4)" } : {}}
+                          >
+                            {isLetterReady(doc) ? (
+                              <Download className="w-3.5 h-3.5" />
+                            ) : (
+                              <Lock className="w-3.5 h-3.5" />
+                            )}
+                            Download PDF
+                          </button>
+                        </div>
+                      </>
+                    )}
+
                     {doc.status === "PENDING_APPROVAL" && ["HR_DIRECTOR", "HR_OFFICER"].includes(currentRole) && (
                       <Button variant="primary" size="sm" onClick={() => handleApproveLetter(doc.id)}>
                         Approve
@@ -681,7 +801,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({ currentRole, selec
         <SignaturePad onClose={() => setSigningLetterId(null)} onSaveSignature={handleSaveSignature} />
       )}
       {previewLetter && (
-        <LetterPreviewModal letter={previewLetter} onClose={() => setPreviewLetter(null)} />
+        <LetterPreviewModal letter={previewLetter} onClose={() => setPreviewLetter(null)} currentRole={currentRole} />
       )}
       {mailModalOpen && (
         <DvlaMailModal

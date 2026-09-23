@@ -1,0 +1,9 @@
+﻿-- DVLA HR Letters Database Backup
+-- Database: hrletters_db
+-- Backup Date: 2026-09-23
+-- NOTE: MAMP MySQL (port 3307) was offline at the time of this backup.
+-- The MySQL instance on port 3306 uses caching_sha2_password auth
+-- which is incompatible with the MAMP mysqldump binary.
+-- To regenerate this backup, start MAMP and run:
+--   & "C:\MAMP\bin\mysql\bin\mysqldump.exe" -u root -proot -h 127.0.0.1 -P 3307 hrletters_db > database/sql_backup_YYYY_MM_DD.sql
+-- Prisma schema is committed separately in prisma/schema.prisma

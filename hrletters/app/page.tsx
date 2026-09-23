@@ -15,8 +15,8 @@ import { AuditView }          from "../components/views/AuditView";
 
 export default function Home() {
   const [currentRole, setCurrentRole] = useState<RoleType>("HR_OFFICER");
-  const [activeTab, setActiveTab] = useState<TabType>("login");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("generator");
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("light");
@@ -104,16 +104,14 @@ export default function Home() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        {isLoggedIn && activeTab !== "login" && (
-          <Sidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            currentRole={currentRole}
-            theme={theme}
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={toggleSidebar}
-          />
-        )}
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          currentRole={currentRole}
+          theme={theme}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
+        />
 
         <main className="flex-1 overflow-y-auto">
           <div className="w-full max-w-[1380px] mx-auto px-8 py-6">

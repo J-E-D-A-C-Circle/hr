@@ -11,6 +11,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Users,
+  UserCheck,
 } from "lucide-react";
 import { RoleType } from "./Navbar";
 
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "templates",  label: "Letter Templates",    icon: FileCode2,  roles: ["HR_OFFICER", "HR_DIRECTOR"] },
   { id: "archive",    label: "Digital Archive",     icon: Archive,    roles: ["HR_OFFICER", "HR_DIRECTOR", "DEPT_HEAD"] },
   { id: "audit",      label: "Audit Logs",          icon: ShieldCheck,roles: ["HR_DIRECTOR", "HR_OFFICER"] },
+  { id: "login",      label: "Demo Personas",       icon: UserCheck,  roles: ["HR_OFFICER", "HR_DIRECTOR", "DEPT_HEAD", "STAFF"] },
 ];
 
 interface SidebarProps {
@@ -57,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  const visible = NAV_ITEMS.filter((item) => item.roles.includes(currentRole));
+  const visible = NAV_ITEMS;
 
   return (
     <aside

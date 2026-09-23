@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Users, Plus, Search, UserCheck, Mail, Building2, Briefcase, Calendar, Phone, FileText, CheckCircle } from 'lucide-react';
+import { Users, Plus, Search, UserCheck, Mail, Building2, Briefcase, Calendar, Phone, FileText, CheckCircle, UserPlus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../ui/table';
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Printer, CheckCircle, X, FileText } from "lucide-react";
+import { Printer, CheckCircle, X, FileText, Download, Lock } from "lucide-react";
 import { OfficialAppointmentLetter } from "./OfficialAppointmentLetter";
 import { Badge, statusToBadgeVariant } from "./ui/Badge";
 import { Button } from "./ui/Button";
@@ -12,6 +12,7 @@ interface LetterPreviewModalProps {
   onClose: () => void;
   onAcknowledge?: (letterId: string) => void;
   isEmployeeView?: boolean;
+  currentRole?: string;
 }
 
 export const LetterPreviewModal: React.FC<LetterPreviewModalProps> = ({
@@ -19,6 +20,7 @@ export const LetterPreviewModal: React.FC<LetterPreviewModalProps> = ({
   onClose,
   onAcknowledge,
   isEmployeeView = false,
+  currentRole,
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -93,14 +95,50 @@ export const LetterPreviewModal: React.FC<LetterPreviewModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0 ml-4">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Printer className="w-3.5 h-3.5" />}
-              onClick={handlePrint}
-            >
-              Print / Download PDF
-            </Button>
+            {/* Print & Download — only active when letter is ISSUED and viewer is HR Officer */}
+            {(() => {
+              const isReady = letter.status === "ISSUED";
+              const canAct = isEmployeeView || currentRole === "HR_OFFICER" || currentRole === "HR_DIRECTOR";
+              const lockTitle = !isReady
+                ? `Locked — letter must be signed & issued by HR Director first (current status: ${letter.status?.replace(/_/g, " ")})`
+                : undefined;
+              return (
+                <>
+                  <div className="relative" title={lockTitle}>
+                    <button
+                      type="button"
+                      disabled={!isReady}
+                      onClick={() => isReady && handlePrint()}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        isReady
+                          ? "cursor-pointer border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
+                          : "cursor-not-allowed border-dashed opacity-50"
+                      }`}
+                      style={!isReady ? { borderColor: "var(--color-border)", color: "var(--color-text-4)" } : {}}
+                    >
+                      {isReady ? <Printer className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                      Print
+                    </button>
+                  </div>
+                  <div className="relative" title={lockTitle}>
+                    <button
+                      type="button"
+                      disabled={!isReady}
+                      onClick={() => isReady && handlePrint()}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        isReady
+                          ? "cursor-pointer border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20"
+                          : "cursor-not-allowed border-dashed opacity-50"
+                      }`}
+                      style={!isReady ? { borderColor: "var(--color-border)", color: "var(--color-text-4)" } : {}}
+                    >
+                      {isReady ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                      Download PDF
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
 
             {isEmployeeView && letter.status === "ISSUED" && onAcknowledge && (
               <Button

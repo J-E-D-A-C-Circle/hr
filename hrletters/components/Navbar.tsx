@@ -85,10 +85,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* ── User & Controls ── */}
       <div className="flex items-center gap-2.5">
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border ${role?.color || ''}`}>
-          <UserCheck className="w-3.5 h-3.5" />
-          {role?.label || 'Guest'}
-        </span>
+        <div className="relative flex items-center">
+          <select
+            value={currentRole}
+            onChange={(e) => onRoleChange(e.target.value as RoleType)}
+            className={`px-3 py-1 rounded-lg text-xs font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 appearance-none pr-7 ${role?.color || ''}`}
+            title="Switch User Role"
+          >
+            {ROLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100">
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <UserCheck className="w-3.5 h-3.5 absolute right-2 pointer-events-none opacity-70" />
+        </div>
 
         <div className="w-px h-5 mx-1 shrink-0" style={{ background: "var(--color-border)" }} />
 
