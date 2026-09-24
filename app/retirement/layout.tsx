@@ -319,26 +319,22 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
 
         {/* Main Content Container */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-white">
-          {/* Top Header (Desktop - Expanded Height) */}
-          <header className="hidden lg:flex h-24 bg-white border-b border-slate-200 px-8 items-center justify-between sticky top-0 z-20 shadow-xs">
-            <div className="flex items-center gap-4">
+          {/* Top Utility Header (Desktop - Slim Height) */}
+          <header className="hidden lg:flex h-14 bg-white border-b border-slate-200 px-6 items-center justify-between sticky top-0 z-20 shadow-xs">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setCollapsed(!collapsed)}
-                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition border border-slate-200 shadow-xs"
+                className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition border border-slate-200"
                 title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
               >
-                {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
               </button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-emerald-700" />
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-                    DVLA Head Office — HR Directorate
-                  </h2>
-                </div>
-                <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                  Statutory Pension & Retirement Management System
-                </p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/80">
+                  DVLA HEAD OFFICE
+                </span>
+                <span className="text-xs text-slate-400 font-medium">&bull;</span>
+                <span className="text-xs font-semibold text-slate-600">Statutory Pension Portal</span>
               </div>
             </div>
 

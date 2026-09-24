@@ -58,6 +58,8 @@ export async function GET(request: Request) {
       whereClause.gender = gender;
     }
 
+    const yearsRemainingParam = searchParams.get("yearsRemaining") || searchParams.get("nearingYear") || "";
+
     const today = new Date();
     const rawStaffList = await prisma.retirementStaff.findMany({
       where: whereClause,
@@ -87,7 +89,14 @@ export async function GET(request: Request) {
       })
       .filter((staff: any) => {
         if (retirementYear && retirementYear !== "ALL") {
-          return staff.retirementYear === parseInt(retirementYear, 10);
+          if (staff.retirementYear !== parseInt(retirementYear, 10)) return false;
+        }
+        if (yearsRemainingParam && yearsRemainingParam !== "ALL") {
+          const y = parseInt(yearsRemainingParam, 10);
+          if (!isNaN(y)) {
+            const yearsLeft = Math.ceil(staff.monthsRemaining / 12);
+            if (yearsLeft !== y && staff.yearsRemaining !== y) return false;
+          }
         }
         return true;
       });

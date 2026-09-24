@@ -138,7 +138,7 @@ function StaffDirectoryContent() {
     } else {
       fetchStaff();
     }
-  }, [activeTab, search, statusFilter, deptFilter, genderFilter, page, deptTypeFilter, deptSearch]);
+  }, [activeTab, search, statusFilter, deptFilter, genderFilter, nearingYearFilter, page, deptTypeFilter, deptSearch]);
 
   const fetchStaff = async () => {
     try {
@@ -151,6 +151,9 @@ function StaffDirectoryContent() {
         params.set("status", "DUE_THIS_YEAR");
       } else if (activeTab === "nearing") {
         params.set("status", "NEARING_RETIREMENT");
+        if (nearingYearFilter !== "ALL") {
+          params.set("yearsRemaining", nearingYearFilter);
+        }
       } else if (activeTab === "retired") {
         params.set("status", "RETIRED");
       } else if (statusFilter && statusFilter !== "ALL_STATUS") {
@@ -721,7 +724,13 @@ function StaffDirectoryContent() {
 
               {/* Nearing Year filter if nearing tab active */}
               {activeTab === "nearing" && (
-                <Select value={nearingYearFilter} onValueChange={(val) => setNearingYearFilter(val)}>
+                <Select
+                  value={nearingYearFilter}
+                  onValueChange={(val) => {
+                    setNearingYearFilter(val);
+                    setPage(1);
+                  }}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Filter by Years Left" />
                   </SelectTrigger>

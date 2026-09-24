@@ -32,7 +32,7 @@ export default function RetirementDashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/retirement/staff?limit=100");
+      const res = await fetch("/api/retirement/staff?limit=5000");
       if (res.ok) {
         const result = await res.json();
         const staffList: any[] = result.staff || [];
@@ -79,13 +79,17 @@ export default function RetirementDashboardPage() {
             total: totalCount,
             active: activeStaff.length,
             nearing: nearingStaff.length,
+            nearingRetirement: nearingStaff.length,
             due: dueStaff.length,
+            dueThisYear: dueStaff.length,
             retired: retiredStaff.length,
           },
           percentages: {
             active: Math.round((activeStaff.length / totalCount) * 100),
             nearing: Math.round((nearingStaff.length / totalCount) * 100),
+            nearingRetirement: Math.round((nearingStaff.length / totalCount) * 100),
             due: Math.round((dueStaff.length / totalCount) * 100),
+            dueThisYear: Math.round((dueStaff.length / totalCount) * 100),
             retired: Math.round((retiredStaff.length / totalCount) * 100),
           },
           timeline: { within6m, within6to12m, within1to3y, within3to5y },
