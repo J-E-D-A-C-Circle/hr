@@ -140,7 +140,7 @@ async function main() {
     const fullName = initial ? `${initial} ${rawName}`.trim() : rawName.trim();
     
     const empIdRaw = row[2] || `${i}`;
-    const staffId = empIdRaw.toUpperCase().startsWith("DVLA") ? empIdRaw : `DVLA-${empIdRaw.padStart(5, "0")}`;
+    const staffId = empIdRaw.replace(/^DVLA-/i, "").trim();
 
     const rawGroup = row[5] || "JUNIOR LEVEL";
     const rawDeptName = row[6] || row[9] || "General Administration";
