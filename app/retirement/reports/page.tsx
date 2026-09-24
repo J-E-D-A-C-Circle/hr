@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { FileBarChart, Download, Printer, Filter, Building2, Users, Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import RetirementHeader from "@/components/retirement/RetirementHeader";
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<"summary" | "upcoming" | "department" | "retired">("summary");
@@ -55,34 +56,31 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6 pb-12 print:p-0 print:bg-white">
       {/* Header (Hidden on Print) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
-        <div>
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-            <FileBarChart size={20} />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Retirement Reports & Analytics</h2>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Generate, preview, and export official DVLA HR Directorate retirement analytics.
-          </p>
-        </div>
+      <div className="print:hidden">
+        <RetirementHeader
+          icon={FileBarChart}
+          title="Retirement Reports & Analytics"
+          subtitle="Generate, preview, and export official DVLA HR Directorate retirement analytics."
+          action={
+            <>
+              <button
+                onClick={handlePrintPDF}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition flex items-center gap-2 shadow-xs"
+              >
+                <Printer size={15} />
+                <span>Print PDF Report</span>
+              </button>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrintPDF}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition flex items-center gap-2 shadow-xs"
-          >
-            <Printer size={15} />
-            <span>Print PDF Report</span>
-          </button>
-
-          <a
-            href={`/api/retirement/reports?type=${reportType}&departmentId=${deptFilter}&export=excel`}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-2 shadow-md"
-          >
-            <Download size={15} />
-            <span>Export to Excel</span>
-          </a>
-        </div>
+              <a
+                href={`/api/retirement/reports?type=${reportType}&departmentId=${deptFilter}&export=excel`}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-2 shadow-md"
+              >
+                <Download size={15} />
+                <span>Export to Excel</span>
+              </a>
+            </>
+          }
+        />
       </div>
 
       {/* Report Controls & Filter Selector (Hidden on Print) */}

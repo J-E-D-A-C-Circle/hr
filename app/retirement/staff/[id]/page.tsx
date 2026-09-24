@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { format } from "date-fns";
+import RetirementHeader from "@/components/retirement/RetirementHeader";
 
 export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -125,32 +126,37 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Breadcrumb & Actions */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/retirement/staff"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition"
-        >
-          <ArrowLeft size={16} />
-          <span>Back to Staff Directory</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEditModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition flex items-center gap-1.5"
-          >
-            <Edit size={14} className="text-amber-600" />
-            <span>Edit Profile</span>
-          </button>
-          <button
-            onClick={handleDeactivate}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-100 transition flex items-center gap-1.5 border border-rose-200 dark:border-rose-900/40"
-          >
-            <Trash2 size={14} />
-            <span>Deactivate</span>
-          </button>
-        </div>
-      </div>
+      {/* Top Header Banner */}
+      <RetirementHeader
+        icon={User}
+        title={`${staff.fullName} (${staff.staffId})`}
+        subtitle={`${staff.jobTitle} • ${staff.grade || "Officer"} • ${staff.departmentName || "Unassigned"}`}
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/retirement/staff"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition flex items-center gap-1.5 shadow-xs"
+            >
+              <ArrowLeft size={15} />
+              <span>Back to Directory</span>
+            </Link>
+            <button
+              onClick={() => setEditModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition flex items-center gap-1.5 shadow-xs"
+            >
+              <Edit size={14} className="text-amber-600" />
+              <span>Edit Profile</span>
+            </button>
+            <button
+              onClick={handleDeactivate}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-100 transition flex items-center gap-1.5 border border-rose-200 dark:border-rose-900/40 shadow-xs"
+            >
+              <Trash2 size={14} />
+              <span>Deactivate</span>
+            </button>
+          </div>
+        }
+      />
 
       {/* Main Profile Header Banner */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">

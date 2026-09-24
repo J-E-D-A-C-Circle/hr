@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Settings, ShieldCheck, Server, Lock, ExternalLink, Building2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import RetirementHeader from "@/components/retirement/RetirementHeader";
 
 export default function SettingsPage() {
   const [systemInfo, setSystemInfo] = useState<any>(null);
@@ -34,19 +35,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 pb-12 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
-        <div className="p-2.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-2xl shadow-xs">
-          <Settings size={22} />
-        </div>
-        <div>
-          <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-            System Settings & Parameters
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Statutory retirement parameters, system rules, and head office authority details.
-          </p>
-        </div>
-      </div>
+      <RetirementHeader
+        icon={Settings}
+        title="System Settings & Parameters"
+        subtitle="Statutory retirement parameters, system rules, and head office authority details."
+      />
 
       {/* Super Admin Notice Banner */}
       <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">

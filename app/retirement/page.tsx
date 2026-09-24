@@ -15,8 +15,10 @@ import {
   Sparkles,
   ChevronRight,
   Eye,
+  LayoutDashboard,
 } from "lucide-react";
 import { format } from "date-fns";
+import RetirementHeader from "@/components/retirement/RetirementHeader";
 
 export default function RetirementDashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -124,20 +126,18 @@ export default function RetirementDashboardPage() {
 
   return (
     <div className="space-y-8 pb-12">
-      {/* 1. Welcome Section (Emerald Green matching sidebar) */}
-      <div className="bg-emerald-800 text-white rounded-2xl p-6 lg:p-8 shadow-lg border border-emerald-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <span className="text-[11px] font-extrabold text-slate-950 uppercase tracking-widest bg-yellow-400 px-2.5 py-1 rounded-full shadow-xs inline-block mb-2">
-            DVLA Head Office — HR Directorate
-          </span>
-          <h2 className="text-xl lg:text-2xl font-black tracking-tight text-white">Good day, HR Analytics</h2>
-          <p className="text-xs text-emerald-100 mt-1 font-medium">Here is your live DVLA statutory retirement overview and urgency matrix.</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs bg-emerald-900/80 font-bold px-4 py-2 rounded-xl border border-emerald-600/80 shrink-0 text-yellow-300 shadow-xs">
-          <Calendar className="h-4 w-4 text-yellow-400" />
-          <span>{todayFormatted}</span>
-        </div>
-      </div>
+      {/* 1. Header Banner */}
+      <RetirementHeader
+        icon={LayoutDashboard}
+        title="DVLA Retirement Dashboard"
+        subtitle="Live DVLA statutory retirement overview, milestone tracker, and urgency matrix."
+        action={
+          <div className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-800 font-bold px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-amber-700 dark:text-amber-400 shadow-xs">
+            <Calendar className="h-4 w-4 text-amber-500" />
+            <span>{todayFormatted}</span>
+          </div>
+        }
+      />
 
       {/* 2. KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

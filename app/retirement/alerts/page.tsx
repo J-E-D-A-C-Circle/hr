@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell, CheckCircle2, RefreshCw, Eye, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
+import RetirementHeader from "@/components/retirement/RetirementHeader";
 
 export default function AlertCenterPage() {
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -71,37 +72,32 @@ export default function AlertCenterPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-            <Bell size={20} />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Milestone Alert Center</h2>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Automated milestone tracking for 5 years, 3 years, 1 year, and 6 months before statutory retirement age 60.
-          </p>
-        </div>
+      <RetirementHeader
+        icon={Bell}
+        title="Milestone Alert Center"
+        subtitle="Automated milestone tracking for 5 years, 3 years, 1 year, and 6 months before statutory retirement age 60."
+        action={
+          <>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition shadow-xs"
+              >
+                Mark All as Read
+              </button>
+            )}
 
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
             <button
-              onClick={handleMarkAllRead}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition"
+              onClick={handleRunAlertScan}
+              disabled={scanning}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-2 shadow-md"
             >
-              Mark All as Read
+              <RefreshCw size={15} className={scanning ? "animate-spin" : ""} />
+              <span>{scanning ? "Scanning Workforce..." : "Run Milestone Scan"}</span>
             </button>
-          )}
-
-          <button
-            onClick={handleRunAlertScan}
-            disabled={scanning}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-2 shadow-md"
-          >
-            <RefreshCw size={15} className={scanning ? "animate-spin" : ""} />
-            <span>{scanning ? "Scanning Workforce..." : "Run Milestone Scan"}</span>
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {scanMessage && (
         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs flex items-center gap-2 font-semibold">

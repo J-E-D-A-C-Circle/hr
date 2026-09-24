@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import RetirementHeader from "@/components/retirement/RetirementHeader";
 
 export default function StaffDirectoryPage() {
   return (
@@ -353,19 +354,12 @@ function StaffDirectoryContent() {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <Users size={22} className="text-emerald-700" />
-            <span>Staff Retirement Directory</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Comprehensive DVLA HR portal for active personnel, exit milestones, archives, and regional stations.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {activeTab === "departments" ? (
+      <RetirementHeader
+        icon={Users}
+        title="Staff Retirement Directory"
+        subtitle="Comprehensive DVLA HR portal for active personnel, exit milestones, archives, and regional stations."
+        action={
+          activeTab === "departments" ? (
             <button
               onClick={() => {
                 setEditingUnit(null);
@@ -410,9 +404,9 @@ function StaffDirectoryContent() {
                 <span>Add Staff</span>
               </button>
             </>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Sub-Tabs Navigation Bar */}
       <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center gap-1.5 overflow-x-auto shadow-xs border border-slate-200 dark:border-slate-700">
