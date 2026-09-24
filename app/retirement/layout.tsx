@@ -127,7 +127,6 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
     { label: "Alert Center", href: "/retirement/alerts", icon: Bell, count: unreadAlerts },
     ...(currentUser?.role === "HR_ADMINISTRATOR"
       ? [
-          { label: "User Management", href: "/retirement/users", icon: UserCog },
           { label: "Settings", href: "/retirement/settings", icon: Settings },
         ]
       : []),
@@ -320,13 +319,27 @@ export default function RetirementLayout({ children }: { children: React.ReactNo
 
         {/* Main Content Container */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-white">
-          {/* Top Header (Desktop) */}
-          <header className="hidden lg:flex h-20 bg-white border-b border-slate-200 px-6 items-center justify-between sticky top-0 z-20 shadow-xs">
-            <div className="flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-slate-500" />
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                DVLA Head Office — HR Directorate
-              </span>
+          {/* Top Header (Desktop - Expanded Height) */}
+          <header className="hidden lg:flex h-24 bg-white border-b border-slate-200 px-8 items-center justify-between sticky top-0 z-20 shadow-xs">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setCollapsed(!collapsed)}
+                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition border border-slate-200 shadow-xs"
+                title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-emerald-700" />
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+                    DVLA Head Office — HR Directorate
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                  Statutory Pension & Retirement Management System
+                </p>
+              </div>
             </div>
 
             {/* Header Right Actions: Search & Notifications */}
