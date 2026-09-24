@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { UserCog, Plus, ShieldCheck, UserCheck, Lock, X, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -251,14 +251,18 @@ export default function UserManagementPage() {
 
               <div>
                 <label className="block font-semibold mb-1">Role</label>
-                <select
+                <Select
                   value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg outline-none"
+                  onValueChange={(val) => setForm({ ...form, role: val })}
                 >
-                  <option value="HR_OFFICER">HR Officer (Staff & Reports Access)</option>
-                  <option value="HR_ADMINISTRATOR">HR Administrator (Full Access)</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HR_OFFICER">HR Officer (Staff & Reports Access)</SelectItem>
+                    <SelectItem value="HR_ADMINISTRATOR">HR Administrator (Full Access)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="pt-4 border-t flex justify-end gap-2">

@@ -14,26 +14,47 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const skip = (page - 1) * limit;
 
-    const whereClause: any = { active: true };
+    const whereClause: any = {};
+
+    if (status === "RETIRED") {
+      whereClause.OR = [
+        { retirementStatus: "RETIRED" },
+        { active: false }
+      ];
+    } else if (status && status !== "ALL" && status !== "ALL_STATUS") {
+      whereClause.retirementStatus = status;
+      whereClause.active = true;
+    } else {
+      whereClause.active = true;
+    }
 
     if (search.trim()) {
-      whereClause.OR = [
+      const searchFilter = [
         { fullName: { contains: search.trim() } },
         { staffId: { contains: search.trim() } },
         { jobTitle: { contains: search.trim() } },
         { departmentName: { contains: search.trim() } },
       ];
+
+      if (whereClause.OR) {
+        whereClause.AND = [
+          { OR: whereClause.OR },
+          { OR: searchFilter },
+        ];
+        delete whereClause.OR;
+      } else {
+        whereClause.OR = searchFilter;
+      }
     }
 
-    if (status) {
-      whereClause.retirementStatus = status;
+    if (departmentId && departmentId !== "ALL" && departmentId !== "ALL_DEPTS") {
+      const parsedId = parseInt(departmentId, 10);
+      if (!isNaN(parsedId)) {
+        whereClause.departmentId = parsedId;
+      }
     }
 
-    if (departmentId && departmentId !== "ALL") {
-      whereClause.departmentId = parseInt(departmentId, 10);
-    }
-
-    if (gender && gender !== "ALL") {
+    if (gender && gender !== "ALL" && gender !== "ALL_GENDERS") {
       whereClause.gender = gender;
     }
 

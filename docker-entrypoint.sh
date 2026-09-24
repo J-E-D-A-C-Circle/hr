@@ -46,6 +46,18 @@ fi
 echo "📦 Re-syncing schema post-restore (ensures new hrletters & retirement tables exist)..."
 npx prisma db push --skip-generate || true
 
+# Check retirement staff table count and auto-seed if empty
+RETIREMENT_COUNT=$(mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME -s -N -e "SELECT COUNT(*) FROM retirement_staff;" 2>/dev/null || echo "0")
+echo "📊 Current retirement staff records in DB: ${RETIREMENT_COUNT:-0}"
+
+if [ "${RETIREMENT_COUNT:-0}" -eq "0" ]; then
+  if [ -f "/app/scripts/import_employee_csv_to_retirement.js" ]; then
+    echo "🌱 Auto-seeding retirement staff dataset (1,129 staff across 59 stations)..."
+    node /app/scripts/import_employee_csv_to_retirement.js || true
+    echo "✅ Retirement staff dataset auto-seeded successfully."
+  fi
+fi
+
 # Execute main process (Next.js server)
 echo "🌐 Launching Next.js server on port 3002..."
 exec "$@"

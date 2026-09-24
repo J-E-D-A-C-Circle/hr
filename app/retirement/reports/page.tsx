@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { FileBarChart, Download, Printer, Filter, Building2, Users, Calendar } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<"summary" | "upcoming" | "department" | "retired">("summary");
@@ -129,18 +130,21 @@ export default function ReportsPage() {
           </button>
         </div>
 
-        <select
-          value={deptFilter}
-          onChange={(e) => setDeptFilter(e.target.value)}
-          className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none"
-        >
-          <option value="ALL">All Departments</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id.toString()}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+        <div className="w-56">
+          <Select value={deptFilter} onValueChange={(val) => setDeptFilter(val)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All Departments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Departments</SelectItem>
+              {departments.map((d) => (
+                <SelectItem key={d.id} value={d.id.toString()}>
+                  {d.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Report Document Paper Preview */}
