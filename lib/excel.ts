@@ -1476,4 +1476,210 @@ export async function buildPetraTier2Workbook(
   return Buffer.from(buffer);
 }
 
+/**
+ * Builds GRA PAYE Monthly Tax Schedule Workbook matching official GRA-PORTAL template
+ */
+export async function buildGraPayeWorkbook(staffRecords: any[], monthStr: string = getCurrentMonthYearString()): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "DVLA Temporary Staff HR Platform";
+  workbook.created = new Date();
+
+  // 1. GRA- PORTAL Sheet
+  const graSheet = workbook.addWorksheet("GRA- PORTAL");
+
+  graSheet.getCell("A1").value = "GHANA REVENUE AUTHORITY";
+  graSheet.getCell("A1").font = { name: "Calibri", size: 14, bold: true };
+  graSheet.getCell("A2").value = "DOMESTIC TAX REVENUE DIVISION";
+  graSheet.getCell("A2").font = { name: "Calibri", size: 12, bold: true };
+  graSheet.getCell("A5").value = "EMPLOYER'S MONTHLY TAX DEDUCTIONS SCHEDULE (P. A. Y. E.)";
+  graSheet.getCell("A5").font = { name: "Calibri", size: 12, bold: true };
+
+  graSheet.getCell("A9").value = "NAME OF EMPLOYER";
+  graSheet.getCell("A9").font = { name: "Calibri", size: 10, bold: true };
+  graSheet.getCell("C9").value = "DRIVER AND VEHICLE LICENSING AUTHORITY";
+  graSheet.getCell("U9").value = "FOR THE MONTH OF";
+  graSheet.getCell("U9").font = { name: "Calibri", size: 10, bold: true };
+  graSheet.getCell("V9").value = monthStr;
+
+  graSheet.getCell("A11").value = "EMPLOYER'S TIN / GH. CARD NO.";
+  graSheet.getCell("A11").font = { name: "Calibri", size: 10, bold: true };
+  graSheet.getCell("D11").value = "C0000000000";
+
+  while (graSheet.rowCount < 14) {
+    graSheet.addRow([]);
+  }
+
+  const graHeaders = [
+    "Ser. No",
+    "TIN / GH. CARD NO.",
+    "Name Of Employee",
+    "Position",
+    "Residency/ Part-Time/ Casual",
+    "Basic Salary",
+    "Secondary Employment (Y / N)",
+    "Paid SSNIT (Y / N)",
+    "Social Security Fund",
+    "Third Tier",
+    "Cash Allowances",
+    "Bonus Income(up to 15% of Annual Basic salary)",
+    "Final Tax on Bonus Income",
+    " Excess Bonus",
+    "Total Cash emolument (6+11+14)",
+    "Accommodation Element",
+    "Vehicle Element",
+    "Non Cash Benefit",
+    "Total Assessable Income (15+16+17+18)",
+    "Deductible Reliefs",
+    "Total Reliefs (9+10+20)",
+    "Chargeable Income           (19 - 21)",
+    "Tax Deductible",
+    "Overtime Income",
+    "Overtime Tax",
+    "Adjustment",
+    "Total Tax Payable to GRA (13+23+25)",
+    "Severance pay paid",
+    "Remarks"
+  ];
+
+  const headerRow = graSheet.addRow(graHeaders);
+  headerRow.height = 28;
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Calibri", size: 10, bold: true };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2EFDA" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = {
+      top: { style: "thin", color: { argb: "FFA6A6A6" } },
+      bottom: { style: "thin", color: { argb: "FFA6A6A6" } },
+      left: { style: "thin", color: { argb: "FFA6A6A6" } },
+      right: { style: "thin", color: { argb: "FFA6A6A6" } },
+    };
+  });
+
+  staffRecords.forEach((item, idx) => {
+    const basic = item.salary ? Number(item.salary) : 1400.0;
+    const ssnit55 = Math.round(basic * 0.055 * 100) / 100;
+    const chargeable = basic - ssnit55;
+    const graCalc = calculateGhanaDeductions(basic);
+    const graPaye = graCalc.paye_tax_amount;
+
+    const rowValues = [
+      idx + 1,
+      item.nia_number || null,
+      (item.full_name || "").toUpperCase(),
+      (item.role || "OTHER").toUpperCase(),
+      "Resident-Full-Time",
+      basic,
+      "N",
+      "Y",
+      ssnit55,
+      0,
+      0,
+      0,
+      0,
+      0,
+      basic,
+      0,
+      0,
+      0,
+      basic,
+      0,
+      ssnit55,
+      chargeable,
+      graPaye,
+      0,
+      0,
+      0,
+      graPaye,
+      0,
+      "Active Temp Staff"
+    ];
+
+    const dataRow = graSheet.addRow(rowValues);
+    dataRow.height = 20;
+    dataRow.eachCell((cell, colIdx) => {
+      cell.font = { name: "Calibri", size: 10 };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFD9D9D9" } },
+        bottom: { style: "thin", color: { argb: "FFD9D9D9" } },
+        left: { style: "thin", color: { argb: "FFD9D9D9" } },
+        right: { style: "thin", color: { argb: "FFD9D9D9" } },
+      };
+      if ([6, 9, 15, 19, 21, 22, 23, 27].includes(colIdx)) {
+        (cell as any).numFmt = "#,##0.00";
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+      } else {
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      }
+    });
+  });
+
+  applyAutoColumnWidths(graSheet);
+
+  // 2. PAYE Computation Sheet
+  const payeSheet = workbook.addWorksheet(`PAYE- ${monthStr}`);
+  payeSheet.getCell("A1").value = "DRIVER AND VEHICLE LICENSING AUTHORITY (DVLA)";
+  payeSheet.getCell("A1").font = { name: "Calibri", size: 14, bold: true };
+  payeSheet.getCell("A2").value = `MONTHLY INCOME TAX COMPUTATION REPORT - ${monthStr.toUpperCase()}`;
+  payeSheet.getCell("A2").font = { name: "Calibri", size: 11, bold: true };
+
+  while (payeSheet.rowCount < 3) {
+    payeSheet.addRow([]);
+  }
+
+  const payeHeaders = [
+    "Sr. No.",
+    "EMPLOYEE ID",
+    "EMPLOYEE NAME",
+    "LOCATION",
+    "JOINING DATE",
+    "END DATE",
+    " BASIC",
+    " GROSS SALARY",
+    "INCOME TAX"
+  ];
+
+  const payeHeaderRow = payeSheet.addRow(payeHeaders);
+  payeHeaderRow.height = 24;
+  payeHeaderRow.eachCell((cell) => {
+    cell.font = { name: "Calibri", size: 10, bold: true };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2EFDA" } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
+
+  staffRecords.forEach((item, idx) => {
+    const basic = item.salary ? Number(item.salary) : 1400.0;
+    const graCalc = calculateGhanaDeductions(basic);
+    const currentContract = item.currentContract || item.contracts?.[0];
+    const startDate = currentContract?.start_date ? formatDateReadable(currentContract.start_date) : "N/A";
+    const endDate = currentContract?.end_date ? formatDateReadable(currentContract.end_date) : "N/A";
+
+    const pValues = [
+      idx + 1,
+      item.staff_code || `EMP-${item.id}`,
+      (item.full_name || "").toUpperCase(),
+      (item.department || "N/A").toUpperCase(),
+      startDate,
+      endDate,
+      basic,
+      basic,
+      graCalc.paye_tax_amount
+    ];
+
+    const pRow = payeSheet.addRow(pValues);
+    pRow.height = 20;
+    pRow.eachCell((cell, colIdx) => {
+      cell.font = { name: "Calibri", size: 10 };
+      if ([7, 8, 9].includes(colIdx)) {
+        (cell as any).numFmt = "#,##0.00";
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+      }
+    });
+  });
+
+  applyAutoColumnWidths(payeSheet);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
 

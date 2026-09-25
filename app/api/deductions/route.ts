@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus } from "@/lib/status";
 import { calculateGhanaDeductions } from "@/lib/payroll";
-import { buildSsnitContributionWorkbook } from "@/lib/excel";
+import { buildSsnitContributionWorkbook, buildGraPayeWorkbook, buildPetraTier2Workbook } from "@/lib/excel";
 import * as XLSX from "xlsx";
 
 const DEFAULT_RATES = {
@@ -211,6 +211,34 @@ export async function GET(request: NextRequest) {
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "Content-Disposition": `attachment; filename="Official_SSNIT_Schedule_${dateStr}.xlsx"`,
+        },
+      });
+    }
+
+    // 5b. Dedicated Official GRA Monthly PAYE Tax Extract (.xlsx)
+    if (format === "gra") {
+      const buf = await buildGraPayeWorkbook(activeStaff);
+      const dateStr = new Date().toISOString().split("T")[0];
+
+      return new NextResponse(buf as unknown as BodyInit, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="GRA_Monthly_PAYE_Schedule_${dateStr}.xlsx"`,
+        },
+      });
+    }
+
+    // 5c. Dedicated Official Petra Tier 2 Export (.xlsx)
+    if (format === "petra") {
+      const buf = await buildPetraTier2Workbook(activeStaff);
+      const dateStr = new Date().toISOString().split("T")[0];
+
+      return new NextResponse(buf as unknown as BodyInit, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="Petra_Tier2_Schedule_${dateStr}.xlsx"`,
         },
       });
     }

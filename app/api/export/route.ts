@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
-import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook } from "@/lib/excel";
+import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook, buildGraPayeWorkbook } from "@/lib/excel";
 import { calculateGhanaDeductions } from "@/lib/payroll";
 
 export async function GET(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get("filter") || "currently_employed"; // default Active + Expiring Soon
     const department = searchParams.get("department") || "";
     const format = searchParams.get("format") || "excel";
-    const exportType = searchParams.get("export_type") || "payroll"; // "payroll", "ssnit", "computation", "standard"
+    const exportType = searchParams.get("export_type") || "payroll"; // "payroll", "ssnit", "computation", "petra", "gra", "standard"
     const validationMonth = searchParams.get("validation_month") || "";
 
     const whereClause: any = {};
@@ -184,6 +184,10 @@ export async function GET(request: NextRequest) {
       const mStr = validationMonth || getCurrentMonthYearString();
       excelBuffer = await buildSsnitContributionWorkbook(filtered, mStr);
       filename = `SSNIT_Contribution_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
+    } else if (exportType === "gra") {
+      const mStr = validationMonth || getCurrentMonthYearString();
+      excelBuffer = await buildGraPayeWorkbook(filtered, mStr);
+      filename = `GRA_PAYE_${mStr ? mStr.replace(/[^a-zA-Z0-9]/g, "_") : "Monthly_Tax_Schedule"}_${dateStr}.xlsx`;
     } else if (exportType === "computation") {
       const mStr = validationMonth || getCurrentMonthYearString();
       excelBuffer = await buildMonthlyComputationWorkbook(filtered, mStr);

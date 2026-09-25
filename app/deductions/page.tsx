@@ -134,6 +134,24 @@ export default function DeductionsPage() {
     );
   };
 
+  const handleExportGra = () => {
+    const deptParam = departmentFilter !== "all" ? departmentFilter : "";
+    const queryParam = search.trim() ? encodeURIComponent(search) : "";
+    window.open(
+      `/api/deductions?department=${encodeURIComponent(deptParam)}&search=${queryParam}&format=gra`,
+      "_blank"
+    );
+  };
+
+  const handleExportPetra = () => {
+    const deptParam = departmentFilter !== "all" ? departmentFilter : "";
+    const queryParam = search.trim() ? encodeURIComponent(search) : "";
+    window.open(
+      `/api/deductions?department=${encodeURIComponent(deptParam)}&search=${queryParam}&format=petra`,
+      "_blank"
+    );
+  };
+
   const handleExportFullExcel = () => {
     const deptParam = departmentFilter !== "all" ? departmentFilter : "";
     const queryParam = search.trim() ? encodeURIComponent(search) : "";
@@ -166,17 +184,31 @@ export default function DeductionsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowAddStaffModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 text-xs font-bold shadow-md transition"
             >
               <UserPlus className="h-4 w-4" />
               <span>Add Staff</span>
             </button>
             <button
+              onClick={handleExportGra}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition"
+            >
+              <Building className="h-4 w-4" />
+              <span>Export GRA Schedule (.xlsx)</span>
+            </button>
+            <button
               onClick={handleExportSsnit}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
             >
               <FileSpreadsheet className="h-4 w-4" />
               <span>Export SSNIT Schedule (.xlsx)</span>
+            </button>
+            <button
+              onClick={handleExportPetra}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs font-bold shadow-md shadow-purple-600/20 transition"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Export Petra Tier 2 (.xlsx)</span>
             </button>
           </div>
         </div>

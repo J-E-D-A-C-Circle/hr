@@ -25,6 +25,7 @@ import {
   ChevronsRight,
   DollarSign,
   FileSpreadsheet,
+  Building,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 
@@ -81,6 +82,19 @@ export default function HistoryAnalyticsPage() {
     const q = search.trim() ? encodeURIComponent(search) : "";
     window.open(
       `/api/history?year=${selectedYear}&month=${selectedMonth}&search=${q}&format=excel`,
+      "_blank"
+    );
+  };
+
+  const handleExportGra = () => {
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const mLabel = monthNames[parseInt(selectedMonth, 10) - 1] || selectedMonth;
+    const validationStr = `${mLabel} ${selectedYear}`;
+    window.open(
+      `/api/export?export_type=gra&validation_month=${encodeURIComponent(validationStr)}&format=excel`,
       "_blank"
     );
   };
@@ -154,7 +168,14 @@ export default function HistoryAnalyticsPage() {
               </Select>
             </div>
 
-            <div className="self-end pb-0.5">
+            <div className="self-end pb-0.5 flex items-center gap-2">
+              <button
+                onClick={handleExportGra}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition"
+              >
+                <Building className="h-4 w-4" />
+                <span>Export GRA Extract (.xlsx)</span>
+              </button>
               <button
                 onClick={handleExportExcel}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"

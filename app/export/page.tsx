@@ -120,7 +120,7 @@ export default function ExportPage() {
               <span>Monthly Payroll & Statutory Export</span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Extract validated staff payment lists in <strong>Monthly Payroll Computation</strong>, <strong>Monthly Payroll Payment</strong>, or <strong>SSNIT Statutory Contribution</strong> formats
+              Extract validated staff payment lists in <strong>GRA Monthly PAYE Tax Extract</strong>, <strong>Monthly Payroll Computation</strong>, <strong>SSNIT Statutory Contribution</strong>, <strong>Petra Tier 2</strong>, or <strong>Payroll Payment</strong> formats
             </p>
           </div>
 
@@ -134,6 +134,8 @@ export default function ExportPage() {
                 ? "Download Expiring & Expired Staff Excel (.xlsx)"
                 : exportType === "petra"
                 ? "Download Petra Tier 2 Excel (PETRA.xlsx)"
+                : exportType === "gra"
+                ? "Download GRA Monthly PAYE Tax Schedule (GRA-PORTAL.xlsx)"
                 : exportType === "computation"
                 ? "Download Monthly Computation Excel (.xlsx)"
                 : exportType === "payroll"
@@ -143,6 +145,189 @@ export default function ExportPage() {
                 : "Download Standard Export (.xlsx)"}
             </span>
           </button>
+        </div>
+
+        {/* Export Format Selector Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* GRA PAYE Extract Card */}
+          <div
+            onClick={() => setExportType("gra")}
+            className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+              exportType === "gra"
+                ? "bg-blue-50/80 dark:bg-blue-950/50 border-blue-500 ring-2 ring-blue-500/20 shadow-md"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                <Building className="h-4 w-4 text-blue-600" />
+                GRA PAYE Tax Extract
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/80 text-blue-700 dark:text-blue-200">
+                GRA-PORTAL.xlsx
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-white">
+              Official 29-Column GRA Monthly Tax Deductions Schedule
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Formatted for direct GRA Tax Portal upload with Ghana Card No, Basic Salary, Taxable Income, & Income Tax (GH₵122.28).
+            </p>
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-blue-100 dark:border-blue-900/40 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+              <span>{exportType === "gra" ? "Selected Format ✓" : "Click to Select"}</span>
+              <Download className="h-3.5 w-3.5" />
+            </div>
+          </div>
+
+          {/* Monthly Payroll Computation Card */}
+          <div
+            onClick={() => setExportType("computation")}
+            className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+              exportType === "computation"
+                ? "bg-emerald-50/80 dark:bg-emerald-950/50 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                Monthly Temp Computation
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/80 text-emerald-700 dark:text-emerald-200">
+                Multi-Sheet
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-white">
+              Full Temp Staff Computation Master Workbook
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Contains Reconciliation Summary, Salary Register, PAYE Computation, and GRA- PORTAL sheets in one file.
+            </p>
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-emerald-100 dark:border-emerald-900/40 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <span>{exportType === "computation" ? "Selected Format ✓" : "Click to Select"}</span>
+              <Download className="h-3.5 w-3.5" />
+            </div>
+          </div>
+
+          {/* SSNIT Statutory Schedule Card */}
+          <div
+            onClick={() => setExportType("ssnit")}
+            className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+              exportType === "ssnit"
+                ? "bg-teal-50/80 dark:bg-teal-950/50 border-teal-500 ring-2 ring-teal-500/20 shadow-md"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-teal-300 dark:hover:border-teal-800"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-teal-600" />
+                SSNIT Statutory Schedule
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/80 text-teal-700 dark:text-teal-200">
+                Tier 1 (18.5%)
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-white">
+              Official SSNIT Tier 1 Contribution Schedule
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Includes SSNIT Nos, 5.5% Employee deduction, 13.0% Employer match, and total Tier 1 contributions.
+            </p>
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-teal-100 dark:border-teal-900/40 text-[11px] font-bold text-teal-600 dark:text-teal-400">
+              <span>{exportType === "ssnit" ? "Selected Format ✓" : "Click to Select"}</span>
+              <Download className="h-3.5 w-3.5" />
+            </div>
+          </div>
+
+          {/* Petra Tier 2 Card */}
+          <div
+            onClick={() => setExportType("petra")}
+            className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+              exportType === "petra"
+                ? "bg-purple-50/80 dark:bg-purple-950/50 border-purple-500 ring-2 ring-purple-500/20 shadow-md"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-800"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                <CreditCard className="h-4 w-4 text-purple-600" />
+                Petra Tier 2 Format
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/80 text-purple-700 dark:text-purple-200">
+                PETRA.xlsx
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-white">
+              Mandatory Tier 2 Pension Contribution Schedule
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Parsed Staff Name, Ghana Card, SSNIT No, Basic Salary, and 5% Tier 2 Pension contribution.
+            </p>
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-purple-100 dark:border-purple-900/40 text-[11px] font-bold text-purple-600 dark:text-purple-400">
+              <span>{exportType === "petra" ? "Selected Format ✓" : "Click to Select"}</span>
+              <Download className="h-3.5 w-3.5" />
+            </div>
+          </div>
+
+          {/* Payroll Payment Card */}
+          <div
+            onClick={() => setExportType("payroll")}
+            className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+              exportType === "payroll"
+                ? "bg-slate-100 dark:bg-slate-800 border-slate-500 ring-2 ring-slate-500/20 shadow-md"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-400"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <CreditCard className="h-4 w-4 text-slate-600" />
+                Bank Payroll Payment
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                Bank Payout
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-white">
+              Bank Payment Disbursement Schedule
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Bank names, branch codes, account numbers, and net take-home pay for direct bank transfers.
+            </p>
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-300">
+              <span>{exportType === "payroll" ? "Selected Format ✓" : "Click to Select"}</span>
+              <Download className="h-3.5 w-3.5" />
+            </div>
+          </div>
+
+          {/* Expiring Staff Card */}
+          <div
+            onClick={() => setExportType("expiring")}
+            className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+              exportType === "expiring"
+                ? "bg-amber-50/80 dark:bg-amber-950/50 border-amber-500 ring-2 ring-amber-500/20 shadow-md"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-amber-600" />
+                Expiring Staff Audit
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/80 text-amber-700 dark:text-amber-200">
+                Audit List
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-white">
+              Expiring Soon & Expired Staff Directory
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Filter staff whose 6-month contracts are expiring within 30 days or already expired.
+            </p>
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-amber-100 dark:border-amber-900/40 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+              <span>{exportType === "expiring" ? "Selected Format ✓" : "Click to Select"}</span>
+              <Download className="h-3.5 w-3.5" />
+            </div>
+          </div>
         </div>
 
         {/* Filter Controls */}
@@ -178,6 +363,9 @@ export default function ExportPage() {
                 <SelectContent>
                   <SelectItem value="expiring" className="font-bold text-amber-600 dark:text-amber-400">
                     Expiring Soon & Expired Staff Directory
+                  </SelectItem>
+                  <SelectItem value="gra" className="font-bold text-blue-600 dark:text-blue-400">
+                    GRA Monthly PAYE Tax Extract (GRA-PORTAL.xlsx)
                   </SelectItem>
                   <SelectItem value="petra" className="font-bold text-emerald-600 dark:text-emerald-400">
                     Petra Tier 2 Contribution Format (PETRA.xlsx)
