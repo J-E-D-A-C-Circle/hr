@@ -220,6 +220,19 @@ export async function GET(request: NextRequest) {
     };
 
     if (format === "excel") {
+      const reconRows = [
+        { "Staff Strength Movement & Reconciliation": `Total staff strength As At ${prevMonthEndDateStr}`, "Count": metrics.reconciliation.basePrevMonth },
+        { "Staff Strength Movement & Reconciliation": "Add Supplementary", "Count": metrics.reconciliation.prevSupplementary },
+        { "Staff Strength Movement & Reconciliation": "Total Staff Strength", "Count": metrics.reconciliation.totalBase },
+        { "Staff Strength Movement & Reconciliation": `Additions in ${monthLabel}`, "Count": metrics.reconciliation.additions },
+        { "Staff Strength Movement & Reconciliation": `Renewal in ${prevMonthLabel}`, "Count": metrics.reconciliation.renewalsInPrevMonth },
+        { "Staff Strength Movement & Reconciliation": "Less:", "Count": "" },
+        { "Staff Strength Movement & Reconciliation": `Expired/Terminated (${monthLabel})`, "Count": metrics.reconciliation.expiredTerminated },
+        { "Staff Strength Movement & Reconciliation": "Validation on Hold", "Count": metrics.reconciliation.validationOnHold },
+        { "Staff Strength Movement & Reconciliation": "Total Attrition", "Count": metrics.reconciliation.totalAttrition },
+        { "Staff Strength Movement & Reconciliation": `Total Staff Strength As At ${currentMonthEndDateStr}`, "Count": metrics.reconciliation.currentTotal },
+      ];
+
       const exportRows = filteredList.map((row: any, idx: number) => ({
         "Sr. No.": idx + 1,
         "Staff Code": row.staff_code,
@@ -238,9 +251,13 @@ export async function GET(request: NextRequest) {
         "Payout Status": row.payment_status.toUpperCase(),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(exportRows);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, `${monthLabel} ${targetYear} Staff`);
+
+      const reconSheet = XLSX.utils.json_to_sheet(reconRows);
+      XLSX.utils.book_append_sheet(workbook, reconSheet, "Reconciliation Summary");
+
+      const mainSheet = XLSX.utils.json_to_sheet(exportRows);
+      XLSX.utils.book_append_sheet(workbook, mainSheet, `${monthLabel} ${targetYear} Roster`);
 
       const buf = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
@@ -248,7 +265,7 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="History_Analytics_${monthLabel}_${targetYear}.xlsx"`,
+          "Content-Disposition": `attachment; filename="Staff_Reconciliation_${monthLabel}_${targetYear}.xlsx"`,
         },
       });
     }
