@@ -224,8 +224,8 @@ export default function HistoryAnalyticsPage() {
                     <span className="font-mono font-bold">{metrics.reconciliation.basePrevMonth}</span>
                   </div>
                   <div className="py-1.5 flex justify-between items-center">
-                    <span>Add June Supplementary</span>
-                    <span className="font-mono font-bold text-teal-200">+{metrics.reconciliation.juneSupplementary}</span>
+                    <span>Add Supplementary ({metrics.reconciliation.prevMonthLabel || "July"})</span>
+                    <span className="font-mono font-bold text-teal-200">+{metrics.reconciliation.prevSupplementary}</span>
                   </div>
                   <div className="py-1.5 flex justify-between items-center font-bold bg-teal-800/40 px-2 rounded">
                     <span>Total Staff Strength</span>
@@ -237,7 +237,7 @@ export default function HistoryAnalyticsPage() {
                   </div>
                   <div className="py-1.5 flex justify-between items-center">
                     <span>Renewal in {metrics.reconciliation.prevMonthLabel || "July"}</span>
-                    <span className="font-mono font-bold">{metrics.reconciliation.renewals}</span>
+                    <span className="font-mono font-bold">+{metrics.reconciliation.renewalsInPrevMonth}</span>
                   </div>
                   <div className="py-1 text-[11px] font-bold uppercase tracking-wider text-teal-200">
                     Less:

@@ -63,9 +63,20 @@ export async function GET(request: NextRequest) {
     });
 
     let additionsInMonthCount = 0;
-    let renewalsInMonthCount = 0;
+    let renewalsInPrevMonthCount = 0;
     let validationOnHoldCount = 0;
-    let juneSupplementaryCount = 0;
+    let prevSupplementaryCount = 0;
+
+    // Previous month details
+    const prevMonthIdx = targetMonth === 1 ? 11 : targetMonth - 2;
+    const prevMonthYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+    const prevMonthLabel = monthNames[prevMonthIdx];
+
+    const prevMonthLastDay = new Date(targetYear, targetMonth - 1, 0).getDate();
+    const currentMonthLastDay = new Date(targetYear, targetMonth, 0).getDate();
+
+    const prevMonthEndDateStr = `${String(prevMonthLastDay).padStart(2, "0")}/${String(prevMonthIdx + 1).padStart(2, "0")}/${prevMonthYear}`;
+    const currentMonthEndDateStr = `${String(currentMonthLastDay).padStart(2, "0")}/${String(targetMonth).padStart(2, "0")}/${targetYear}`;
 
     // Expirations/Terminations across ALL staff records in DB for target month
     const expiredInMonthCount = allStaff.filter((staff: any) => {
@@ -79,6 +90,16 @@ export async function GET(request: NextRequest) {
         return cEnd.getFullYear() === targetYear && cEnd.getMonth() + 1 === targetMonth;
       });
     }).length;
+
+    // Renewals in previous month (contracts renewed in prevMonthLabel)
+    allStaff.forEach((staff: any) => {
+      const renewedInPrev = staff.contracts.some((c: any) => {
+        if (!c.renewal_number || c.renewal_number <= 1) return false;
+        const cStart = new Date(c.start_date);
+        return cStart.getFullYear() === prevMonthYear && cStart.getMonth() + 1 === (prevMonthIdx + 1);
+      });
+      if (renewedInPrev) renewalsInPrevMonthCount++;
+    });
 
     const periodStaffList: any[] = [];
     let totalGrossSalary = 0;
@@ -97,23 +118,19 @@ export async function GET(request: NextRequest) {
         return cStart <= targetEnd && cEnd >= targetStart;
       }) || staff.contracts[0] || null;
 
-      // Track additions in month
+      // Track additions in current month
       const addedInMonth = staff.contracts.some((c: any) => {
         const cStart = new Date(c.start_date);
         return cStart.getFullYear() === targetYear && cStart.getMonth() + 1 === targetMonth;
       });
       if (addedInMonth) additionsInMonthCount++;
 
-      // Track renewals in month
-      const renewedInMonth = staff.contracts.some((c: any) => c.renewal_number > 1);
-      if (renewedInMonth) renewalsInMonthCount++;
-
       if (staff.payment_status === "unpaid" || staff.payment_status === "hold") {
         validationOnHoldCount++;
       }
 
       if ((staff.unpaid_reason || "").toLowerCase().includes("supplementary")) {
-        juneSupplementaryCount++;
+        prevSupplementaryCount++;
       }
 
       const isPaid = (staff.payment_status || "paid") === "paid";
@@ -164,19 +181,12 @@ export async function GET(request: NextRequest) {
 
     const totalAttrition = expiredInMonthCount + validationOnHoldCount;
     const currentTotal = periodStaffList.length;
-    const basePrevMonth = Math.max(0, currentTotal - additionsInMonthCount - juneSupplementaryCount + totalAttrition);
-    const totalBase = basePrevMonth + juneSupplementaryCount;
 
-    // Helper for date formatting DD/MM/YYYY
-    const prevMonthIdx = targetMonth === 1 ? 11 : targetMonth - 2;
-    const prevMonthYear = targetMonth === 1 ? targetYear - 1 : targetYear;
-    const prevMonthLabel = monthNames[prevMonthIdx];
-
-    const prevMonthLastDay = new Date(targetYear, targetMonth - 1, 0).getDate();
-    const currentMonthLastDay = new Date(targetYear, targetMonth, 0).getDate();
-
-    const prevMonthEndDateStr = `${String(prevMonthLastDay).padStart(2, "0")}/${String(prevMonthIdx + 1).padStart(2, "0")}/${prevMonthYear}`;
-    const currentMonthEndDateStr = `${String(currentMonthLastDay).padStart(2, "0")}/${String(targetMonth).padStart(2, "0")}/${targetYear}`;
+    // Reconciliation formula:
+    // currentTotal = totalBase + additions + renewalsInPrevMonth - totalAttrition
+    // totalBase = basePrevMonth + prevSupplementary
+    const totalBase = Math.max(0, currentTotal - additionsInMonthCount - renewalsInPrevMonthCount + totalAttrition);
+    const basePrevMonth = Math.max(0, totalBase - prevSupplementaryCount);
 
     const metrics = {
       targetYear,
@@ -195,10 +205,10 @@ export async function GET(request: NextRequest) {
       totalNetSalary,
       reconciliation: {
         basePrevMonth,
-        juneSupplementary: juneSupplementaryCount,
+        prevSupplementary: prevSupplementaryCount,
         totalBase,
         additions: additionsInMonthCount,
-        renewals: renewalsInMonthCount,
+        renewalsInPrevMonth: renewalsInPrevMonthCount,
         expiredTerminated: expiredInMonthCount,
         validationOnHold: validationOnHoldCount,
         totalAttrition,

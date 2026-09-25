@@ -55,7 +55,7 @@ export default function StaffListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"name" | "endDate" | "days">("days");
+  const [sortBy, setSortBy] = useState<"name" | "endDate" | "days" | "id">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Modal states
@@ -256,6 +256,9 @@ export default function StaffListPage() {
         if (sortBy === "name") {
           valA = a.full_name || "";
           valB = b.full_name || "";
+        } else if (sortBy === "id") {
+          valA = parseInt(String(a.staff_code || a.id).replace(/\D/g, ""), 10) || a.id || 0;
+          valB = parseInt(String(b.staff_code || b.id).replace(/\D/g, ""), 10) || b.id || 0;
         } else if (sortBy === "endDate") {
           const fallback = sortOrder === "desc" ? 0 : 9999999999999;
           valA = a.currentContract?.end_date ? new Date(a.currentContract.end_date).getTime() : fallback;
@@ -268,7 +271,11 @@ export default function StaffListPage() {
 
         if (valA < valB) return sortOrder === "asc" ? -1 : 1;
         if (valA > valB) return sortOrder === "asc" ? 1 : -1;
-        return 0;
+
+        // Tie-breaker: Highest Staff Code / ID comes FIRST (e.g. TEMP-10425 above TEMP-10420)
+        const codeNumA = parseInt(String(a.staff_code || a.id).replace(/\D/g, ""), 10) || a.id || 0;
+        const codeNumB = parseInt(String(b.staff_code || b.id).replace(/\D/g, ""), 10) || b.id || 0;
+        return codeNumB - codeNumA;
       });
   }, [staffList, search, statusFilter, departmentFilter, sortBy, sortOrder]);
 
@@ -328,7 +335,7 @@ export default function StaffListPage() {
     }
   };
 
-  const toggleSort = (field: "name" | "endDate" | "days") => {
+  const toggleSort = (field: "name" | "endDate" | "days" | "id") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
