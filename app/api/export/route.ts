@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
 import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook, buildGraPayeWorkbook } from "@/lib/excel";
-import { calculateGhanaDeductions } from "@/lib/payroll";
+import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
 
 export async function GET(request: NextRequest) {
   try {
@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (format === "json") {
+      const rates = await getDeductionRates(validationMonth);
       let sumGross = 0;
       let sumNssf13 = 0;
       let sumPayCost = 0;
@@ -89,7 +90,14 @@ export async function GET(request: NextRequest) {
 
       filtered.forEach((item: any) => {
         const basic = item.salary ? Number(item.salary) : 1400.00;
-        const ghanaCalc = calculateGhanaDeductions(basic);
+        const ghanaCalc = calculateGhanaDeductions(
+          basic,
+          true,
+          rates.ssnit_employee_rate,
+          rates.ssnit_employer_rate,
+          rates.petra_employee_rate,
+          rates.petra_employer_rate
+        );
         const totalGross = basic * 1;
         const nssf55 = ghanaCalc.ssnit_employee_amount;
         const nssf13 = ghanaCalc.ssnit_employer_amount;
@@ -123,13 +131,61 @@ export async function GET(request: NextRequest) {
         return item.payment_status === "unpaid" || item.payment_status === "hold";
       }).length;
 
-      const juneSupplementary = filtered.filter((item: any) => {
-        return (item.unpaid_reason || "").toLowerCase().includes("supplementary");
-      }).length;
+      // Extract month name & year from targetMonth or default to current month
+      const cleanMonth = (validationMonth || getCurrentMonthYearString()).replace(/\s*\([^)]*\)/g, "").trim();
+      const monthParts = cleanMonth.split(" ");
+      const mName = monthParts[0] || "August";
+      const mYr = parseInt(monthParts[1] || String(new Date().getFullYear()), 10);
+
+      const monthList = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const mIdx = monthList.indexOf(mName.toLowerCase());
+      const effMIdx = mIdx === -1 ? new Date().getMonth() : mIdx;
+
+      const prevMIdx = effMIdx === 0 ? 11 : effMIdx - 1;
+      const prevMYr = effMIdx === 0 ? mYr - 1 : mYr;
+      const prevMName = monthList[prevMIdx].charAt(0).toUpperCase() + monthList[prevMIdx].slice(1);
+      const prevMStr = `${prevMName} ${prevMYr}`;
+
+      const prevMonthRegularValCount = await prisma.staffValidation.count({
+        where: {
+          month: { equals: prevMStr },
+        },
+      });
+
+      const prevMonthSuppValCount = await prisma.staffValidation.count({
+        where: {
+          month: {
+            contains: prevMName,
+            AND: { contains: "Supplementary" },
+          },
+        },
+      });
+
+      const juneSupplementary = prevMonthSuppValCount;
+      const prevMonthEndDate = new Date(prevMYr, prevMIdx + 1, 0, 23, 59, 59);
+
+      let basePrevMonth = prevMonthRegularValCount;
+      if (basePrevMonth === 0) {
+        basePrevMonth = await prisma.staff.count({
+          where: {
+            contracts: {
+              some: {
+                start_date: { lte: prevMonthEndDate },
+                OR: [
+                  { is_terminated: false },
+                  { termination_date: { gt: prevMonthEndDate } },
+                ],
+              },
+            },
+          },
+        });
+      }
 
       const totalAttrition = expiredTerminated + validationOnHold;
       const currentTotal = filtered.length;
-      const basePrevMonth = Math.max(0, currentTotal - additions - juneSupplementary + totalAttrition);
       const totalBase = basePrevMonth + juneSupplementary;
 
       const summaryOverview = {
@@ -143,6 +199,7 @@ export async function GET(request: NextRequest) {
       const reconciliation = {
         basePrevMonth,
         juneSupplementary,
+        prevSupplementary: juneSupplementary,
         totalBase,
         additions,
         renewals,

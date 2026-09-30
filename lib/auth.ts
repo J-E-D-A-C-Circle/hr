@@ -30,7 +30,7 @@ export async function getAdminSession(): Promise<TempStaffUserSession | null> {
           username: parsed.username || "hr.officer",
           name: parsed.name || parsed.username || "HR Officer",
           email: parsed.email || "admin@dvla.gov.gh",
-          role: "HR Officer",
+          role: parsed.role || "HR Officer",
         };
       }
     } catch {
@@ -39,7 +39,7 @@ export async function getAdminSession(): Promise<TempStaffUserSession | null> {
           username: "hr.officer",
           name: "HR Officer",
           email: "admin@dvla.gov.gh",
-          role: "HR Officer",
+          role: "HR Manager",
         };
       }
     }
@@ -61,7 +61,7 @@ export async function createAdminSession(userData?: Partial<TempStaffUserSession
     username: userData?.username || "hr.officer",
     name: userData?.name || userData?.username || "HR Officer",
     email: userData?.email || "admin@dvla.gov.gh",
-    role: "HR Officer",
+    role: userData?.role || "HR Manager",
   };
 
   cookieStore.set(ADMIN_SESSION_COOKIE, JSON.stringify(sessionData), {

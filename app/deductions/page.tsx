@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { PaymentStatusModal } from "@/components/PaymentStatusModal";
 
+import { DEFAULT_2026_GRA_BRACKETS, PayeBracketItem } from "@/lib/payroll";
+
 export default function DeductionsPage() {
   const [deductionsData, setDeductionsData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -43,6 +45,24 @@ export default function DeductionsPage() {
   const [search, setSearch] = useState("");
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [paymentStatusTarget, setPaymentStatusTarget] = useState<any | null>(null);
+
+  // User Role State
+  const [userRole, setUserRole] = useState<string>("HR_ADMINISTRATOR");
+
+  useEffect(() => {
+    try {
+      const match = document.cookie.match(/(?:^|; )\s*staff_admin_session=([^;]*)/);
+      if (match) {
+        const parsed = JSON.parse(decodeURIComponent(match[1]));
+        if (parsed?.role) setUserRole(parsed.role);
+      }
+    } catch {}
+  }, []);
+
+  const canEditSettings = useMemo(() => {
+    const r = (userRole || "").toUpperCase();
+    return r.includes("SUPER_ADMIN") || r.includes("ADMIN") || r.includes("MANAGER") || r.includes("DIRECTOR");
+  }, [userRole]);
 
   // Pagination State (25 items per page)
   const PAGE_SIZE = 25;
@@ -67,6 +87,8 @@ export default function DeductionsPage() {
     petra_employer_rate: 5.0,
   });
 
+  const [payeBrackets, setPayeBrackets] = useState<PayeBracketItem[]>(DEFAULT_2026_GRA_BRACKETS);
+
   const [savingCms, setSavingCms] = useState(false);
   const [cmsSuccessMessage, setCmsSuccessMessage] = useState<string | null>(null);
 
@@ -87,6 +109,13 @@ export default function DeductionsPage() {
           setCmsRates(json.summary.rates);
         }
       }
+
+      // Fetch CMS tax settings & brackets
+      const setRes = await fetch("/api/deductions/settings");
+      const setJson = await setRes.json();
+      if (setRes.ok && setJson.payeBrackets && setJson.payeBrackets.length > 0) {
+        setPayeBrackets(setJson.payeBrackets);
+      }
     } catch (err: any) {
       console.error("Fetch deductions error:", err);
     } finally {
@@ -100,6 +129,10 @@ export default function DeductionsPage() {
 
   const handleSaveCmsRates = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEditSettings) {
+      alert("Unauthorized: Only HR Manager and Super Admin can modify statutory deduction settings.");
+      return;
+    }
     setSavingCms(true);
     setCmsSuccessMessage(null);
 
@@ -107,7 +140,10 @@ export default function DeductionsPage() {
       const res = await fetch("/api/deductions/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cmsRates),
+        body: JSON.stringify({
+          ...cmsRates,
+          payeBrackets,
+        }),
       });
 
       const json = await res.json();
@@ -115,7 +151,7 @@ export default function DeductionsPage() {
         throw new Error(json.error || "Failed to update CMS rates");
       }
 
-      setCmsSuccessMessage("CMS Rates updated! Recalculating all staff SSNIT deductions...");
+      setCmsSuccessMessage("CMS Statutory Rates & 2026 GRA Tax Schedule updated! Recalculating all staff deductions...");
       fetchDeductions();
       setTimeout(() => setCmsSuccessMessage(null), 4000);
     } catch (err: any) {
@@ -222,10 +258,10 @@ export default function DeductionsPage() {
             <div>
               <h2 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                 <Percent className="h-4 w-4" />
-                <span>SSNIT Statutory Percentage CMS</span>
+                <span>Statutory & Pension Contribution Percentage CMS</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Configure global SSNIT Tier 1 contribution rates (Standard: Employee 5.5%, Employer Match 13.0%)
+                Configure global contribution rates for SSNIT Tier-1 and Petra Pension Tier-3
               </p>
             </div>
 
@@ -246,11 +282,11 @@ export default function DeductionsPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
             {/* SSNIT Employee */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
               <span className="font-bold text-slate-900 dark:text-white block">
-                SSNIT Employee Deduction Rate (%)
+                SSNIT Employee Rate (%)
               </span>
               <div className="relative">
                 <input
@@ -266,13 +302,13 @@ export default function DeductionsPage() {
                 />
                 <span className="absolute right-3 top-2.5 text-slate-400 font-bold">%</span>
               </div>
-              <p className="text-[10px] text-slate-400">Standard Ghana Tier 1 Employee Rate: 5.5%</p>
+              <p className="text-[10px] text-slate-400">Ghana Tier 1 Employee Rate: 5.5%</p>
             </div>
 
             {/* SSNIT Employer */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
               <span className="font-bold text-slate-900 dark:text-white block">
-                SSNIT Employer Match Rate (%)
+                SSNIT Employer Rate (%)
               </span>
               <div className="relative">
                 <input
@@ -288,7 +324,123 @@ export default function DeductionsPage() {
                 />
                 <span className="absolute right-3 top-2.5 text-slate-400 font-bold">%</span>
               </div>
-              <p className="text-[10px] text-slate-400">Standard Ghana Tier 1 Employer Match: 13.0%</p>
+              <p className="text-[10px] text-slate-400">Ghana Tier 1 Employer Match: 13.0%</p>
+            </div>
+
+            {/* Petra Employee */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
+              <span className="font-bold text-slate-900 dark:text-white block">
+                Petra Employee Rate (%)
+              </span>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={cmsRates.petra_employee_rate}
+                  onChange={(e) =>
+                    setCmsRates({ ...cmsRates, petra_employee_rate: parseFloat(e.target.value) || 0 })
+                  }
+                  className="w-full pl-3 pr-8 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+                <span className="absolute right-3 top-2.5 text-slate-400 font-bold">%</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Petra Tier 3 Employee Rate: 5.0%</p>
+            </div>
+
+            {/* Petra Employer */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
+              <span className="font-bold text-slate-900 dark:text-white block">
+                Petra Employer Rate (%)
+              </span>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={cmsRates.petra_employer_rate}
+                  onChange={(e) =>
+                    setCmsRates({ ...cmsRates, petra_employer_rate: parseFloat(e.target.value) || 0 })
+                  }
+                  className="w-full pl-3 pr-8 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+                <span className="absolute right-3 top-2.5 text-slate-400 font-bold">%</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Petra Tier 3 Employer Match: 5.0%</p>
+            </div>
+          </div>
+
+          {/* Official 2026 GRA Monthly Income Tax Schedule CMS Table */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                  <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span>MONTHLY - Official GRA Income Tax Schedule (Year of Assessment 2026)</span>
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Configure Ghana GRA Chargeable Income Tax Bands applied to all temporary staff taxable salaries
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-xl">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
+                    <th className="p-3 text-center border-r border-slate-200 dark:border-slate-700">Year of Assessment 2026</th>
+                    <th className="p-3 text-center border-r border-slate-200 dark:border-slate-700">Chargeable Income (GH₵)</th>
+                    <th className="p-3 text-center">Rate (%)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-950">
+                  {payeBrackets.map((b, idx) => (
+                    <tr key={b.band_order || idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="p-2.5 font-bold text-center border-r border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
+                        {b.label}
+                      </td>
+                      <td className="p-2.5 border-r border-slate-200 dark:border-slate-800">
+                        <div className="relative max-w-xs mx-auto">
+                          <span className="absolute left-3 top-2.5 text-slate-400 font-bold">GH₵</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            disabled={!canEditSettings}
+                            value={b.chargeable_amount}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              const copy = [...payeBrackets];
+                              copy[idx] = { ...copy[idx], chargeable_amount: val };
+                              setPayeBrackets(copy);
+                            }}
+                            className="w-full pl-11 pr-3 py-1.5 text-xs font-mono font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </td>
+                      <td className="p-2.5">
+                        <div className="relative max-w-xs mx-auto">
+                          <input
+                            type="number"
+                            step="0.1"
+                            disabled={!canEditSettings}
+                            value={b.rate_percent}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              const copy = [...payeBrackets];
+                              copy[idx] = { ...copy[idx], rate_percent: val };
+                              setPayeBrackets(copy);
+                            }}
+                            className="w-full pl-3 pr-8 py-1.5 text-xs font-mono font-bold text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                          />
+                          <span className="absolute right-3 top-2.5 text-slate-400 font-bold">%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </form>

@@ -71,12 +71,54 @@ export async function GET(request: NextRequest) {
     const prevMonthIdx = targetMonth === 1 ? 11 : targetMonth - 2;
     const prevMonthYear = targetMonth === 1 ? targetYear - 1 : targetYear;
     const prevMonthLabel = monthNames[prevMonthIdx];
+    const prevMonthStr = `${prevMonthLabel} ${prevMonthYear}`;
 
     const prevMonthLastDay = new Date(targetYear, targetMonth - 1, 0).getDate();
     const currentMonthLastDay = new Date(targetYear, targetMonth, 0).getDate();
 
     const prevMonthEndDateStr = `${String(prevMonthLastDay).padStart(2, "0")}/${String(prevMonthIdx + 1).padStart(2, "0")}/${prevMonthYear}`;
     const currentMonthEndDateStr = `${String(currentMonthLastDay).padStart(2, "0")}/${String(targetMonth).padStart(2, "0")}/${targetYear}`;
+
+    // Query actual previous month regular and supplementary validations from database
+    const prevMonthRegularValCount = await prisma.staffValidation.count({
+      where: {
+        month: {
+          equals: prevMonthStr,
+        },
+      },
+    });
+
+    const prevMonthSuppValCount = await prisma.staffValidation.count({
+      where: {
+        month: {
+          contains: prevMonthLabel,
+          AND: {
+            contains: "Supplementary",
+          },
+        },
+      },
+    });
+
+    prevSupplementaryCount = prevMonthSuppValCount;
+
+    // Fallback for basePrevMonth if no validations recorded for previous month yet
+    const prevMonthEndDate = new Date(prevMonthYear, prevMonthIdx + 1, 0, 23, 59, 59);
+    let basePrevMonth = prevMonthRegularValCount;
+    if (basePrevMonth === 0) {
+      basePrevMonth = await prisma.staff.count({
+        where: {
+          contracts: {
+            some: {
+              start_date: { lte: prevMonthEndDate },
+              OR: [
+                { is_terminated: false },
+                { termination_date: { gt: prevMonthEndDate } },
+              ],
+            },
+          },
+        },
+      });
+    }
 
     // Expirations/Terminations across ALL staff records in DB for target month
     const expiredInMonthCount = allStaff.filter((staff: any) => {
@@ -129,10 +171,6 @@ export async function GET(request: NextRequest) {
         validationOnHoldCount++;
       }
 
-      if ((staff.unpaid_reason || "").toLowerCase().includes("supplementary")) {
-        prevSupplementaryCount++;
-      }
-
       const isPaid = (staff.payment_status || "paid") === "paid";
       const salary = staff.salary ? Number(staff.salary) : 1400.00;
       const deductions = calculateGhanaDeductions(salary, isPaid);
@@ -183,10 +221,7 @@ export async function GET(request: NextRequest) {
     const currentTotal = periodStaffList.length;
 
     // Reconciliation formula:
-    // currentTotal = totalBase + additions + renewalsInPrevMonth - totalAttrition
-    // totalBase = basePrevMonth + prevSupplementary
-    const totalBase = Math.max(0, currentTotal - additionsInMonthCount - renewalsInPrevMonthCount + totalAttrition);
-    const basePrevMonth = Math.max(0, totalBase - prevSupplementaryCount);
+    const totalBase = basePrevMonth + prevSupplementaryCount;
 
     const metrics = {
       targetYear,

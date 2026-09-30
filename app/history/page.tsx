@@ -29,10 +29,13 @@ import {
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 
+import AuditAnalyticsDashboard from "@/components/AuditAnalyticsDashboard";
+
 export default function HistoryAnalyticsPage() {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
+  const [viewMode, setViewMode] = useState<"recon" | "demographic">("recon");
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
   const [selectedMonth, setSelectedMonth] = useState<string>(String(currentMonth));
   const [search, setSearch] = useState("");
@@ -187,8 +190,39 @@ export default function HistoryAnalyticsPage() {
           </div>
         </div>
 
-        {/* Historical Summary Statistical Overview & Staff Strength Movement Cards */}
-        {metrics && (
+        {/* Mode Selector Navigation Tabs */}
+        <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-1">
+          <button
+            onClick={() => setViewMode("recon")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+              viewMode === "recon"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span>Monthly Reconciliation & Payroll History</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode("demographic")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+              viewMode === "demographic"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            <span>Demographic & Geographic Audit Reports</span>
+          </button>
+        </div>
+
+        {viewMode === "demographic" ? (
+          <AuditAnalyticsDashboard />
+        ) : (
+          <>
+            {/* Historical Summary Statistical Overview & Staff Strength Movement Cards */}
+            {metrics && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Summary Statistical Overview Card */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
@@ -446,6 +480,8 @@ export default function HistoryAnalyticsPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
     </SidebarLayout>
   );

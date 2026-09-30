@@ -10,6 +10,7 @@ import TerminateModal from "@/components/TerminateModal";
 import ReinstateModal from "@/components/ReinstateModal";
 import ValidateStaffModal from "@/components/ValidateStaffModal";
 import MergeDuplicateModal from "@/components/MergeDuplicateModal";
+import ViewStaffDetailModal from "@/components/ViewStaffDetailModal";
 import {
   Select,
   SelectTrigger,
@@ -41,6 +42,9 @@ import {
   Trash2,
   Download,
   FileSpreadsheet,
+  Clock,
+  XCircle,
+  ShieldCheck as ShieldCheckIcon,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -51,10 +55,15 @@ export default function StaffListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // User session state
+  const [currentUserRole, setCurrentUserRole] = useState<string>("HR Officer");
+  const [currentUserName, setCurrentUserName] = useState<string>("Admin");
+
   // Filters state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [approvalTab, setApprovalTab] = useState<"all" | "approved" | "pending" | "rejected">("all");
   const [sortBy, setSortBy] = useState<"name" | "endDate" | "days" | "id">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -64,6 +73,7 @@ export default function StaffListPage() {
   const [reinstateTarget, setReinstateTarget] = useState<any | null>(null);
   const [validateTarget, setValidateTarget] = useState<any | null>(null);
   const [mergeTarget, setMergeTarget] = useState<any | null>(null);
+  const [viewStaffTarget, setViewStaffTarget] = useState<any | null>(null);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
 
   // Bulk Renew selection state
@@ -135,6 +145,16 @@ export default function StaffListPage() {
 
   useEffect(() => {
     fetchStaff();
+    fetch("/api/auth/check")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.user) {
+          setCurrentUserName(d.user.name || d.user.username || "Admin");
+          setCurrentUserRole(d.user.role || "HR Officer");
+        }
+      })
+      .catch(() => {});
+
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("add") === "true" || params.get("openAdd") === "true") {
@@ -142,6 +162,44 @@ export default function StaffListPage() {
       }
     }
   }, []);
+
+  const handleApproveStaff = async (staffId: number) => {
+    try {
+      const res = await fetch(`/api/staff/${staffId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_name: currentUserName, user_role: currentUserRole }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to approve staff member.");
+      setToast({ type: "success", message: json.message || "Staff member approved successfully." });
+      setViewStaffTarget(null);
+      fetchStaff();
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Approval failed." });
+    }
+  };
+
+  const handleRejectStaff = async (staffId: number, reason: string) => {
+    try {
+      const res = await fetch(`/api/staff/${staffId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_name: currentUserName,
+          user_role: currentUserRole,
+          rejection_reason: reason,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to reject staff member.");
+      setToast({ type: "warning", message: json.message || "Staff submission rejected." });
+      setViewStaffTarget(null);
+      fetchStaff();
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Rejection failed." });
+    }
+  };
 
   // Unique departments for filter dropdown
   const departments = useMemo(() => {
@@ -209,8 +267,12 @@ export default function StaffListPage() {
   const processedStaff = useMemo(() => {
     return staffList
       .filter((item) => {
-        // Status filter
-        if (statusFilter === "all") {
+        // Approval / Status filter
+        if (statusFilter === "pending") {
+          if (item.approval_status !== "PENDING_APPROVAL") return false;
+        } else if (statusFilter === "rejected") {
+          if (item.approval_status !== "REJECTED") return false;
+        } else if (statusFilter === "all") {
           // Exclude Terminated staff from Active Staff Directory
           if (item.computedStatus?.toLowerCase() === "terminated") {
             return false;
@@ -439,6 +501,12 @@ export default function StaffListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Active Staff Directory (Excludes Terminated)</SelectItem>
+                <SelectItem value="pending" className="font-bold text-amber-600 dark:text-amber-400">
+                  Pending Officer Approval Queue ({staffList.filter(s => s.approval_status === "PENDING_APPROVAL").length})
+                </SelectItem>
+                <SelectItem value="rejected" className="font-bold text-rose-600 dark:text-rose-400">
+                  Rejected Submissions ({staffList.filter(s => s.approval_status === "REJECTED").length})
+                </SelectItem>
                 <SelectItem value="duplicates">
                   Duplicate Records List ({duplicateStaffIds.size})
                 </SelectItem>
@@ -736,13 +804,13 @@ export default function StaffListPage() {
                               <CheckCircle2 className="h-4 w-4" />
                             </button>
 
-                            <Link
-                              href={`/staff/${staff.id}`}
-                              title="View Details & History"
+                            <button
+                              onClick={() => setViewStaffTarget(staff)}
+                              title="View Details, Bio & Per-Staff Activity Log"
                               className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white transition"
                             >
                               <Eye className="h-4 w-4" />
-                            </Link>
+                            </button>
 
                             {/* Renew Button (Active or Expiring) */}
                             {currentContract && !currentContract.is_terminated && (
@@ -887,6 +955,16 @@ export default function StaffListPage() {
         staff={validateTarget}
         onClose={() => setValidateTarget(null)}
         onSuccess={() => fetchStaff()}
+      />
+
+      <ViewStaffDetailModal
+        isOpen={!!viewStaffTarget}
+        staff={viewStaffTarget}
+        onClose={() => setViewStaffTarget(null)}
+        currentUserRole={currentUserRole}
+        currentUserName={currentUserName}
+        onApprove={() => viewStaffTarget && handleApproveStaff(viewStaffTarget.id)}
+        onReject={(reason) => viewStaffTarget && handleRejectStaff(viewStaffTarget.id, reason)}
       />
 
       <MergeDuplicateModal

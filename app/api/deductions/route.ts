@@ -1,34 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { computeContractStatus } from "@/lib/status";
-import { calculateGhanaDeductions } from "@/lib/payroll";
-import { buildSsnitContributionWorkbook, buildGraPayeWorkbook, buildPetraTier2Workbook } from "@/lib/excel";
-import * as XLSX from "xlsx";
-
-const DEFAULT_RATES = {
-  ssnit_employee_rate: 5.5,
-  ssnit_employer_rate: 13.0,
-  petra_employee_rate: 5.0,
-  petra_employer_rate: 5.0,
-};
-
-function parseName(fullName: string) {
-  const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return { firstName: "", surname: "", otherName: "" };
-  }
-  if (parts.length === 1) {
-    return { firstName: parts[0], surname: "", otherName: "" };
-  }
-  if (parts.length === 2) {
-    return { firstName: parts[0], surname: parts[1], otherName: "" };
-  }
-  return {
-    firstName: parts[0],
-    surname: parts[parts.length - 1],
-    otherName: parts.slice(1, parts.length - 1).join(" "),
-  };
-}
+import { calculateGhanaDeductions, getDeductionRates, getPayeTaxBrackets } from "@/lib/payroll";
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,26 +7,11 @@ export async function GET(request: NextRequest) {
     const paymentStatusFilter = searchParams.get("paymentStatus") || "";
     const searchQuery = searchParams.get("search") || "";
     const format = searchParams.get("format") || "json";
+    const monthParam = searchParams.get("month") || searchParams.get("validationMonth") || "";
 
-    // 1. Load CMS rates
-    let rates = DEFAULT_RATES;
-    try {
-      if ((prisma as any).deductionSetting) {
-        const settings = await (prisma as any).deductionSetting.findUnique({
-          where: { id: 1 },
-        });
-        if (settings) {
-          rates = {
-            ssnit_employee_rate: settings.ssnit_employee_rate ?? 5.5,
-            ssnit_employer_rate: settings.ssnit_employer_rate ?? 13.0,
-            petra_employee_rate: settings.petra_employee_rate ?? 5.0,
-            petra_employer_rate: settings.petra_employer_rate ?? 5.0,
-          };
-        }
-      }
-    } catch {
-      // Fallback to default rates
-    }
+    // 1. Load CMS rates and GRA PAYE tax brackets for requested month (supports audit rate history)
+    const rates = await getDeductionRates(monthParam);
+    const payeBrackets = await getPayeTaxBrackets(monthParam);
 
     // 2. Fetch staff list
     const whereClause: any = {};
@@ -107,7 +62,8 @@ export async function GET(request: NextRequest) {
         rates.ssnit_employee_rate,
         rates.ssnit_employer_rate,
         rates.petra_employee_rate,
-        rates.petra_employer_rate
+        rates.petra_employer_rate,
+        payeBrackets
       );
 
       const ssnitEmp = ghanaCalc.ssnit_employee_amount;

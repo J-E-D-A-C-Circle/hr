@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAdminSession } from "@/lib/admin-auth";
 
+import { getCurrentMonthYearString } from "@/lib/status";
+
 export async function GET() {
   try {
     const session = await getAdminSession();
@@ -10,7 +12,7 @@ export async function GET() {
     }
 
     const [deductionSetting, retirementSettings] = await Promise.all([
-      prisma.deductionSetting.findFirst(),
+      prisma.deductionSetting.findFirst({ orderBy: { created_at: "desc" } }),
       prisma.retirementSetting.findMany(),
     ]);
 
@@ -51,20 +53,13 @@ export async function POST(req: NextRequest) {
     const { tempstaff, retirement } = body;
 
     if (tempstaff) {
-      await prisma.deductionSetting.upsert({
-        where: { id: 1 },
-        update: {
+      await prisma.deductionSetting.create({
+        data: {
           ssnit_employee_rate: parseFloat(tempstaff.ssnit_employee_rate),
           ssnit_employer_rate: parseFloat(tempstaff.ssnit_employer_rate),
           petra_employee_rate: parseFloat(tempstaff.petra_employee_rate),
           petra_employer_rate: parseFloat(tempstaff.petra_employer_rate),
-        },
-        create: {
-          id: 1,
-          ssnit_employee_rate: parseFloat(tempstaff.ssnit_employee_rate),
-          ssnit_employer_rate: parseFloat(tempstaff.ssnit_employer_rate),
-          petra_employee_rate: parseFloat(tempstaff.petra_employee_rate),
-          petra_employer_rate: parseFloat(tempstaff.petra_employer_rate),
+          effective_month: getCurrentMonthYearString(),
         },
       });
     }

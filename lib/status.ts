@@ -203,3 +203,32 @@ export function getRecentMonthOptions(count: number = 12, refDate: Date = new Da
   return options;
 }
 
+/**
+ * Returns array of year strings starting from startYear (2026) up to current system year
+ */
+export function getYearRangeOptions(startYear: number = 2026): string[] {
+  const currentYear = new Date().getFullYear();
+  const endYear = Math.max(startYear, currentYear);
+  const years: string[] = [];
+  for (let y = startYear; y <= endYear; y++) {
+    years.push(String(y));
+  }
+  return years;
+}
+
+export const CALENDAR_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+

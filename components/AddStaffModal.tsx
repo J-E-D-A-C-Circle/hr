@@ -99,10 +99,27 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
     setError(null);
 
     try {
+      let userName = "HR Officer";
+      let userRole = "HR Officer";
+      try {
+        const checkRes = await fetch("/api/auth/check");
+        const checkJson = await checkRes.json();
+        if (checkJson?.user) {
+          userName = checkJson.user.name || checkJson.user.username || "HR Officer";
+          userRole = checkJson.user.role || "HR Officer";
+        }
+      } catch {}
+
+      const payload = {
+        ...formData,
+        user_name: userName,
+        user_role: userRole,
+      };
+
       const res = await fetch("/api/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();

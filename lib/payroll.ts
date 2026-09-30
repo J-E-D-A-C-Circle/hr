@@ -1,3 +1,5 @@
+import { prisma } from "./db";
+
 /**
  * Ghana Statutory Payroll & GRA PAYE Tax Calculator
  * SSNIT-focused statutory calculations:
@@ -9,47 +11,158 @@
  * - Net Take-Home Pay: GH₵ 1,200.72
  */
 
-export function calculateGraPayeTax(taxableIncome: number): number {
-  if (taxableIncome <= 490) return 0;
+export async function getDeductionRates(targetMonth?: string) {
+  const DEFAULT_SETTINGS = {
+    ssnit_employee_rate: 5.5,
+    ssnit_employer_rate: 13.0,
+    petra_employee_rate: 5.0,
+    petra_employer_rate: 5.0,
+  };
+  try {
+    if (prisma && (prisma as any).deductionSetting) {
+      let settings: any = null;
+
+      if (targetMonth && targetMonth.trim()) {
+        const cleanMonthStr = targetMonth.replace(/\s*\([^)]*\)/g, "").trim();
+        const parts = cleanMonthStr.split(" ");
+        const mName = parts[0];
+        const yearVal = parseInt(parts[1] || String(new Date().getFullYear()), 10);
+        const monthList = [
+          "january", "february", "march", "april", "may", "june",
+          "july", "august", "september", "october", "november", "december"
+        ];
+        const mIdx = monthList.indexOf(mName?.toLowerCase());
+        if (mIdx !== -1) {
+          const monthEndDate = new Date(yearVal, mIdx + 1, 0, 23, 59, 59);
+          settings = await (prisma as any).deductionSetting.findFirst({
+            where: {
+              created_at: { lte: monthEndDate },
+            },
+            orderBy: { created_at: "desc" },
+          });
+        }
+      }
+
+      if (!settings) {
+        settings = await (prisma as any).deductionSetting.findFirst({
+          orderBy: { created_at: "desc" },
+        });
+      }
+
+      if (settings) {
+        return {
+          ssnit_employee_rate: Number(settings.ssnit_employee_rate ?? 5.5),
+          ssnit_employer_rate: Number(settings.ssnit_employer_rate ?? 13.0),
+          petra_employee_rate: Number(settings.petra_employee_rate ?? 5.0),
+          petra_employer_rate: Number(settings.petra_employer_rate ?? 5.0),
+        };
+      }
+    }
+  } catch (err) {
+    console.error("getDeductionRates error:", err);
+  }
+  return DEFAULT_SETTINGS;
+}
+
+export interface PayeBracketItem {
+  band_order: number;
+  label: string;
+  chargeable_amount: number;
+  rate_percent: number;
+}
+
+export const DEFAULT_2026_GRA_BRACKETS: PayeBracketItem[] = [
+  { band_order: 1, label: "First", chargeable_amount: 588.00, rate_percent: 0.0 },
+  { band_order: 2, label: "Next", chargeable_amount: 80.00, rate_percent: 5.0 },
+  { band_order: 3, label: "Next", chargeable_amount: 100.00, rate_percent: 10.0 },
+  { band_order: 4, label: "Next", chargeable_amount: 2900.00, rate_percent: 17.5 },
+  { band_order: 5, label: "Next", chargeable_amount: 16000.00, rate_percent: 25.0 },
+  { band_order: 6, label: "Next", chargeable_amount: 30332.00, rate_percent: 30.0 },
+  { band_order: 7, label: "Exceeding", chargeable_amount: 50000.00, rate_percent: 35.0 },
+];
+
+export async function getPayeTaxBrackets(targetMonth?: string): Promise<PayeBracketItem[]> {
+  try {
+    if (prisma && (prisma as any).payeTaxBracket) {
+      let brackets: any[] = [];
+      if (targetMonth && targetMonth.trim()) {
+        const cleanMonthStr = targetMonth.replace(/\s*\([^)]*\)/g, "").trim();
+        const parts = cleanMonthStr.split(" ");
+        const mName = parts[0];
+        const yearVal = parseInt(parts[1] || String(new Date().getFullYear()), 10);
+        const monthList = [
+          "january", "february", "march", "april", "may", "june",
+          "july", "august", "september", "october", "november", "december"
+        ];
+        const mIdx = monthList.indexOf(mName?.toLowerCase());
+        if (mIdx !== -1) {
+          const monthEndDate = new Date(yearVal, mIdx + 1, 0, 23, 59, 59);
+          brackets = await (prisma as any).payeTaxBracket.findMany({
+            where: {
+              created_at: { lte: monthEndDate },
+            },
+            orderBy: [{ band_order: "asc" }, { created_at: "desc" }],
+          });
+        }
+      }
+
+      if (!brackets || brackets.length === 0) {
+        brackets = await (prisma as any).payeTaxBracket.findMany({
+          orderBy: { band_order: "asc" },
+        });
+      }
+
+      if (brackets && brackets.length > 0) {
+        const map = new Map<number, PayeBracketItem>();
+        for (const b of brackets) {
+          if (!map.has(b.band_order)) {
+            map.set(b.band_order, {
+              band_order: b.band_order,
+              label: b.label,
+              chargeable_amount: Number(b.chargeable_amount),
+              rate_percent: Number(b.rate_percent),
+            });
+          }
+        }
+        return Array.from(map.values()).sort((a, b) => a.band_order - b.band_order);
+      }
+    }
+  } catch (err) {
+    console.error("getPayeTaxBrackets error:", err);
+  }
+  return DEFAULT_2026_GRA_BRACKETS;
+}
+
+export function calculateGraPayeTax(
+  taxableIncome: number,
+  brackets: PayeBracketItem[] = DEFAULT_2026_GRA_BRACKETS
+): number {
+  if (!taxableIncome || taxableIncome <= 0) return 0;
+
+  const sorted = [...brackets].sort((a, b) => a.band_order - b.band_order);
+  const firstBand = sorted[0];
+  const firstFreeLimit = firstBand ? firstBand.chargeable_amount : 588;
+
+  if (taxableIncome <= firstFreeLimit) return 0;
 
   let tax = 0;
   let remaining = taxableIncome;
 
-  // Band 1: First GH₵ 490 @ 0%
-  remaining -= 490;
+  for (let i = 0; i < sorted.length; i++) {
+    const band = sorted[i];
+    const rateFraction = band.rate_percent / 100;
+    const isLast = i === sorted.length - 1;
 
-  // Band 2: Next GH₵ 110 (490 - 600) @ 5%
-  const band2 = Math.min(remaining, 110);
-  tax += band2 * 0.05;
-  remaining -= band2;
-  if (remaining <= 0) return Math.round(tax * 100) / 100;
-
-  // Band 3: Next GH₵ 130 (600 - 730) @ 10%
-  const band3 = Math.min(remaining, 130);
-  tax += band3 * 0.10;
-  remaining -= band3;
-  if (remaining <= 0) return Math.round(tax * 100) / 100;
-
-  // Band 4: Next GH₵ 3,166.67 @ 17.5%
-  const band4 = Math.min(remaining, 3166.67);
-  tax += band4 * 0.175;
-  remaining -= band4;
-  if (remaining <= 0) return Math.round(tax * 100) / 100;
-
-  // Band 5: Next GH₵ 16,000 @ 25%
-  const band5 = Math.min(remaining, 16000);
-  tax += band5 * 0.25;
-  remaining -= band5;
-  if (remaining <= 0) return Math.round(tax * 100) / 100;
-
-  // Band 6: Next GH₵ 30,520 @ 30%
-  const band6 = Math.min(remaining, 30520);
-  tax += band6 * 0.30;
-  remaining -= band6;
-  if (remaining <= 0) return Math.round(tax * 100) / 100;
-
-  // Band 7: Above GH₵ 50,416.67 @ 35%
-  tax += remaining * 0.35;
+    if (isLast) {
+      tax += remaining * rateFraction;
+      break;
+    } else {
+      const taxableInBand = Math.min(remaining, band.chargeable_amount);
+      tax += taxableInBand * rateFraction;
+      remaining -= taxableInBand;
+      if (remaining <= 0) break;
+    }
+  }
 
   return Math.round(tax * 100) / 100;
 }
@@ -71,7 +184,8 @@ export function calculateGhanaDeductions(
   ssnitEmpRate: number = 5.5,
   ssnitErRate: number = 13.0,
   petraEmpRate: number = 5.0,
-  petraErRate: number = 5.0
+  petraErRate: number = 5.0,
+  payeBrackets: PayeBracketItem[] = DEFAULT_2026_GRA_BRACKETS
 ): GhanaDeductionsResult {
   if (!isPaid || !salary || salary <= 0) {
     return {
@@ -92,9 +206,9 @@ export function calculateGhanaDeductions(
   const petra_employer_amount = Math.round(((salary * petraErRate) / 100) * 100) / 100;
 
   const taxableIncome = Math.max(0, salary - ssnit_employee_amount);
-  const paye_tax_amount = calculateGraPayeTax(taxableIncome);
+  const paye_tax_amount = calculateGraPayeTax(taxableIncome, payeBrackets);
 
-  // Employee statutory deductions: SSNIT Emp 5.5% + GRA PAYE Tax (Petra is on hold)
+  // Employee statutory deductions: SSNIT Emp + GRA PAYE Tax
   const total_employee_deductions =
     Math.round((ssnit_employee_amount + paye_tax_amount) * 100) / 100;
 
@@ -112,3 +226,4 @@ export function calculateGhanaDeductions(
     net_take_home_salary,
   };
 }
+

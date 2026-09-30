@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { calculateEndDate, computeContractStatus, computeDaysRemaining, formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } from "./status";
 import { calculateGhanaDeductions } from "./payroll";
+import { prisma } from "./db";
 
 export interface MappedField {
   key: string;
@@ -1253,18 +1254,61 @@ export async function buildMonthlyComputationWorkbook(
     return item.payment_status === "unpaid" || item.payment_status === "hold";
   }).length;
 
-  const juneSupplementary = staffRecords.filter(item => {
-    return (item.unpaid_reason || "").toLowerCase().includes("supplementary");
-  }).length;
-
-  const totalAttrition = expiredTerminated + validationOnHold;
-  const currentTotal = staffRecords.length;
-  const basePrevMonth = Math.max(0, currentTotal - additions - juneSupplementary + totalAttrition);
-  const totalBase = basePrevMonth + juneSupplementary;
-
   const prevMonthIndex = effectiveMonthIdx === 0 ? 11 : effectiveMonthIdx - 1;
   const prevMonthYear = effectiveMonthIdx === 0 ? targetYearVal - 1 : targetYearVal;
   const prevMonthNameCap = monthNamesList[prevMonthIndex].charAt(0).toUpperCase() + monthNamesList[prevMonthIndex].slice(1);
+  const prevMonthStr = `${prevMonthNameCap} ${prevMonthYear}`;
+
+  let prevMonthSuppValCount = 0;
+  let prevMonthRegularValCount = 0;
+
+  try {
+    prevMonthRegularValCount = await prisma.staffValidation.count({
+      where: {
+        month: { equals: prevMonthStr },
+      },
+    });
+
+    prevMonthSuppValCount = await prisma.staffValidation.count({
+      where: {
+        month: {
+          contains: prevMonthNameCap,
+          AND: { contains: "Supplementary" },
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching prev month validation counts in excel builder:", err);
+  }
+
+  const juneSupplementary = prevMonthSuppValCount;
+  const prevMonthEndDate = new Date(prevMonthYear, prevMonthIndex + 1, 0, 23, 59, 59);
+
+  let basePrevMonth = prevMonthRegularValCount;
+  if (basePrevMonth === 0) {
+    try {
+      basePrevMonth = await prisma.staff.count({
+        where: {
+          contracts: {
+            some: {
+              start_date: { lte: prevMonthEndDate },
+              OR: [
+                { is_terminated: false },
+                { termination_date: { gt: prevMonthEndDate } },
+              ],
+            },
+          },
+        },
+      });
+    } catch (err) {
+      basePrevMonth = Math.max(0, staffRecords.length - additions + (expiredTerminated + validationOnHold));
+    }
+  }
+
+  const totalAttrition = expiredTerminated + validationOnHold;
+  const currentTotal = staffRecords.length;
+  const totalBase = basePrevMonth + juneSupplementary;
+
   const prevMonthLastDay = new Date(targetYearVal, effectiveMonthIdx, 0).getDate();
   const currentMonthLastDay = new Date(targetYearVal, effectiveMonthIdx + 1, 0).getDate();
 

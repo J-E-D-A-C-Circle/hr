@@ -29,6 +29,11 @@ model Staff {
   unpaid_reason       String?
   ssnit_no            String?
   nia_number          String?
+  approval_status     String?    @default("APPROVED") // "PENDING_APPROVAL", "APPROVED", "REJECTED"
+  created_by          String?    @default("HR Officer")
+  approved_by         String?
+  approved_at         DateTime?
+  rejection_reason    String?
   created_at          DateTime   @default(now())
 
   contracts           Contract[]
@@ -69,14 +74,29 @@ model Contract {
 }
 
 model DeductionSetting {
-  id                    Int      @id @default(1)
+  id                    Int      @id @default(autoincrement())
   ssnit_employee_rate   Float    @default(5.5)  // 5.5% SSNIT Employee Tier 1
   ssnit_employer_rate   Float    @default(13.0) // 13.0% SSNIT Employer Tier 1
   petra_employee_rate   Float    @default(5.0)  // 5.0% Petra Tier 3 Employee
   petra_employer_rate   Float    @default(5.0)  // 5.0% Petra Tier 3 Employer
+  effective_month       String?  // e.g. "September 2026"
+  created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
 
   @@map("deduction_settings")
+}
+
+model PayeTaxBracket {
+  id                Int      @id @default(autoincrement())
+  band_order        Int
+  label             String   // e.g. "First", "Next", "Exceeding"
+  chargeable_amount Float    // e.g. 588.00, 80.00, 100.00, 2900.00, 16000.00, 30332.00, 50000.00
+  rate_percent      Float    // e.g. 0.0, 5.0, 10.0, 17.5, 25.0, 30.0, 35.0
+  effective_month   String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@map("paye_tax_brackets")
 }
 
 model AuditLog {

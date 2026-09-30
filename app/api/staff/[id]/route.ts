@@ -82,6 +82,8 @@ export async function PATCH(
       insurance_policy_no,
       start_date,
       end_date,
+      user_name,
+      user_role,
     } = body;
 
     // Check staff_code uniqueness if changed
@@ -99,6 +101,8 @@ export async function PATCH(
         );
       }
     }
+
+    const previousStaff = await prisma.staff.findUnique({ where: { id: staffId } });
 
     // Update current contract start_date & end_date if provided
     if (start_date || end_date) {
@@ -151,6 +155,33 @@ export async function PATCH(
         contracts: {
           orderBy: { created_at: "desc" },
         },
+      },
+    });
+
+    const actorName = user_name || "HR Officer";
+    const actorRole = user_role || "HR Officer";
+
+    // Track changed fields for detailed audit trail
+    const changedFields: string[] = [];
+    if (full_name && previousStaff && full_name !== previousStaff.full_name) changedFields.push(`Name: '${previousStaff.full_name}' -> '${full_name}'`);
+    if (date_of_birth) changedFields.push("Date of Birth");
+    if (role && previousStaff && role !== previousStaff.role) changedFields.push(`Role: '${previousStaff.role}' -> '${role}'`);
+    if (department && previousStaff && department !== previousStaff.department) changedFields.push(`Station: '${previousStaff.department}' -> '${department}'`);
+    if (salary && previousStaff && parseFloat(salary) !== previousStaff.salary) changedFields.push(`Salary: GH₵${previousStaff.salary} -> GH₵${salary}`);
+    if (ssnit_no) changedFields.push("SSNIT No");
+    if (bank_account) changedFields.push("Bank Account");
+
+    const detailText = changedFields.length > 0
+      ? `${actorName} (${actorRole}) updated ${updated.full_name}'s bio: ${changedFields.join(", ")}.`
+      : `${actorName} (${actorRole}) updated staff profile details for ${updated.full_name}.`;
+
+    await prisma.auditLog.create({
+      data: {
+        user_name: actorName,
+        user_role: actorRole,
+        action: "UPDATE",
+        details: detailText,
+        staff_id: staffId,
       },
     });
 

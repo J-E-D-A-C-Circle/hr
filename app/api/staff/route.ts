@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
       insurance_policy_no,
       insurance_premium,
       start_date,
+      user_name,
+      user_role,
     } = body;
 
     if (!full_name || !start_date) {
@@ -131,6 +133,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const actorName = user_name || "HR Officer";
+    const actorRole = user_role || "HR Officer";
+    const isPending = actorRole === "HR Officer";
+    const approvalStatus = isPending ? "PENDING_APPROVAL" : "APPROVED";
+
     // Create staff + initial contract
     const newStaff = await prisma.staff.create({
       data: {
@@ -151,6 +158,10 @@ export async function POST(request: NextRequest) {
         insurance_provider: insurance_provider || "Petra",
         insurance_policy_no: insurance_policy_no || null,
         insurance_premium: insurance_premium ? parseFloat(insurance_premium) : null,
+        approval_status: approvalStatus,
+        created_by: `${actorName} (${actorRole})`,
+        approved_by: isPending ? null : actorName,
+        approved_at: isPending ? null : new Date(),
         contracts: {
           create: {
             start_date: startDateObj,
@@ -162,6 +173,19 @@ export async function POST(request: NextRequest) {
       },
       include: {
         contracts: true,
+      },
+    });
+
+    // Record AuditLog
+    await prisma.auditLog.create({
+      data: {
+        user_name: actorName,
+        user_role: actorRole,
+        action: isPending ? "SUBMIT_FOR_APPROVAL" : "CREATE",
+        details: isPending
+          ? `${actorName} (${actorRole}) submitted new temporary staff bio for ${full_name} (${role || "Staff"}, ${department || "General"}) pending approval.`
+          : `${actorName} (${actorRole}) created temporary staff bio for ${full_name} (${role || "Staff"}, ${department || "General"}).`,
+        staff_id: newStaff.id,
       },
     });
 

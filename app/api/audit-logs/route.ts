@@ -6,8 +6,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const search = searchParams.get("search");
+    const staffIdParam = searchParams.get("staff_id");
 
     const whereClause: any = {};
+    if (staffIdParam) {
+      whereClause.staff_id = parseInt(staffIdParam, 10);
+    }
     if (action && action !== "all") {
       whereClause.action = action;
     }

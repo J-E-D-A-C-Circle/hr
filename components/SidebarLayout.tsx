@@ -105,7 +105,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               name: data.user.name || data.user.username || "HR Officer",
               username: data.user.username || "hr.officer",
               email: data.user.email,
-              role: "HR Officer",
+              role: data.user.role || "HR Officer",
             });
           }
         })
@@ -490,7 +490,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                   {user.name}
                 </span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                  HR Officer
+                  {user.role}
                 </span>
               </div>
             </div>

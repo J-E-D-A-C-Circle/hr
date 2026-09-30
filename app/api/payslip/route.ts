@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildSinglePayslipWorkbook } from "@/lib/excel";
 import { getCurrentMonthYearString } from "@/lib/status";
-import { calculateGhanaDeductions } from "@/lib/payroll";
+import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,8 +34,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const rates = await getDeductionRates();
     const basic = staffRecord.salary ? Number(staffRecord.salary) : 1400.0;
-    const ghanaCalc = calculateGhanaDeductions(basic);
+    const ghanaCalc = calculateGhanaDeductions(
+      basic,
+      true,
+      rates.ssnit_employee_rate,
+      rates.ssnit_employer_rate,
+      rates.petra_employee_rate,
+      rates.petra_employer_rate
+    );
     const ssnitTier1 = ghanaCalc.ssnit_employer_amount;
     const petraTier2 = ghanaCalc.petra_employee_amount;
     const ssnitEmployee = ghanaCalc.ssnit_employee_amount;

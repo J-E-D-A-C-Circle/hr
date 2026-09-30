@@ -25,21 +25,32 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } from "@/lib/status";
+import { formatDateReadable, getCurrentMonthYearString, getYearRangeOptions, CALENDAR_MONTHS } from "@/lib/status";
 
 export default function ExportPage() {
-  const currentMonthStr = getCurrentMonthYearString();
-  const recentMonths = getRecentMonthOptions(12);
+  const currentDate = new Date();
+  const yearOptions = getYearRangeOptions(2026);
+  const currentMonthName = currentDate.toLocaleString("en-US", { month: "long" });
 
   const [filter, setFilter] = useState("currently_employed");
   const [department, setDepartment] = useState("");
   const [exportType, setExportType] = useState("payroll");
-  const [validationMonth, setValidationMonth] = useState(currentMonthStr);
+  const [selectedYear, setSelectedYear] = useState(String(currentDate.getFullYear()));
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthName);
+  const [payoutMode, setPayoutMode] = useState<"regular" | "supplementary" | "all">("regular");
   const [search, setSearch] = useState("");
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [summaryOverview, setSummaryOverview] = useState<any>(null);
   const [reconciliation, setReconciliation] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  const validationMonth = useMemo(() => {
+    if (selectedMonth === "all") return "";
+    if (payoutMode === "supplementary") {
+      return `${selectedMonth} ${selectedYear} (Supplementary)`;
+    }
+    return `${selectedMonth} ${selectedYear}`;
+  }, [selectedMonth, selectedYear, payoutMode]);
 
   // Pagination State (25 items per page)
   const PAGE_SIZE = 25;
@@ -351,7 +362,8 @@ export default function ExportPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            {/* Payment Format */}
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Excel Payment Format
@@ -386,43 +398,69 @@ export default function ExportPage() {
               </Select>
             </div>
 
+            {/* Year Selector */}
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Validated Payment Month Filter
+                Payroll Year
               </label>
-              <Select value={validationMonth} onValueChange={setValidationMonth}>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Validated & Active Staff" />
+                  <SelectValue placeholder="Select Year" />
                 </SelectTrigger>
                 <SelectContent>
-                  {recentMonths.map((m, idx) => {
-                    const isCurrent = idx === 0;
-                    return (
-                      <React.Fragment key={m}>
-                        <SelectItem
-                          value={m}
-                          className={
-                            isCurrent
-                              ? "font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40"
-                              : "font-medium text-slate-700 dark:text-slate-300"
-                          }
-                        >
-                          Validated for {m} {isCurrent ? "(Current Regular Payroll)" : "(Regular)"}
-                        </SelectItem>
-                        <SelectItem
-                          value={`${m} (Supplementary)`}
-                          className="font-bold text-amber-600 dark:text-amber-400"
-                        >
-                          {m} (Supplementary Payout List)
-                        </SelectItem>
-                      </React.Fragment>
-                    );
-                  })}
-                  <SelectItem value="">All Active / Employed Staff (No Month Filter)</SelectItem>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={y} className="font-bold">
+                      {y} {y === String(currentDate.getFullYear()) ? "(Current Year)" : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Month Selector */}
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Payroll Month
+              </label>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="font-semibold text-slate-500">
+                    All Months (No Month Filter)
+                  </SelectItem>
+                  {CALENDAR_MONTHS.map((m) => (
+                    <SelectItem key={m} value={m} className="font-medium">
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payout List Mode */}
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Payout List Type
+              </label>
+              <Select value={payoutMode} onValueChange={(val: any) => setPayoutMode(val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Payout Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="regular" className="font-bold text-emerald-600 dark:text-emerald-400">
+                    Regular Monthly Payroll
+                  </SelectItem>
+                  <SelectItem value="supplementary" className="font-bold text-amber-600 dark:text-amber-400">
+                    Supplementary Payout List
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Employment Status Selection

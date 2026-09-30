@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    cpus: 1,
+  },
   allowedDevOrigins: [
     "10.80.51.55",
     "10.80.51.55:3002",

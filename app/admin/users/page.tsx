@@ -17,6 +17,8 @@ import {
   X,
   Loader2,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 export default function AdminUsersPage() {
@@ -27,18 +29,35 @@ export default function AdminUsersPage() {
 
   // Modal States
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
+  // Password Visibility Toggles
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+
   // Form States
   const [createForm, setCreateForm] = useState({
-    system: "RETIREMENT",
+    system: "TEMPSTAFF",
     username: "",
     email: "",
     name: "",
     password: "",
-    role: "HR_OFFICER",
+    role: "HR Officer",
   });
+
+  const [editForm, setEditForm] = useState({
+    id: "",
+    system: "TEMPSTAFF",
+    username: "",
+    name: "",
+    email: "",
+    role: "HR Officer",
+    password: "",
+  });
+
   const [newPassword, setNewPassword] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -98,16 +117,81 @@ export default function AdminUsersPage() {
       setActionSuccess(`Successfully created ${createForm.name} in ${createForm.system}`);
       setCreateModalOpen(false);
       setCreateForm({
-        system: "RETIREMENT",
+        system: "TEMPSTAFF",
         username: "",
         email: "",
         name: "",
         password: "",
-        role: "HR_OFFICER",
+        role: "HR Officer",
       });
       fetchUsers();
     } catch (err: any) {
       setActionError("Unexpected error occurred while creating user.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenEditModal = (user: any) => {
+    setSelectedUser(user);
+    setEditForm({
+      id: user.id,
+      system: user.system,
+      username: user.username || "",
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "HR Officer",
+      password: "",
+    });
+    setShowEditPassword(false);
+    setActionError(null);
+    setEditModalOpen(true);
+  };
+
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionError(null);
+    setSubmitting(true);
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editForm.id,
+          system: editForm.system,
+          action: "UPDATE_USER",
+          name: editForm.name,
+          email: editForm.email,
+          role: editForm.role,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setActionError(data.error || "Failed to update user account");
+        setSubmitting(false);
+        return;
+      }
+
+      // Reset password if provided during edit
+      if (editForm.password.trim()) {
+        await fetch("/api/admin/users", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editForm.id,
+            system: editForm.system,
+            action: "RESET_PASSWORD",
+            newPassword: editForm.password.trim(),
+          }),
+        });
+      }
+
+      setActionSuccess(`User account ${editForm.name} updated successfully.`);
+      setEditModalOpen(false);
+      fetchUsers();
+    } catch (err: any) {
+      setActionError("Failed to update user details.");
     } finally {
       setSubmitting(false);
     }
@@ -173,7 +257,7 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteUser = async (user: any) => {
-    if (!confirm(`Are you sure you want to delete user ${user.name} (${user.username})?`)) return;
+    if (!confirm(`Are you sure you want to delete user ${user.name} (${user.username})? This action cannot be undone.`)) return;
 
     try {
       const res = await fetch(`/api/admin/users?id=${user.id}&system=${user.system}`, {
@@ -201,12 +285,16 @@ export default function AdminUsersPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Unified User Management</h1>
           <p className="text-xs text-gray-500">
-            Create, edit, suspend, and manage credentials across all DVLA portal systems.
+            Create, edit, assign roles, view credentials, suspend, and manage users across all DVLA portal systems.
           </p>
         </div>
 
         <button
-          onClick={() => setCreateModalOpen(true)}
+          onClick={() => {
+            setActionError(null);
+            setShowCreatePassword(false);
+            setCreateModalOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold shadow-sm transition cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
@@ -217,7 +305,7 @@ export default function AdminUsersPage() {
       {/* Notifications */}
       {actionSuccess && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs p-3.5 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 font-semibold">
             <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
             {actionSuccess}
           </div>
@@ -233,17 +321,17 @@ export default function AdminUsersPage() {
         <div className="flex items-center gap-1 p-1 bg-gray-100 border border-gray-200 rounded-xl overflow-x-auto">
           {[
             { id: "ALL", label: "All Portals" },
-            { id: "SUPER_ADMIN", label: "Super Admins" },
-            { id: "RETIREMENT", label: "Retirement" },
             { id: "TEMPSTAFF", label: "TempStaff HR" },
+            { id: "RETIREMENT", label: "Retirement" },
             { id: "HR_LETTERS", label: "HR Letters" },
+            { id: "SUPER_ADMIN", label: "Super Admins" },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSelectedTab(tab.id as any)}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer whitespace-nowrap ${
                 selectedTab === tab.id
-                  ? "bg-white text-cyan-700 shadow border border-gray-200"
+                  ? "bg-white text-cyan-700 shadow border border-gray-200 font-bold"
                   : "text-gray-500 hover:text-gray-900"
               }`}
             >
@@ -259,7 +347,7 @@ export default function AdminUsersPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, email, username..."
+            placeholder="Search name, email, username, role..."
             className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-100"
           />
         </div>
@@ -273,7 +361,7 @@ export default function AdminUsersPage() {
               <tr>
                 <th className="py-3.5 px-4">User</th>
                 <th className="py-3.5 px-4">Portal / System</th>
-                <th className="py-3.5 px-4">Role</th>
+                <th className="py-3.5 px-4">Assigned Role</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4">Last Login</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
@@ -282,14 +370,14 @@ export default function AdminUsersPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-400">
+                  <td colSpan={6} className="py-8 text-center text-gray-400 font-medium">
                     <Loader2 className="w-5 h-5 animate-spin mx-auto text-cyan-500 mb-2" />
                     Loading system user accounts...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-400">
+                  <td colSpan={6} className="py-8 text-center text-gray-400 font-medium">
                     No matching user accounts found.
                   </td>
                 </tr>
@@ -297,8 +385,8 @@ export default function AdminUsersPage() {
                 filteredUsers.map((user) => (
                   <tr key={`${user.system}_${user.id}`} className="hover:bg-gray-50 transition">
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-gray-900">{user.name}</div>
-                      <div className="text-[11px] text-gray-400 flex items-center gap-2">
+                      <div className="font-bold text-gray-900">{user.name}</div>
+                      <div className="text-[11px] text-gray-400 flex items-center gap-2 font-mono">
                         <span>@{user.username}</span> • <span>{user.email}</span>
                       </div>
                     </td>
@@ -317,7 +405,7 @@ export default function AdminUsersPage() {
                         {user.system}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-gray-700 font-medium">
+                    <td className="py-3.5 px-4 font-bold text-slate-800">
                       {user.role}
                     </td>
                     <td className="py-3.5 px-4">
@@ -343,6 +431,16 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Edit User Button */}
+                        <button
+                          onClick={() => handleOpenEditModal(user)}
+                          title="Edit User Account & Role"
+                          className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-300 transition cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Toggle Status Lock */}
                         <button
                           onClick={() => handleToggleStatus(user)}
                           title={user.status === "ACTIVE" ? "Suspend Account" : "Activate Account"}
@@ -355,9 +453,12 @@ export default function AdminUsersPage() {
                           {user.status === "ACTIVE" ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                         </button>
 
+                        {/* Reset Password */}
                         <button
                           onClick={() => {
                             setSelectedUser(user);
+                            setShowResetPassword(false);
+                            setNewPassword("");
                             setResetModalOpen(true);
                           }}
                           title="Reset Password"
@@ -366,9 +467,10 @@ export default function AdminUsersPage() {
                           <KeyRound className="w-3.5 h-3.5" />
                         </button>
 
+                        {/* Delete User */}
                         <button
                           onClick={() => handleDeleteUser(user)}
-                          title="Delete User"
+                          title="Delete User Account"
                           className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 transition cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -398,7 +500,7 @@ export default function AdminUsersPage() {
             </div>
 
             {actionError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-xs rounded-xl flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-xs rounded-xl flex items-center gap-2 font-semibold">
                 <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                 {actionError}
               </div>
@@ -406,21 +508,22 @@ export default function AdminUsersPage() {
 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700">Target System / Portal</label>
+                <label className="text-xs font-semibold text-gray-700">Target System / Portal</label>
                 <select
                   value={createForm.system}
                   onChange={(e) => {
                     const sys = e.target.value;
-                    let defaultRole = "HR_OFFICER";
+                    let defaultRole = "HR Officer";
                     if (sys === "TEMPSTAFF") defaultRole = "HR Officer";
+                    if (sys === "RETIREMENT") defaultRole = "HR_OFFICER";
                     if (sys === "SUPER_ADMIN") defaultRole = "Super Administrator";
                     if (sys === "HR_LETTERS") defaultRole = "HR_OFFICER";
                     setCreateForm({ ...createForm, system: sys, role: defaultRole });
                   }}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-cyan-400"
                 >
-                  <option value="RETIREMENT">Retirement Management System (/retirement)</option>
                   <option value="TEMPSTAFF">TempStaff System (/dashboard)</option>
+                  <option value="RETIREMENT">Retirement Management System (/retirement)</option>
                   <option value="HR_LETTERS">HR Letters &amp; Documents Portal (/hrletters)</option>
                   <option value="SUPER_ADMIN">Super Admin Command Center (/admin)</option>
                 </select>
@@ -428,56 +531,62 @@ export default function AdminUsersPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-700">Full Name</label>
+                  <label className="text-xs font-semibold text-gray-700">Full Name</label>
                   <input
                     type="text"
                     required
                     value={createForm.name}
                     onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                     placeholder="e.g. Kwame Mensah"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400 font-medium"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-700">Username</label>
+                  <label className="text-xs font-semibold text-gray-700">Username</label>
                   <input
                     type="text"
                     required
                     value={createForm.username}
                     onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
                     placeholder="e.g. kmensah"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400 font-medium"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-700">Email Address</label>
+                  <label className="text-xs font-semibold text-gray-700">Email Address</label>
                   <input
                     type="email"
                     required
                     value={createForm.email}
                     onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
                     placeholder="kmensah@dvla.gov.gh"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400 font-medium"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-700">Role</label>
+                  <label className="text-xs font-semibold text-gray-700">Assigned Role</label>
                   <select
                     value={createForm.role}
                     onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-cyan-400"
                   >
+                    {createForm.system === "TEMPSTAFF" && (
+                      <>
+                        <option value="HR Officer">HR Officer (Creates staff, requests renewals)</option>
+                        <option value="Approval Officer">Approval Officer (Approves staff entries)</option>
+                        <option value="Validation Officer">Validation Officer (Validates staff &amp; exports)</option>
+                        <option value="HR Manager">HR Manager (Full access &amp; per-staff audit logs)</option>
+                        <option value="Superadmin / HR Director">Superadmin / HR Director (Full Cross-Platform)</option>
+                      </>
+                    )}
                     {createForm.system === "RETIREMENT" && (
                       <>
                         <option value="HR_OFFICER">HR Officer</option>
                         <option value="HR_ADMINISTRATOR">HR Administrator</option>
                       </>
-                    )}
-                    {createForm.system === "TEMPSTAFF" && (
-                      <option value="HR Officer">HR Officer</option>
                     )}
                     {createForm.system === "HR_LETTERS" && (
                       <>
@@ -492,16 +601,27 @@ export default function AdminUsersPage() {
                 </div>
               </div>
 
+              {/* Initial Password with Eye View Password Toggle */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700">Initial Password</label>
-                <input
-                  type="password"
-                  required
-                  value={createForm.password}
-                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                  placeholder="••••••••••••"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
-                />
+                <label className="text-xs font-semibold text-gray-700">Initial Password</label>
+                <div className="relative">
+                  <input
+                    type={showCreatePassword ? "text" : "password"}
+                    required
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                    placeholder="Enter password..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3 pr-10 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword(!showCreatePassword)}
+                    title={showCreatePassword ? "Hide password" : "View password typed"}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700"
+                  >
+                    {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-gray-200">
@@ -525,6 +645,143 @@ export default function AdminUsersPage() {
         </div>
       )}
 
+      {/* EDIT USER ACCOUNT MODAL */}
+      {editModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl shadow-xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-emerald-600" />
+                Edit User Account: {selectedUser.name}
+              </h3>
+              <button onClick={() => setEditModalOpen(false)} className="text-gray-400 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {actionError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-xs rounded-xl flex items-center gap-2 font-semibold">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                {actionError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditUserSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-gray-700">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-gray-700">Username (Read-Only)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={editForm.username}
+                    className="w-full bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-500 font-mono cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-gray-700">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-gray-700">Assigned Role</label>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-cyan-400"
+                  >
+                    {editForm.system === "TEMPSTAFF" && (
+                      <>
+                        <option value="HR Officer">HR Officer</option>
+                        <option value="Approval Officer">Approval Officer</option>
+                        <option value="Validation Officer">Validation Officer</option>
+                        <option value="HR Manager">HR Manager</option>
+                        <option value="Superadmin / HR Director">Superadmin / HR Director</option>
+                      </>
+                    )}
+                    {editForm.system === "RETIREMENT" && (
+                      <>
+                        <option value="HR_OFFICER">HR Officer</option>
+                        <option value="HR_ADMINISTRATOR">HR Administrator</option>
+                      </>
+                    )}
+                    {editForm.system === "HR_LETTERS" && (
+                      <>
+                        <option value="HR_OFFICER">HR Officer</option>
+                        <option value="HR_DIRECTOR">HR Director</option>
+                      </>
+                    )}
+                    {editForm.system === "SUPER_ADMIN" && (
+                      <option value="Super Administrator">Super Administrator</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Password Change Field with Eye View Toggle */}
+              <div className="space-y-1.5">
+                <label className="font-semibold text-gray-700">
+                  Update Password (Leave blank to keep existing password)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? "text" : "password"}
+                    value={editForm.password}
+                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                    placeholder="Enter new password to reset..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3 pr-10 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    title={showEditPassword ? "Hide password" : "View password typed"}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700"
+                  >
+                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5"
+                >
+                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* RESET PASSWORD MODAL */}
       {resetModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
@@ -541,19 +798,29 @@ export default function AdminUsersPage() {
 
             <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
               <p className="text-xs text-gray-500">
-                Enter a new temporary password for account <b className="text-gray-800">@{selectedUser.username}</b> in portal <b className="text-cyan-600">{selectedUser.system}</b>.
+                Enter a new password for account <b className="text-gray-800">@{selectedUser.username}</b> in portal <b className="text-cyan-600">{selectedUser.system}</b>.
               </p>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700">New Password</label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400"
-                />
+                <label className="text-xs font-semibold text-gray-700">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? "text" : "password"}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3 pr-10 py-2 text-xs text-gray-900 focus:outline-none focus:border-cyan-400 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    title={showResetPassword ? "Hide password" : "View password typed"}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700"
+                  >
+                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-200">
