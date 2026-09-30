@@ -158,7 +158,7 @@ export function Step2Profile({
               required
               value={formData.dateOfBirth}
               onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-              className="w-full"
+              className="w-full h-10 sm:h-11 md:h-12 py-1.5 sm:py-2 md:py-2.5 text-sm md:text-base cursor-pointer"
               max={new Date().toISOString().split('T')[0]}
             />
           </div>
@@ -198,7 +198,7 @@ export function Step2Profile({
                   }
                 }}
               >
-                <SelectTrigger id="gender" className="w-full h-14 text-base">
+                <SelectTrigger id="gender" className="w-full h-10 sm:h-11 md:h-12 text-sm md:text-base">
                   <SelectValue placeholder="Select Gender" />
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4}>

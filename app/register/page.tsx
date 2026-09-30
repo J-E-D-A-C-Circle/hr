@@ -224,7 +224,22 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
 
   const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly.length > 1) {
+      const newOtp = [...otp];
+      const pastedDigits = digitsOnly.slice(0, 6).split('');
+      pastedDigits.forEach((digit, idx) => {
+        if (index + idx < 6) {
+          newOtp[index + idx] = digit;
+        }
+      });
+      setOtp(newOtp);
+      const nextIdx = Math.min(index + pastedDigits.length, 5);
+      const nextInput = document.getElementById(`otp-input-${nextIdx}`);
+      nextInput?.focus();
+      return;
+    }
+
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
@@ -797,7 +812,7 @@ export default function RegisterPage() {
 
         {/* Form Content */}
         <div className="flex-1 flex flex-col justify-center max-w-4xl w-full mx-auto">
-          <div className="w-full rounded-3xl bg-white/80 backdrop-blur-md shadow-lg ring-1 ring-black/5 p-6 md:p-12">
+          <div className="w-full rounded-2xl sm:rounded-3xl bg-white/80 backdrop-blur-md shadow-lg ring-1 ring-black/5 p-4 sm:p-8 md:p-12">
           {currentStep === 1 && (
             <Step1Account 
               formData={formData}

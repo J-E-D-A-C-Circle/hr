@@ -92,7 +92,7 @@ export function ProfileInfoStep({ onNext, onBack }: ProfileInfoStepProps) {
           </div>
           <div>
             <Label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-900 mb-2">Date of Birth</Label>
-            <Input id="dateOfBirth" type="date" {...register('dateOfBirth')} />
+            <Input id="dateOfBirth" type="date" className="w-full h-10 sm:h-11 md:h-12 py-1.5 sm:py-2 md:py-2.5 text-sm md:text-base cursor-pointer" {...register('dateOfBirth')} />
             {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth.message}</p>}
           </div>
         </div>

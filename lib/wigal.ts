@@ -41,6 +41,18 @@ export function normalizePhoneForWigal(phone: string): string {
   return cleaned;
 }
 
+const DEFAULT_FROG_KEY = '$2a$10$5X3KvL/v/kzYoVzyEv9XsODWHASgrxvh5X7sJVUJDlPnUc/3x5d52';
+
+function getWigalCredentials() {
+  let apiKey = process.env.WIGAL_API_KEY || process.env.FROG_API_KEY || process.env.WIGAL_PASSWORD;
+  if (!apiKey || !apiKey.startsWith('$2a$') || apiKey.length < 20) {
+    apiKey = DEFAULT_FROG_KEY;
+  }
+  const username = process.env.WIGAL_USERNAME || process.env.FROG_USERNAME || 'DVLA';
+  const defaultSenderId = process.env.WIGAL_SENDER_ID || process.env.FROG_SENDER_ID || 'DVLA NSS';
+  return { apiKey, username, defaultSenderId };
+}
+
 /**
  * Sends a general SMS message using Frog API v3.
  * Endpoint: POST https://frogapi.wigal.com.gh/api/v3/sms/send
@@ -50,9 +62,7 @@ export async function sendWigalSms({
   message,
   senderId,
 }: SendSmsParams): Promise<WigalApiResponse> {
-  const apiKey = process.env.WIGAL_API_KEY || process.env.FROG_API_KEY || process.env.WIGAL_PASSWORD;
-  const username = process.env.WIGAL_USERNAME || process.env.FROG_USERNAME || 'DVLA';
-  const defaultSenderId = process.env.WIGAL_SENDER_ID || process.env.FROG_SENDER_ID || 'DVLA NSS';
+  const { apiKey, username, defaultSenderId } = getWigalCredentials();
   const source = senderId || defaultSenderId;
 
   const formattedNumber = normalizePhoneForWigal(destination);
@@ -136,9 +146,7 @@ export async function generateFrogOtp({
   length = 6,
   messageTemplate,
 }: GenerateOtpParams): Promise<WigalApiResponse> {
-  const apiKey = process.env.WIGAL_API_KEY || process.env.FROG_API_KEY || process.env.WIGAL_PASSWORD;
-  const username = process.env.WIGAL_USERNAME || process.env.FROG_USERNAME || 'DVLA';
-  const defaultSenderId = process.env.WIGAL_SENDER_ID || process.env.FROG_SENDER_ID || 'DVLA NSS';
+  const { apiKey, username, defaultSenderId } = getWigalCredentials();
   const source = senderId || defaultSenderId;
 
   const formattedNumber = normalizePhoneForWigal(destination);
@@ -161,7 +169,7 @@ export async function generateFrogOtp({
       number: formattedNumber,
       expiry: expiryMinutes,
       length: length,
-      messagetemplate: messageTemplate || 'Your DVLA NSS verification code is : %OTPCODE%. Valid for %EXPIRY% mins',
+      messagetemplate: messageTemplate || 'Your code is : %OTPCODE%',
       type: 'NUMERIC',
       senderid: source,
     };
@@ -218,8 +226,7 @@ export async function verifyFrogOtp({
   destination,
   code,
 }: VerifyOtpParams): Promise<WigalApiResponse> {
-  const apiKey = process.env.WIGAL_API_KEY || process.env.FROG_API_KEY || process.env.WIGAL_PASSWORD;
-  const username = process.env.WIGAL_USERNAME || process.env.FROG_USERNAME || 'DVLA';
+  const { apiKey, username } = getWigalCredentials();
 
   const formattedNumber = normalizePhoneForWigal(destination);
 
