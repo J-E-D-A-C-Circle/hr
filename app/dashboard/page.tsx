@@ -84,6 +84,14 @@ export default function DashboardPage() {
     Terminated: 0,
   };
 
+  const roleUpper = (userRole || "").toUpperCase();
+  const canSeePendingApprovals =
+    roleUpper.includes("APPROVAL") ||
+    roleUpper.includes("MANAGER") ||
+    roleUpper.includes("DIRECTOR") ||
+    roleUpper.includes("ADMIN") ||
+    roleUpper.includes("SUPER");
+
   return (
     <SidebarLayout>
       <div className="space-y-8">
@@ -143,8 +151,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Pending HR Approval Alert Banner */}
-        {data && (data.pendingApprovalCount || 0) > 0 && (
+        {/* Pending HR Approval Alert Banner (Only for Approval Officers, Managers & Admins) */}
+        {canSeePendingApprovals && data && (data.pendingApprovalCount || 0) > 0 && (
           <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
@@ -160,7 +168,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <Link
-              href="/staff"
+              href="/staff?statusFilter=pending"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition shrink-0"
             >
               <span>Review Submissions Queue</span>
@@ -171,28 +179,30 @@ export default function DashboardPage() {
 
         {/* Summary Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Pending Approval Card */}
-          <Link
-            href="/staff"
-            className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-amber-300/80 dark:border-amber-900/80 shadow-xs relative overflow-hidden group hover:border-amber-500 transition"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                Pending Approvals
-              </span>
-              <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-300 dark:border-amber-800">
-                <Clock className="h-5 w-5 animate-pulse" />
+          {/* Pending Approval Card (Visible only to Approval Officers & Managers) */}
+          {canSeePendingApprovals && (
+            <Link
+              href="/staff?statusFilter=pending"
+              className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-amber-300/80 dark:border-amber-900/80 shadow-xs relative overflow-hidden group hover:border-amber-500 transition"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Pending Approvals
+                </span>
+                <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-300 dark:border-amber-800">
+                  <Clock className="h-5 w-5 animate-pulse" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                {loading ? "..." : (data?.pendingApprovalCount || 0)}
-              </span>
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                Submissions Awaiting HR Review
-              </span>
-            </div>
-          </Link>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+                  {loading ? "..." : (data?.pendingApprovalCount || 0)}
+                </span>
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  Submissions Awaiting HR Review
+                </span>
+              </div>
+            </Link>
+          )}
 
           {/* Active Card */}
           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden group hover:border-emerald-300 dark:hover:border-emerald-800 transition">

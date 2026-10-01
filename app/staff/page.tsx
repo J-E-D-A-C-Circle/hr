@@ -260,6 +260,14 @@ export default function StaffListPage() {
     return set;
   }, [staffList]);
 
+  const roleUpper = (currentUserRole || "").toUpperCase();
+  const canSeePendingApprovals =
+    roleUpper.includes("APPROVAL") ||
+    roleUpper.includes("MANAGER") ||
+    roleUpper.includes("DIRECTOR") ||
+    roleUpper.includes("ADMIN") ||
+    roleUpper.includes("SUPER");
+
   const isValidatedForMonth = (staffItem: any, month: string) => {
     if (!staffItem.validations) return false;
     return staffItem.validations.some((v: any) => v.month.toLowerCase() === month.toLowerCase());
@@ -275,8 +283,11 @@ export default function StaffListPage() {
         } else if (statusFilter === "rejected") {
           if (item.approval_status !== "REJECTED") return false;
         } else if (statusFilter === "all") {
-          // Exclude Terminated staff from Active Staff Directory
+          // Exclude Terminated staff and unapproved pending staff from Active Staff Directory
           if (item.computedStatus?.toLowerCase() === "terminated") {
+            return false;
+          }
+          if (item.approval_status === "PENDING_APPROVAL") {
             return false;
           }
         } else if (statusFilter === "terminated") {
@@ -465,17 +476,19 @@ export default function StaffListPage() {
               <span>Active Staff Directory</span>
             </button>
 
-            <button
-              onClick={() => setStatusFilter("pending")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                statusFilter === "pending"
-                  ? "bg-amber-600 text-white shadow-xs"
-                  : "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800"
-              }`}
-            >
-              <Clock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
-              <span>Pending Officer Approvals ({staffList.filter((s) => s.approval_status === "PENDING_APPROVAL").length})</span>
-            </button>
+            {canSeePendingApprovals && (
+              <button
+                onClick={() => setStatusFilter("pending")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  statusFilter === "pending"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800"
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+                <span>Pending Officer Approvals ({staffList.filter((s) => s.approval_status === "PENDING_APPROVAL").length})</span>
+              </button>
+            )}
 
             <button
               onClick={() => setStatusFilter("duplicates")}
@@ -522,12 +535,16 @@ export default function StaffListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Active Staff Directory (Excludes Terminated)</SelectItem>
-                <SelectItem value="pending" className="font-bold text-amber-600 dark:text-amber-400">
-                  Pending Officer Approval Queue ({staffList.filter(s => s.approval_status === "PENDING_APPROVAL").length})
-                </SelectItem>
-                <SelectItem value="rejected" className="font-bold text-rose-600 dark:text-rose-400">
-                  Rejected Submissions ({staffList.filter(s => s.approval_status === "REJECTED").length})
-                </SelectItem>
+                {canSeePendingApprovals && (
+                  <>
+                    <SelectItem value="pending" className="font-bold text-amber-600 dark:text-amber-400">
+                      Pending Officer Approval Queue ({staffList.filter(s => s.approval_status === "PENDING_APPROVAL").length})
+                    </SelectItem>
+                    <SelectItem value="rejected" className="font-bold text-rose-600 dark:text-rose-400">
+                      Rejected Submissions ({staffList.filter(s => s.approval_status === "REJECTED").length})
+                    </SelectItem>
+                  </>
+                )}
                 <SelectItem value="duplicates">
                   Duplicate Records List ({duplicateStaffIds.size})
                 </SelectItem>
@@ -810,7 +827,7 @@ export default function StaffListPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Approve / Reject Actions for Pending Staff */}
                             {staff.approval_status === "PENDING_APPROVAL" && (
-                              currentUserRole !== "HR Officer" ? (
+                              canSeePendingApprovals ? (
                                 <button
                                   onClick={() => handleApproveStaff(staff.id)}
                                   title="Approve Temporary Staff Member"
