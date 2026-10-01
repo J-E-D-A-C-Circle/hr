@@ -45,10 +45,13 @@ const DEFAULT_FROG_KEY = '$2a$10$5X3KvL/v/kzYoVzyEv9XsODWHASgrxvh5X7sJVUJDlPnUc/
 
 function getWigalCredentials() {
   let apiKey = process.env.WIGAL_API_KEY || process.env.FROG_API_KEY || process.env.WIGAL_PASSWORD;
-  if (!apiKey || !apiKey.startsWith('$2a$') || apiKey.length < 20) {
+  if (!apiKey || !apiKey.startsWith('$2a$') || apiKey.includes('your-frog') || apiKey.length < 20) {
     apiKey = DEFAULT_FROG_KEY;
   }
-  const username = process.env.WIGAL_USERNAME || process.env.FROG_USERNAME || 'DVLA';
+  let username = process.env.WIGAL_USERNAME || process.env.FROG_USERNAME;
+  if (!username || username.includes('your-frog')) {
+    username = 'DVLA';
+  }
   const defaultSenderId = process.env.WIGAL_SENDER_ID || process.env.FROG_SENDER_ID || 'DVLA NSS';
   return { apiKey, username, defaultSenderId };
 }
