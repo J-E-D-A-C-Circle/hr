@@ -16,6 +16,9 @@ done
 
 echo "✅ Database server is reachable!"
 
+echo "🛠️ Verifying / initializing database schema..."
+node scripts/init-db.js || true
+
 # Execute main process (Next.js server)
 echo "🌐 Launching Next.js server on port ${PORT:-3000}..."
 if [ "$#" -eq 0 ]; then
