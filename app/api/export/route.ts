@@ -157,10 +157,10 @@ export async function GET(request: NextRequest) {
 
       const prevMonthSuppValCount = await prisma.staffValidation.count({
         where: {
-          month: {
-            contains: prevMName,
-            AND: { contains: "Supplementary" },
-          },
+          AND: [
+            { month: { contains: prevMName } },
+            { month: { contains: "Supplementary" } },
+          ],
         },
       });
 
