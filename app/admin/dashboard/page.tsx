@@ -85,6 +85,7 @@ export default function AdminDashboard() {
     review_notes: '',
     posting_station: '',
     posting_department: '',
+    service_period_start: '',
   });
 
   // Appointment letter generator modal
@@ -162,6 +163,7 @@ export default function AdminDashboard() {
         review_notes: app.review_notes || '',
         posting_station: defaultStation,
         posting_department: defaultDept,
+        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-09-01',
       });
       setActiveModalTab('profile');
       setModalOpen(true);
@@ -193,6 +195,7 @@ export default function AdminDashboard() {
           review_notes: reviewData.review_notes,
           posting_station: reviewData.posting_station,
           posting_department: reviewData.posting_department,
+          service_period_start: reviewData.service_period_start,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -675,6 +678,16 @@ export default function AdminDashboard() {
                         value={reviewData.posting_department}
                         onChange={(val) => setReviewData({ ...reviewData, posting_department: val })}
                         placeholder="Select Station Department..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-bold mb-1">Effective / Start Date (Assumption of Duty)</label>
+                      <input
+                        type="date"
+                        value={reviewData.service_period_start}
+                        onChange={(e) => setReviewData({ ...reviewData, service_period_start: e.target.value })}
+                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 focus:border-[#0d5c2e]"
                       />
                     </div>
 

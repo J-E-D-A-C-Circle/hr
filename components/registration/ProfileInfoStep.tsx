@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { RegistrationFormData } from '@/lib/validations/registration';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GHANA_REGIONS, getDistrictsForRegion } from '@/lib/regions-districts';
 
 interface ProfileInfoStepProps {
   onNext: () => void;
@@ -100,7 +101,20 @@ export function ProfileInfoStep({ onNext, onBack }: ProfileInfoStepProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <Label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-900 mb-2">Phone Number</Label>
-            <Input id="phoneNumber" placeholder="e.g. 0241234567" {...register('phoneNumber')} />
+            <Input 
+              id="phoneNumber" 
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={10}
+              placeholder="e.g. 0241234567" 
+              {...register('phoneNumber')}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '');
+                e.target.value = digits;
+                register('phoneNumber').onChange(e);
+              }}
+            />
             {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>}
           </div>
           <div>
@@ -134,12 +148,44 @@ export function ProfileInfoStep({ onNext, onBack }: ProfileInfoStepProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <Label htmlFor="region" className="block text-sm font-medium text-gray-900 mb-2">Region</Label>
-            <Input id="region" placeholder="e.g. Greater Accra" {...register('region')} />
+            <Select 
+              value={watch('region') || ''} 
+              onValueChange={(val) => {
+                setValue('region', val, { shouldValidate: true });
+                const availableDistricts = getDistrictsForRegion(val);
+                const currentDistrict = watch('district');
+                if (currentDistrict && !availableDistricts.includes(currentDistrict)) {
+                  setValue('district', '', { shouldValidate: true });
+                }
+              }}
+            >
+              <SelectTrigger id="region" className="w-full h-10 sm:h-11 md:h-12 text-sm md:text-base">
+                <SelectValue placeholder="Select region" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-60 overflow-y-auto">
+                {GHANA_REGIONS.map(reg => (
+                  <SelectItem key={reg} value={reg}>{reg}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region.message}</p>}
           </div>
           <div>
-            <Label htmlFor="district" className="block text-sm font-medium text-gray-900 mb-2">District</Label>
-            <Input id="district" placeholder="e.g. Accra Metro" {...register('district')} />
+            <Label htmlFor="district" className="block text-sm font-medium text-gray-900 mb-2">District / City / Town</Label>
+            <Select 
+              disabled={!watch('region')}
+              value={watch('district') || ''} 
+              onValueChange={(val) => setValue('district', val, { shouldValidate: true })}
+            >
+              <SelectTrigger id="district" className="w-full h-10 sm:h-11 md:h-12 text-sm md:text-base">
+                <SelectValue placeholder={watch('region') ? "Select district in " + watch('region') : "Select a region first"} />
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-60 overflow-y-auto">
+                {getDistrictsForRegion(watch('region')).map(dist => (
+                  <SelectItem key={dist} value={dist}>{dist}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.district && <p className="text-red-500 text-xs mt-1">{errors.district.message}</p>}
           </div>
         </div>

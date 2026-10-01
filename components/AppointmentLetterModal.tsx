@@ -50,6 +50,11 @@ export default function AppointmentLetterModal({
     setApplicantName(fullName || 'APPLICANT NAME');
     setApplicantAddress(application.residential_address || 'ACCRA - GHANA');
 
+    const appStart = application.service_period_start || application.servicePeriodStart;
+    const initialEffectiveDate = appStart 
+      ? new Date(appStart).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+      : 'Monday, September 1, 2026';
+
     const existingLetter = application.appointmentLetterObject || application.appointmentLetterData;
     if (existingLetter && typeof existingLetter === 'object') {
       setAppointmentType((existingLetter.appointmentType as any) || (application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'));
@@ -60,7 +65,7 @@ export default function AppointmentLetterModal({
       setApplicantName(existingLetter.applicantName || fullName);
       setApplicantAddress(existingLetter.applicantAddress || application.residential_address || 'ACCRA - GHANA');
       setCustomSubject(existingLetter.customSubject || '');
-      setEffectiveDate(existingLetter.effectiveDate || 'Monday, September 1, 2026');
+      setEffectiveDate(existingLetter.effectiveDate || initialEffectiveDate);
       setSalaryGrade(existingLetter.salaryGrade || 'DVLA Grade 7 Step 1');
       setProbationPeriod(existingLetter.probationPeriod || 'six (6) months');
       setContractDuration(existingLetter.contractDuration || 'two (2) years');
@@ -71,9 +76,10 @@ export default function AppointmentLetterModal({
       setCustomBodyText(existingLetter.customBodyText || '');
     } else {
       setLetterDate(todayStr);
+      setEffectiveDate(initialEffectiveDate);
       const initialType = application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY';
       setAppointmentType(initialType);
-      applyDefaultTemplate(initialType, todayStr);
+      applyDefaultTemplate(initialType, todayStr, initialEffectiveDate);
     }
   }, [application, isOpen]);
 
@@ -89,12 +95,12 @@ export default function AppointmentLetterModal({
     return `DVLA/HR/${monthStr}/${yearSuffix}/${code}/${refSuffix}`;
   };
 
-  const applyDefaultTemplate = (type: 'TEMPORARY' | 'REPOSTING', dateStr?: string) => {
+  const applyDefaultTemplate = (type: 'TEMPORARY' | 'REPOSTING', dateStr?: string, effDateOverride?: string) => {
     if (!application) return;
     const posTitle = application.position?.title || application.position_title || application.course_program || 'NSS Personnel';
     const deptName = application.department?.name || application.posting_department || 'Operations';
     const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office (Accra 37)';
-    const effDate = effectiveDate || 'Monday, September 1, 2026';
+    const effDate = effDateOverride || effectiveDate || 'Monday, September 1, 2026';
     const ref = generateDefaultRef(type);
     setCustomRefNumber(ref);
     if (type === 'REPOSTING') {

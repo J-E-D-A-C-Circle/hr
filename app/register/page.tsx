@@ -121,6 +121,10 @@ export default function RegisterPage() {
             return;
           }
           
+          if (user.email) {
+            setFormData(prev => ({ ...prev, email: prev.email || user.email }));
+          }
+          
           // Check if they have a draft
           const res = await fetch('/api/applications/draft', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -134,37 +138,40 @@ export default function RegisterPage() {
             
             setFormData(prev => ({
               ...prev,
-              firstName: app.first_name || '',
-              lastName: app.last_name || '',
-              middleName: app.middle_name || '',
-              email: app.email || prev.email,
-              phoneNumber: app.phone_number || '',
-              ghanaCard: app.nss_number || prev.ghanaCard, // Stored ghanaCard here temporarily? Or nssPin?
-              gender: app.gender || '',
-              nationality: app.nationality || 'Ghanaian',
-              region: app.region || '',
-              district: app.district || '',
-              address: app.residential_address || '',
-              school: app.institution_name || '',
-              course: app.course_program || '',
-              yearOfCompletion: app.year_of_completion || '',
-              serviceYear: app.service_year || String(new Date().getFullYear()),
-              postingRegion: app.posting_region || '',
-              postingDistrict: app.posting_district || '',
-              servicePeriodStart: app.service_period_start ? app.service_period_start.split('T')[0] : '',
-              servicePeriodEnd: app.service_period_end ? app.service_period_end.split('T')[0] : '',
-              additionalInfo: app.additional_info || '',
+              firstName: app.first_name || prev.firstName,
+              lastName: app.last_name || prev.lastName,
+              middleName: app.middle_name || prev.middleName,
+              email: app.email || prev.email || user.email,
+              phoneNumber: app.phone_number || prev.phoneNumber,
+              ghanaCard: app.nss_number || prev.ghanaCard,
+              gender: app.gender || prev.gender,
+              nationality: app.nationality || prev.nationality || 'Ghanaian',
+              region: app.region || prev.region,
+              district: app.district || prev.district,
+              address: app.residential_address || prev.address,
+              school: app.institution_name || prev.school,
+              course: app.course_program || prev.course,
+              yearOfCompletion: app.year_of_completion || prev.yearOfCompletion,
+              serviceYear: app.service_year || prev.serviceYear || String(new Date().getFullYear()),
+              postingRegion: app.posting_region || prev.postingRegion,
+              postingDistrict: app.posting_district || prev.postingDistrict,
+              servicePeriodStart: app.service_period_start ? app.service_period_start.split('T')[0] : prev.servicePeriodStart,
+              servicePeriodEnd: app.service_period_end ? app.service_period_end.split('T')[0] : prev.servicePeriodEnd,
+              additionalInfo: app.additional_info || prev.additionalInfo,
               nssPin: app.nss_number || prev.nssPin,
             }));
             
-            if (extra.currentStep) {
+            if (extra.currentStep && extra.currentStep > 1) {
               setCurrentStep(extra.currentStep);
             } else {
-              setCurrentStep(3); // Default to step 3 if they have an account but no step saved
+              setCurrentStep(2);
             }
           } else if (data.application && data.application.status !== 'draft') {
             // Only redirect to dashboard if the application has been finalized/submitted
             router.replace('/dashboard');
+          } else {
+            // Logged in user with no draft application yet - default to step 2
+            setCurrentStep(2);
           }
         } catch (e) {
           // If error checking draft, stay on /register
@@ -288,17 +295,20 @@ export default function RegisterPage() {
         toast.error('Please enter a valid email address');
         return;
       }
-      if (!formData.password) {
-        toast.error('Password is required');
-        return;
-      }
-      if (formData.password.length < 8) {
-        toast.error('Password must be at least 8 characters');
-        return;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        toast.error('Passwords do not match');
-        return;
+      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+      if (!hasToken) {
+        if (!formData.password) {
+          toast.error('Password is required');
+          return;
+        }
+        if (formData.password.length < 8) {
+          toast.error('Password must be at least 8 characters');
+          return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match');
+          return;
+        }
       }
       // Advance to Step 2
       setCurrentStep(2);
@@ -489,6 +499,27 @@ export default function RegisterPage() {
       const idCardFile = idCardFileRef.current?.files?.[0];
       const appointmentFile = appointmentFileRef.current?.files?.[0] || appointmentCameraRef.current?.files?.[0];
       const cvFile = cvFileRef.current?.files?.[0];
+
+      if (!passportFile) {
+        toast.error('Passport photo is compulsory. Please attach your Passport Photo.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!idCardFile) {
+        toast.error('Ghana Card / ID Card copy is compulsory. Please attach your ID Card file.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!appointmentFile) {
+        toast.error('NSS Appointment letter is compulsory. Please attach your Appointment Letter.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!cvFile) {
+        toast.error('Curriculum Vitae (CV) / Certificates is compulsory. Please attach your CV.');
+        setIsSubmitting(false);
+        return;
+      }
       
       if (passportFile) {
         try {
@@ -824,6 +855,7 @@ export default function RegisterPage() {
               showConfirmPassword={showConfirmPassword}
               setShowConfirmPassword={setShowConfirmPassword}
               passwordStrength={passwordStrength}
+              isLoggedIn={typeof window !== 'undefined' && !!localStorage.getItem('token')}
             />
           )}
 

@@ -42,13 +42,32 @@ export default function Dashboard() {
 
   const handleSaveDocuments = async () => {
     if (!application) return;
+
+    let passportPath = (application as any).passport_photo || null;
+    let idCardPath = (application as any).id_card_copy || null;
+    let appointmentPath = (application as any).appointment_letter || null;
+    let cvPath = (application as any).certificates || null;
+
+    if (!passportFile && !passportPath) {
+      toast.error('Passport Picture is compulsory.');
+      return;
+    }
+    if (!idCardFile && !idCardPath) {
+      toast.error('Ghana Card / ID Card Copy is compulsory.');
+      return;
+    }
+    if (!appointmentFile && !appointmentPath) {
+      toast.error('NSS Appointment Letter is compulsory.');
+      return;
+    }
+    if (!cvFile && !cvPath) {
+      toast.error('Curriculum Vitae (CV) / Certificates is compulsory.');
+      return;
+    }
+
     setUploading(true);
     try {
-      const token = localStorage.getItem('token') || '';
-      let passportPath = (application as any).passport_photo || null;
-      let idCardPath = (application as any).id_card_copy || null;
-      let appointmentPath = (application as any).appointment_letter || null;
-      let cvPath = (application as any).certificates || null;
+      const token = getValidAuthToken() || localStorage.getItem('token') || '';
 
       if (passportFile) {
         const res = await uploadFile(passportFile, 'passport', token);
@@ -155,9 +174,9 @@ export default function Dashboard() {
 
   const generatePDF = async (letterType: 'appointment' | 'reposting' = 'appointment') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getValidAuthToken() || localStorage.getItem('token');
       const response = await axios.get(
-        `/api/applications/generate-pdf?type=${letterType}`,
+        `/api/applications/generate-pdf?type=${letterType}${application?.id ? `&id=${application.id}` : ''}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -909,7 +928,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               {/* Passport Photo */}
               <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl">
-                <label className="block text-sm font-bold text-gray-800 mb-2">Passport Picture</label>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Passport Picture <span className="text-red-500">*</span></label>
                 <div className="flex items-center justify-between gap-3">
                   <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm">
                     <ImageIcon className="w-4 h-4" />
@@ -929,7 +948,7 @@ export default function Dashboard() {
 
               {/* Ghana Card / ID Card */}
               <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl">
-                <label className="block text-sm font-bold text-gray-800 mb-2">Ghana Card / ID Card Copy</label>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Ghana Card / ID Card Copy <span className="text-red-500">*</span></label>
                 <div className="flex items-center justify-between gap-3">
                   <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm">
                     <ShieldCheck className="w-4 h-4" />
@@ -949,7 +968,7 @@ export default function Dashboard() {
 
               {/* NSS Appointment Letter */}
               <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl">
-                <label className="block text-sm font-bold text-gray-800 mb-2">NSS Appointment Letter</label>
+                <label className="block text-sm font-bold text-gray-800 mb-2">NSS Appointment Letter <span className="text-red-500">*</span></label>
                 <div className="flex items-center justify-between gap-3">
                   <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm">
                     <FileText className="w-4 h-4" />
@@ -969,7 +988,7 @@ export default function Dashboard() {
 
               {/* CV / Certificates */}
               <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl">
-                <label className="block text-sm font-bold text-gray-800 mb-2">Curriculum Vitae (CV) / Certificates</label>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Curriculum Vitae (CV) / Certificates <span className="text-red-500">*</span></label>
                 <div className="flex items-center justify-between gap-3">
                   <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm">
                     <Upload className="w-4 h-4" />

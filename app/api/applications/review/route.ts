@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { nssApplications, auditLogs } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function PUT(request: Request) {
+export async function handleReviewRequest(request: Request) {
   try {
     const payload = getAuthPayload(request);
     if (!payload || payload.role !== 'admin') {
@@ -15,9 +15,43 @@ export async function PUT(request: Request) {
     const applicationId = data.application_id || data.id;
     const status = data.status;
 
-    if (!applicationId || !status) {
+    if (!applicationId) {
       return NextResponse.json(
-        { error: 'Application ID and status are required' },
+        { error: 'Application ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // If updating appointment letter data specifically without status change
+    if (!status && data.appointmentLetterData) {
+      const existing = await db
+        .select({ additionalInfo: nssApplications.additionalInfo })
+        .from(nssApplications)
+        .where(eq(nssApplications.id, parseInt(applicationId, 10)));
+      
+      let existingExtra: any = {};
+      if (existing.length > 0 && existing[0].additionalInfo) {
+        try {
+          existingExtra = JSON.parse(existing[0].additionalInfo);
+        } catch (e) {
+          existingExtra = { raw: existing[0].additionalInfo };
+        }
+      }
+      existingExtra.appointmentLetterData = data.appointmentLetterData;
+
+      await db.update(nssApplications)
+        .set({
+          additionalInfo: JSON.stringify(existingExtra),
+          updatedAt: new Date(),
+        })
+        .where(eq(nssApplications.id, parseInt(applicationId, 10)));
+
+      return NextResponse.json({ message: 'Appointment letter updated successfully' });
+    }
+
+    if (!status) {
+      return NextResponse.json(
+        { error: 'Status is required' },
         { status: 400 }
       );
     }
@@ -39,16 +73,45 @@ export async function PUT(request: Request) {
     const reviewNotes = data.review_notes || null;
     const postingStation = data.posting_station || null;
     const postingDepartment = data.posting_department || null;
+    const servicePeriodStart = data.service_period_start || data.servicePeriodStart || null;
+    const servicePeriodEnd = data.service_period_end || data.servicePeriodEnd || null;
+
+    const updateFields: any = {
+      status: status as any,
+      reviewedBy: payload.user_id,
+      reviewNotes,
+      postingStation,
+      postingDepartment,
+      reviewedAt: new Date(),
+    };
+
+    if (servicePeriodStart !== null) {
+      updateFields.servicePeriodStart = servicePeriodStart;
+    }
+    if (servicePeriodEnd !== null) {
+      updateFields.servicePeriodEnd = servicePeriodEnd;
+    }
+
+    if (data.appointmentLetterData) {
+      const existing = await db
+        .select({ additionalInfo: nssApplications.additionalInfo })
+        .from(nssApplications)
+        .where(eq(nssApplications.id, parseInt(applicationId, 10)));
+      
+      let existingExtra: any = {};
+      if (existing.length > 0 && existing[0].additionalInfo) {
+        try {
+          existingExtra = JSON.parse(existing[0].additionalInfo);
+        } catch (e) {
+          existingExtra = { raw: existing[0].additionalInfo };
+        }
+      }
+      existingExtra.appointmentLetterData = data.appointmentLetterData;
+      updateFields.additionalInfo = JSON.stringify(existingExtra);
+    }
 
     await db.update(nssApplications)
-      .set({
-        status: status as any,
-        reviewedBy: payload.user_id,
-        reviewNotes,
-        postingStation,
-        postingDepartment,
-        reviewedAt: new Date(),
-      })
+      .set(updateFields)
       .where(eq(nssApplications.id, parseInt(applicationId, 10)));
 
     // Log to audit_logs table
@@ -59,7 +122,7 @@ export async function PUT(request: Request) {
         action: `Application ${status.toUpperCase()}`,
         entityType: 'application',
         entityId: parseInt(applicationId, 10),
-        details: `Status changed to ${status}${postingStation ? ` (Station: ${postingStation}, Dept: ${postingDepartment})` : ''}`,
+        details: `Status changed to ${status}${postingStation ? ` (Station: ${postingStation}, Dept: ${postingDepartment}, Start Date: ${servicePeriodStart || 'N/A'})` : ''}`,
       });
     } catch (auditErr) {
       // Ignore if audit fails
@@ -77,3 +140,12 @@ export async function PUT(request: Request) {
     );
   }
 }
+
+export async function PUT(request: Request) {
+  return handleReviewRequest(request);
+}
+
+export async function POST(request: Request) {
+  return handleReviewRequest(request);
+}
+

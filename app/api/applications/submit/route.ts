@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { nssApplications } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { sendApplicationReceipt } from '@/lib/email';
 
 function cleanDbDate(val: any): string | null {
@@ -37,6 +37,29 @@ export async function POST(request: Request) {
       })
       .from(nssApplications)
       .where(eq(nssApplications.userId, payload.user_id));
+
+    // Check if phone number is attached to an approved application
+    const phoneInput = String(data.phone_number || data.phoneNumber || '').trim();
+    if (phoneInput) {
+      const approvedApps = await db
+        .select({ id: nssApplications.id, userId: nssApplications.userId })
+        .from(nssApplications)
+        .where(
+          and(
+            eq(nssApplications.phoneNumber, phoneInput),
+            eq(nssApplications.status, 'approved')
+          )
+        );
+
+      const isOtherApproved = approvedApps.some(app => app.userId !== payload.user_id || (existing.length > 0 && app.id !== existing[0].id));
+
+      if (approvedApps.length > 0 && isOtherApproved) {
+        return NextResponse.json(
+          { error: 'An approved application already exists with this phone number. This phone number cannot be reused.' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Required fields check
     const required = [

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { verificationTokens } from '@/db/schema';
+import { verificationTokens, nssApplications } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendWigalSms, generateFrogOtp } from '@/lib/wigal';
 
@@ -12,6 +13,24 @@ export async function POST(request: Request) {
     if (!phoneNumber) {
       return NextResponse.json(
         { error: 'Phone number is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if phone number is attached to an approved application
+    const approvedPhone = await db
+      .select({ id: nssApplications.id })
+      .from(nssApplications)
+      .where(
+        and(
+          eq(nssApplications.phoneNumber, phoneNumber),
+          eq(nssApplications.status, 'approved')
+        )
+      );
+
+    if (approvedPhone.length > 0) {
+      return NextResponse.json(
+        { error: 'An approved application already exists with this phone number. This number cannot be reused.' },
         { status: 400 }
       );
     }

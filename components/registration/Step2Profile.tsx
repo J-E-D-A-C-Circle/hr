@@ -130,21 +130,18 @@ export function Step2Profile({
             <Label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-900 mb-2">
               Your Phone Number
             </Label>
-            <div className="relative w-full">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2 z-10 pointer-events-none">
-                <span className="text-sm font-semibold text-gray-700">GH</span>
-                <span className="text-gray-400">|</span>
-              </div>
-              <Input
-                type="tel"
-                id="phoneNumber"
-                required
-                value={formData.phoneNumber}
-                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                className="pl-12 w-full"
-                placeholder="Enter phone number"
-              />
-            </div>
+            <Input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              id="phoneNumber"
+              required
+              maxLength={10}
+              value={formData.phoneNumber}
+              onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
+              className="w-full"
+              placeholder="e.g. 0241234567"
+            />
           </div>
 
           {/* Date of Birth */}

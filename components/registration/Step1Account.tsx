@@ -15,6 +15,7 @@ interface Step1AccountProps {
   showConfirmPassword: boolean;
   setShowConfirmPassword: (show: boolean) => void;
   passwordStrength: string;
+  isLoggedIn?: boolean;
 }
 
 export function Step1Account({
@@ -26,7 +27,8 @@ export function Step1Account({
   setShowPassword,
   showConfirmPassword,
   setShowConfirmPassword,
-  passwordStrength
+  passwordStrength,
+  isLoggedIn = false
 }: Step1AccountProps) {
   const router = useRouter();
 
@@ -60,6 +62,20 @@ export function Step1Account({
         </div>
       )}
 
+      {isLoggedIn && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-sm flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-[#0d5c2e] text-white flex items-center justify-center font-bold text-sm shrink-0">
+            ✓
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-900 text-sm">Signed In & Authenticated</h4>
+            <p className="text-xs text-slate-700">
+              You are currently logged in as <span className="font-semibold text-slate-900">{formData.email}</span>. Click Continue to complete your application.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Email Input */}
       <div>
         <Label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
@@ -69,87 +85,96 @@ export function Step1Account({
           type="email"
           id="email"
           required
+          readOnly={isLoggedIn}
           value={formData.email}
           onChange={(e) => handleInputChange('email', e.target.value)}
           placeholder="Enter your email"
+          className={isLoggedIn ? "bg-gray-100 font-medium text-gray-700 cursor-not-allowed border-gray-200" : ""}
         />
       </div>
 
-      {/* Password Input */}
-      <div>
-        <Label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-2">
-          Your Password
-        </Label>
-        <div className="relative">
-          <Input
-            type={showPassword ? 'text' : 'password'}
-            id="password"
-            required
-            value={formData.password}
-            onChange={(e) => handleInputChange('password', e.target.value)}
-            placeholder="Create a password."
-            className="pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
-            tabIndex={-1}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Password Requirements */}
-      <div className="text-sm text-gray-600 space-y-1">
-        {formData.password && passwordStrength && (
-          <div className="mb-2">
-            <span className="font-normal">{passwordStrength}</span>
+      {/* Password Inputs - Only required when not logged in */}
+      {!isLoggedIn ? (
+        <>
+          <div>
+            <Label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-2">
+              Your Password
+            </Label>
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                required
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                placeholder="Create a password."
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
+                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
           </div>
-        )}
-        <ul className="list-disc list-inside space-y-1 ml-2 font-normal">
-          <li>Use at least 8 characters</li>
-          <li>Besides letters, include at least a number or symbol (!@#$%^&*-_+=).</li>
-          <li>Password is case sensitive.</li>
-        </ul>
-      </div>
 
-      {/* Confirm Password Input */}
-      <div>
-        <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-900 mb-2">
-          Confirm Your Password
-        </Label>
-        <div className="relative">
-          <Input
-            type={showConfirmPassword ? 'text' : 'password'}
-            id="confirmPassword"
-            required
-            value={formData.confirmPassword}
-            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-            placeholder="Confirm your password."
-            className="pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
-            tabIndex={-1}
-            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
+          <div className="text-sm text-gray-600 space-y-1">
+            {formData.password && passwordStrength && (
+              <div className="mb-2">
+                <span className="font-normal">{passwordStrength}</span>
+              </div>
             )}
-          </button>
+            <ul className="list-disc list-inside space-y-1 ml-2 font-normal">
+              <li>Use at least 8 characters</li>
+              <li>Besides letters, include at least a number or symbol (!@#$%^&*-_+=).</li>
+              <li>Password is case sensitive.</li>
+            </ul>
+          </div>
+
+          <div>
+            <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-900 mb-2">
+              Confirm Your Password
+            </Label>
+            <div className="relative">
+              <Input
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                required
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                placeholder="Confirm your password."
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0d5c2e] transition-colors focus:outline-none"
+                tabIndex={-1}
+                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 flex items-center gap-2">
+          <span>🔒</span>
+          <span>Password authenticated for your account session.</span>
         </div>
-      </div>
+      )}
 
       {/* Continue Button */}
       <div className="flex justify-end mt-8">

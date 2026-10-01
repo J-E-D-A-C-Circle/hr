@@ -55,6 +55,7 @@ export default function ApplicationDetailPage() {
   const [reviewData, setReviewData] = useState({
     status: '',
     review_notes: '',
+    service_period_start: '',
   });
 
   useEffect(() => {
@@ -84,10 +85,12 @@ export default function ApplicationDetailPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setApplication(response.data.application);
+      const app = response.data.application;
+      setApplication(app);
       setReviewData({
-        status: response.data.application.status,
-        review_notes: response.data.application.review_notes || '',
+        status: app.status,
+        review_notes: app.review_notes || '',
+        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-09-01',
       });
     } catch (error) {
       console.error('Error fetching application:', error);
@@ -108,6 +111,7 @@ export default function ApplicationDetailPage() {
           application_id: params.id,
           status: reviewData.status,
           review_notes: reviewData.review_notes,
+          service_period_start: reviewData.service_period_start,
         },
         {
           headers: {
@@ -443,6 +447,15 @@ export default function ApplicationDetailPage() {
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Effective / Start Date (Assumption of Duty)</label>
+                  <input
+                    type="date"
+                    value={reviewData.service_period_start}
+                    onChange={(e) => setReviewData({ ...reviewData, service_period_start: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>

@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, ImageIcon, ShieldCheck, FileText, Upload } from 'lucide-react';
+import { GHANA_REGIONS, getDistrictsForRegion } from '@/lib/regions-districts';
 
 interface Step4CompleteProps {
   formData: any;
@@ -370,31 +371,50 @@ export function Step4Complete({
           />
         </div>
 
-        {/* Region */}
-        <div>
-          <Label htmlFor="region" className="block text-sm font-medium text-gray-900 mb-2">Region</Label>
-          <Input 
-            id="region" 
-            name="region" 
-            required
-            value={formData.region}
-            onChange={(e) => handleInputChange('region', e.target.value)}
-            placeholder="e.g. Greater Accra, Ashanti, Western" 
-          />
+        {/* Region & District Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="region" className="block text-sm font-medium text-gray-900 mb-2">Region</Label>
+            <Select 
+              value={formData.region || ''} 
+              onValueChange={(val) => {
+                handleInputChange('region', val);
+                const availableDistricts = getDistrictsForRegion(val);
+                if (formData.district && !availableDistricts.includes(formData.district)) {
+                  handleInputChange('district', '');
+                }
+              }}
+            >
+              <SelectTrigger id="region" className="w-full h-10 border-gray-200 rounded-md">
+                <SelectValue placeholder="Select Region" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-60 overflow-y-auto">
+                {GHANA_REGIONS.map(reg => (
+                  <SelectItem key={reg} value={reg}>{reg}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="district" className="block text-sm font-medium text-gray-900 mb-2">District / City / Town</Label>
+            <Select 
+              disabled={!formData.region}
+              value={formData.district || ''} 
+              onValueChange={(val) => handleInputChange('district', val)}
+            >
+              <SelectTrigger id="district" className="w-full h-10 border-gray-200 rounded-md">
+                <SelectValue placeholder={formData.region ? `Select district in ${formData.region}` : "Select region first"} />
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-60 overflow-y-auto">
+                {getDistrictsForRegion(formData.region).map(dist => (
+                  <SelectItem key={dist} value={dist}>{dist}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* District */}
-        <div>
-          <Label htmlFor="district" className="block text-sm font-medium text-gray-900 mb-2">District</Label>
-          <Input 
-            id="district" 
-            name="district" 
-            required
-            value={formData.district}
-            onChange={(e) => handleInputChange('district', e.target.value)}
-            placeholder="e.g. Accra Metro, Kumasi Metro" 
-          />
-        </div>
         {/* Branch posted to (DVLA branches select) */}
         <div className="relative branch-dropdown">
           <Label htmlFor="branch" className="block text-sm font-medium text-gray-900 mb-2">DVLA branch posted to</Label>
@@ -443,27 +463,41 @@ export function Step4Complete({
             <div>
               <Label className="block text-sm font-medium text-gray-900 mb-2">Posting Region</Label>
               <Select
-                value={formData.postingRegion}
-                onValueChange={(val) => handleInputChange('postingRegion', val)}
+                value={formData.postingRegion || ''}
+                onValueChange={(val) => {
+                  handleInputChange('postingRegion', val);
+                  const availableDistricts = getDistrictsForRegion(val);
+                  if (formData.postingDistrict && !availableDistricts.includes(formData.postingDistrict)) {
+                    handleInputChange('postingDistrict', '');
+                  }
+                }}
               >
                 <SelectTrigger className="w-full h-10 border-gray-200 rounded-md">
-                  <SelectValue placeholder="Select Region" />
+                  <SelectValue placeholder="Select Posting Region" />
                 </SelectTrigger>
-                <SelectContent position="popper">
-                  {ghanaianRegions.map(region => (
+                <SelectContent position="popper" className="max-h-60 overflow-y-auto">
+                  {GHANA_REGIONS.map(region => (
                     <SelectItem key={region} value={region}>{region}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="block text-sm font-medium text-gray-900 mb-2">Posting District</Label>
-              <Input
-                type="text"
-                name="postingDistrict"
+              <Label className="block text-sm font-medium text-gray-900 mb-2">Posting District / City / Town</Label>
+              <Select
+                disabled={!formData.postingRegion}
                 value={formData.postingDistrict || ''}
-                onChange={e => handleInputChange('postingDistrict', e.target.value)}
-              />
+                onValueChange={(val) => handleInputChange('postingDistrict', val)}
+              >
+                <SelectTrigger className="w-full h-10 border-gray-200 rounded-md">
+                  <SelectValue placeholder={formData.postingRegion ? `Select district in ${formData.postingRegion}` : "Select posting region first"} />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-60 overflow-y-auto">
+                  {getDistrictsForRegion(formData.postingRegion).map(dist => (
+                    <SelectItem key={dist} value={dist}>{dist}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="block text-sm font-medium text-gray-900 mb-2">Service Period Start <span className="text-gray-400 font-normal text-xs">(DD/MM/YYYY)</span></Label>
@@ -503,7 +537,7 @@ export function Step4Complete({
           {/* Passport upload */}
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <Label className="block text-sm font-semibold text-gray-900">Passport Picture</Label>
+              <Label className="block text-sm font-semibold text-gray-900">Passport Picture <span className="text-red-500">*</span></Label>
               {passportFileName && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
                   ✓ Attached
@@ -525,7 +559,7 @@ export function Step4Complete({
           {/* Ghana Card / ID Card upload */}
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <Label className="block text-sm font-semibold text-gray-900">Ghana Card / ID Card Copy</Label>
+              <Label className="block text-sm font-semibold text-gray-900">Ghana Card / ID Card Copy <span className="text-red-500">*</span></Label>
               {idCardFileName && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
                   ✓ Attached
@@ -547,7 +581,7 @@ export function Step4Complete({
           {/* Appointment Letter upload */}
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <Label className="block text-sm font-semibold text-gray-900">NSS Appointment Letter</Label>
+              <Label className="block text-sm font-semibold text-gray-900">NSS Appointment Letter <span className="text-red-500">*</span></Label>
               {appointmentFileName && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
                   ✓ Attached
@@ -569,7 +603,7 @@ export function Step4Complete({
           {/* CV upload */}
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) / Certificates</Label>
+              <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) / Certificates <span className="text-red-500">*</span></Label>
               {cvFileName && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
                   ✓ Attached
