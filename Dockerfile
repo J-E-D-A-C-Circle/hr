@@ -35,6 +35,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/database ./database
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/dvla_nss_portal.sql ./dvla_nss_portal.sql
 
 # Create upload directory with correct permissions
 RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads /app
