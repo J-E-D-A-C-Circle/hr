@@ -25,7 +25,22 @@ export async function GET() {
     const upcomingExpirations: any[] = [];
     const departmentCounts: Record<string, number> = {};
 
+    let pendingApprovalCount = 0;
+    const pendingApprovalList: any[] = [];
+
     staffList.forEach((staff: any) => {
+      if (staff.approval_status === "PENDING_APPROVAL") {
+        pendingApprovalCount++;
+        pendingApprovalList.push({
+          id: staff.id,
+          staff_code: staff.staff_code || `EMP-${staff.id}`,
+          full_name: staff.full_name,
+          department: staff.department,
+          created_by: staff.created_by || "HR Officer",
+          created_at: staff.created_at,
+        });
+      }
+
       const currentContract = staff.contracts.find((c: any) => c.is_current) || staff.contracts[0] || null;
       const status = computeContractStatus(currentContract);
 
@@ -60,6 +75,8 @@ export async function GET() {
       data: {
         totalStaff: staffList.length,
         statusCounts,
+        pendingApprovalCount,
+        pendingApprovalList,
         upcomingExpirations,
         departmentCounts,
       },

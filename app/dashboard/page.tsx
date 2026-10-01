@@ -5,6 +5,8 @@ import Link from "next/link";
 import SidebarLayout from "@/components/SidebarLayout";
 import StatusBadge from "@/components/StatusBadge";
 import RenewModal from "@/components/RenewModal";
+import MySubmissionsModal from "@/components/MySubmissionsModal";
+import ViewStaffDetailModal from "@/components/ViewStaffDetailModal";
 import {
   Users,
   AlertTriangle,
@@ -18,6 +20,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Building,
+  CheckCircle2,
+  Eye,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 
@@ -27,10 +31,18 @@ export default function DashboardPage() {
     statusCounts: Record<string, number>;
     upcomingExpirations: any[];
     departmentCounts: Record<string, number>;
+    pendingApprovalCount?: number;
+    pendingApprovalList?: any[];
   } | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Modals state & user session
+  const [userRole, setUserRole] = useState<string>("HR Officer");
+  const [userName, setUserName] = useState<string>("HR Officer");
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
+  const [viewStaffTarget, setViewStaffTarget] = useState<any | null>(null);
 
   // Renew modal target
   const [renewTarget, setRenewTarget] = useState<any | null>(null);
@@ -54,6 +66,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboard();
+    fetch("/api/auth/check")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.user) {
+          setUserName(d.user.name || d.user.username || "HR Officer");
+          setUserRole(d.user.role || "HR Officer");
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const counts = data?.statusCounts || {
@@ -78,6 +99,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowSubmissionsModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 hover:bg-amber-100 text-xs font-bold border border-amber-300 dark:border-amber-800 transition shadow-xs"
+            >
+              <Clock className="h-4 w-4 text-amber-600 animate-pulse" />
+              <span>Track Submissions</span>
+            </button>
             <Link
               href="/staff?add=true"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition"
@@ -115,8 +143,57 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Pending HR Approval Alert Banner */}
+        {data && (data.pendingApprovalCount || 0) > 0 && (
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+                <Clock className="h-5 w-5 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-100">
+                  {data.pendingApprovalCount || 0} Staff Submission{(data.pendingApprovalCount || 0) > 1 ? "s" : ""} Pending HR Approval
+                </h4>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                  Newly created staff records are held in pending queue until approved by an HR Manager or Administrator.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/staff"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition shrink-0"
+            >
+              <span>Review Submissions Queue</span>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+        )}
+
         {/* Summary Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Pending Approval Card */}
+          <Link
+            href="/staff"
+            className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-amber-300/80 dark:border-amber-900/80 shadow-xs relative overflow-hidden group hover:border-amber-500 transition"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                Pending Approvals
+              </span>
+              <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-300 dark:border-amber-800">
+                <Clock className="h-5 w-5 animate-pulse" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+                {loading ? "..." : (data?.pendingApprovalCount || 0)}
+              </span>
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                Submissions Awaiting HR Review
+              </span>
+            </div>
+          </Link>
+
           {/* Active Card */}
           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden group hover:border-emerald-300 dark:hover:border-emerald-800 transition">
             <div className="flex items-center justify-between">
@@ -348,12 +425,35 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Renew Contract Modal */}
+      {/* Modals */}
       <RenewModal
         isOpen={!!renewTarget}
         onClose={() => setRenewTarget(null)}
         staff={renewTarget}
         onSuccess={fetchDashboard}
+      />
+
+      <MySubmissionsModal
+        isOpen={showSubmissionsModal}
+        onClose={() => setShowSubmissionsModal(false)}
+        currentUserName={userName}
+        onViewStaffDetail={(item) => setViewStaffTarget(item)}
+      />
+
+      <ViewStaffDetailModal
+        isOpen={!!viewStaffTarget}
+        onClose={() => setViewStaffTarget(null)}
+        staff={viewStaffTarget}
+        currentUserRole={userRole}
+        currentUserName={userName}
+        onApprove={() => {
+          fetchDashboard();
+          setViewStaffTarget(null);
+        }}
+        onReject={() => {
+          fetchDashboard();
+          setViewStaffTarget(null);
+        }}
       />
     </SidebarLayout>
   );

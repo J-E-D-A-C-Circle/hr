@@ -20,6 +20,13 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -509,10 +516,9 @@ export default function AdminUsersPage() {
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-700">Target System / Portal</label>
-                <select
+                <Select
                   value={createForm.system}
-                  onChange={(e) => {
-                    const sys = e.target.value;
+                  onValueChange={(sys) => {
                     let defaultRole = "HR Officer";
                     if (sys === "TEMPSTAFF") defaultRole = "HR Officer";
                     if (sys === "RETIREMENT") defaultRole = "HR_OFFICER";
@@ -520,13 +526,17 @@ export default function AdminUsersPage() {
                     if (sys === "HR_LETTERS") defaultRole = "HR_OFFICER";
                     setCreateForm({ ...createForm, system: sys, role: defaultRole });
                   }}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-cyan-400"
                 >
-                  <option value="TEMPSTAFF">TempStaff System (/dashboard)</option>
-                  <option value="RETIREMENT">Retirement Management System (/retirement)</option>
-                  <option value="HR_LETTERS">HR Letters &amp; Documents Portal (/hrletters)</option>
-                  <option value="SUPER_ADMIN">Super Admin Command Center (/admin)</option>
-                </select>
+                  <SelectTrigger className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900">
+                    <SelectValue placeholder="Select Portal System..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TEMPSTAFF">TempStaff System (/dashboard)</SelectItem>
+                    <SelectItem value="RETIREMENT">Retirement Management System (/retirement)</SelectItem>
+                    <SelectItem value="HR_LETTERS">HR Letters &amp; Documents Portal (/hrletters)</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin Command Center (/admin)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -568,36 +578,40 @@ export default function AdminUsersPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-gray-700">Assigned Role</label>
-                  <select
+                  <Select
                     value={createForm.role}
-                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-cyan-400"
+                    onValueChange={(val) => setCreateForm({ ...createForm, role: val })}
                   >
-                    {createForm.system === "TEMPSTAFF" && (
-                      <>
-                        <option value="HR Officer">HR Officer (Creates staff, requests renewals)</option>
-                        <option value="Approval Officer">Approval Officer (Approves staff entries)</option>
-                        <option value="Validation Officer">Validation Officer (Validates staff &amp; exports)</option>
-                        <option value="HR Manager">HR Manager (Full access &amp; per-staff audit logs)</option>
-                        <option value="Superadmin / HR Director">Superadmin / HR Director (Full Cross-Platform)</option>
-                      </>
-                    )}
-                    {createForm.system === "RETIREMENT" && (
-                      <>
-                        <option value="HR_OFFICER">HR Officer</option>
-                        <option value="HR_ADMINISTRATOR">HR Administrator</option>
-                      </>
-                    )}
-                    {createForm.system === "HR_LETTERS" && (
-                      <>
-                        <option value="HR_OFFICER">HR Officer — Draft &amp; Submit letters</option>
-                        <option value="HR_DIRECTOR">HR Director — Approve, Sign &amp; Issue letters</option>
-                      </>
-                    )}
-                    {createForm.system === "SUPER_ADMIN" && (
-                      <option value="Super Administrator">Super Administrator</option>
-                    )}
-                  </select>
+                    <SelectTrigger className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900">
+                      <SelectValue placeholder="Select Assigned Role..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {createForm.system === "TEMPSTAFF" && (
+                        <>
+                          <SelectItem value="HR Officer">HR Officer (Creates staff, requests renewals)</SelectItem>
+                          <SelectItem value="Approval Officer">Approval Officer (Approves staff entries)</SelectItem>
+                          <SelectItem value="Validation Officer">Validation Officer (Validates staff &amp; exports)</SelectItem>
+                          <SelectItem value="HR Manager">HR Manager (Full access &amp; per-staff audit logs)</SelectItem>
+                          <SelectItem value="Superadmin / HR Director">Superadmin / HR Director (Full Cross-Platform)</SelectItem>
+                        </>
+                      )}
+                      {createForm.system === "RETIREMENT" && (
+                        <>
+                          <SelectItem value="HR_OFFICER">HR Officer</SelectItem>
+                          <SelectItem value="HR_ADMINISTRATOR">HR Administrator</SelectItem>
+                        </>
+                      )}
+                      {createForm.system === "HR_LETTERS" && (
+                        <>
+                          <SelectItem value="HR_OFFICER">HR Officer — Draft &amp; Submit letters</SelectItem>
+                          <SelectItem value="HR_DIRECTOR">HR Director — Approve, Sign &amp; Issue letters</SelectItem>
+                        </>
+                      )}
+                      {createForm.system === "SUPER_ADMIN" && (
+                        <SelectItem value="Super Administrator">Super Administrator</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -704,36 +718,40 @@ export default function AdminUsersPage() {
 
                 <div className="space-y-1.5">
                   <label className="font-semibold text-gray-700">Assigned Role</label>
-                  <select
+                  <Select
                     value={editForm.role}
-                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-cyan-400"
+                    onValueChange={(val) => setEditForm({ ...editForm, role: val })}
                   >
-                    {editForm.system === "TEMPSTAFF" && (
-                      <>
-                        <option value="HR Officer">HR Officer</option>
-                        <option value="Approval Officer">Approval Officer</option>
-                        <option value="Validation Officer">Validation Officer</option>
-                        <option value="HR Manager">HR Manager</option>
-                        <option value="Superadmin / HR Director">Superadmin / HR Director</option>
-                      </>
-                    )}
-                    {editForm.system === "RETIREMENT" && (
-                      <>
-                        <option value="HR_OFFICER">HR Officer</option>
-                        <option value="HR_ADMINISTRATOR">HR Administrator</option>
-                      </>
-                    )}
-                    {editForm.system === "HR_LETTERS" && (
-                      <>
-                        <option value="HR_OFFICER">HR Officer</option>
-                        <option value="HR_DIRECTOR">HR Director</option>
-                      </>
-                    )}
-                    {editForm.system === "SUPER_ADMIN" && (
-                      <option value="Super Administrator">Super Administrator</option>
-                    )}
-                  </select>
+                    <SelectTrigger className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900">
+                      <SelectValue placeholder="Select Assigned Role..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {editForm.system === "TEMPSTAFF" && (
+                        <>
+                          <SelectItem value="HR Officer">HR Officer</SelectItem>
+                          <SelectItem value="Approval Officer">Approval Officer</SelectItem>
+                          <SelectItem value="Validation Officer">Validation Officer</SelectItem>
+                          <SelectItem value="HR Manager">HR Manager</SelectItem>
+                          <SelectItem value="Superadmin / HR Director">Superadmin / HR Director</SelectItem>
+                        </>
+                      )}
+                      {editForm.system === "RETIREMENT" && (
+                        <>
+                          <SelectItem value="HR_OFFICER">HR Officer</SelectItem>
+                          <SelectItem value="HR_ADMINISTRATOR">HR Administrator</SelectItem>
+                        </>
+                      )}
+                      {editForm.system === "HR_LETTERS" && (
+                        <>
+                          <SelectItem value="HR_OFFICER">HR Officer</SelectItem>
+                          <SelectItem value="HR_DIRECTOR">HR Director</SelectItem>
+                        </>
+                      )}
+                      {editForm.system === "SUPER_ADMIN" && (
+                        <SelectItem value="Super Administrator">Super Administrator</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

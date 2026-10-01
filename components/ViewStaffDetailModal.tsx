@@ -85,7 +85,8 @@ export default function ViewStaffDetailModal({
     roleUpper.includes("DIRECTOR") ||
     roleUpper.includes("ADMIN") ||
     roleUpper.includes("SUPER") ||
-    roleUpper.includes("LEAD");
+    roleUpper.includes("LEAD") ||
+    roleUpper.includes("APPROVAL");
 
   const canSeeAuditTab =
     roleUpper.includes("MANAGER") ||

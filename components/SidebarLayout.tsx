@@ -35,7 +35,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [stats, setStats] = useState<{ active: number; expiring: number } | null>(null);
+  const [stats, setStats] = useState<{ active: number; expiring: number; pending?: number } | null>(null);
 
   const [user, setUser] = useState<{
     name: string;
@@ -116,10 +116,11 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     fetch("/api/dashboard")
       .then((res) => res.json())
       .then((json) => {
-        if (json.success && json.data?.statusCounts) {
+        if (json.success && json.data) {
           setStats({
-            active: json.data.statusCounts["Active"] || 0,
-            expiring: json.data.statusCounts["Expiring Soon"] || 0,
+            active: json.data.statusCounts?.["Active"] || 0,
+            expiring: json.data.statusCounts?.["Expiring Soon"] || 0,
+            pending: json.data.pendingApprovalCount || 0,
           });
         }
       })
@@ -133,62 +134,86 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     .toUpperCase()
     .slice(0, 2);
 
+  const roleLower = (user.role || "").trim().toLowerCase();
+  const isHrOfficer = roleLower === "hr officer" || roleLower === "hr_officer";
+  const isApprovalOfficer = roleLower.includes("approval");
+  const isValidationOfficer = roleLower.includes("validation");
+
   const rawNavItems = [
     {
       label: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
       badge: null,
-      restricted: false,
     },
     {
       label: "Staff Directory",
       href: "/staff",
       icon: Users,
-      badge: stats?.active !== undefined ? `${stats.active}` : null,
-      badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
-      restricted: false,
+      badge: isApprovalOfficer && stats?.pending && stats.pending > 0
+        ? `${stats.pending} Pending`
+        : (stats?.active !== undefined ? `${stats.active}` : null),
+      badgeColor: isApprovalOfficer && stats?.pending && stats.pending > 0
+        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 border-amber-300 dark:border-amber-800 font-extrabold"
+        : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
     },
     {
       label: "Deductions",
       href: "/deductions",
       icon: Calculator,
       badge: null,
-      restricted: true,
     },
     {
       label: "History & Analytics",
       href: "/history",
       icon: TrendingUp,
       badge: null,
-      restricted: true,
     },
     {
       label: "Audit Logs",
       href: "/audit-logs",
       icon: ShieldCheck,
       badge: null,
-      restricted: true,
     },
     {
       label: "Staff Payslips",
       href: "/payslip",
       icon: Receipt,
       badge: null,
-      restricted: true,
     },
     {
       label: "Monthly Export",
       href: "/export",
       icon: Download,
       badge: null,
-      restricted: false,
     },
   ];
 
-  const navItems = user.role === "HR Officer"
-    ? rawNavItems.filter((item) => !item.restricted)
-    : rawNavItems;
+  const navItems = rawNavItems.filter((item) => {
+    if (isHrOfficer) {
+      // HR Officer: Dashboard, Staff Directory, Monthly Export
+      return item.href === "/dashboard" || item.href === "/staff" || item.href === "/export";
+    }
+    if (isApprovalOfficer) {
+      // Approval Officer: Dashboard, Staff Directory (with Pending badge), Audit Logs, Monthly Export
+      return (
+        item.href === "/dashboard" ||
+        item.href === "/staff" ||
+        item.href === "/audit-logs" ||
+        item.href === "/export"
+      );
+    }
+    if (isValidationOfficer) {
+      // Validation Officer: Dashboard, Staff Directory (for monthly validation), Monthly Export
+      return (
+        item.href === "/dashboard" ||
+        item.href === "/staff" ||
+        item.href === "/export"
+      );
+    }
+    // HR Manager / HR Director / Superadmin / Admin: Full access to all 7 tools
+    return true;
+  });
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });

@@ -56,7 +56,8 @@ export async function verifyAdminSession(): Promise<boolean> {
 
 export function isManagerOrAdminSession(session: TempStaffUserSession | null): boolean {
   if (!session) return false;
-  return session.role !== "HR Officer";
+  const normalized = (session.role || "").trim().toLowerCase();
+  return normalized !== "hr officer" && normalized !== "hr_officer";
 }
 
 export async function createAdminSession(userData?: Partial<TempStaffUserSession>): Promise<void> {

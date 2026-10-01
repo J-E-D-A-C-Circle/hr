@@ -32,6 +32,8 @@ import {
   Clock,
   Hash,
   Trash2,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { formatDateReadable, formatDateForInput, formatDateDDMMYYYY } from "@/lib/status";
 import DateInput from "@/components/DateInput";
@@ -107,11 +109,68 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  // User session state
+  const [currentUserRole, setCurrentUserRole] = useState<string>("HR Manager");
+  const [currentUserName, setCurrentUserName] = useState<string>("Admin");
+  const [rejecting, setRejecting] = useState<boolean>(false);
+  const [rejectReason, setRejectReason] = useState<string>("");
+
   useEffect(() => {
     if (id) {
       fetchStaffDetails(id);
     }
+    fetch("/api/auth/check")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.user) {
+          setCurrentUserName(d.user.name || d.user.username || "Admin");
+          setCurrentUserRole(d.user.role || "HR Manager");
+        }
+      })
+      .catch(() => {});
   }, [id]);
+
+  const handleApproveStaff = async () => {
+    try {
+      const res = await fetch(`/api/staff/${id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_name: currentUserName, user_role: currentUserRole }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to approve staff member.");
+      setToast({ type: "success", message: json.message || "Staff member approved successfully." });
+      fetchStaffDetails(id as string);
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Approval failed." });
+    }
+  };
+
+  const handleRejectStaff = async () => {
+    if (!rejectReason.trim()) {
+      setToast({ type: "error", message: "Please enter a reason for rejecting this staff record." });
+      return;
+    }
+    try {
+      const res = await fetch(`/api/staff/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_name: currentUserName,
+          user_role: currentUserRole,
+          rejection_reason: rejectReason,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to reject staff member.");
+      setToast({ type: "warning", message: json.message || "Staff submission rejected." });
+      setRejecting(false);
+      setRejectReason("");
+      fetchStaffDetails(id as string);
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Rejection failed." });
+    }
+  };
 
   const handleSaveProfile = async () => {
     setSaveLoading(true);
@@ -248,6 +307,77 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
         </div>
+
+        {/* Pending Approval Officer Review Banner */}
+        {staff.approval_status === "PENDING_APPROVAL" && (
+          <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 shadow-md shadow-amber-500/5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-200 shrink-0">
+                  <Clock className="h-5 w-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-amber-900 dark:text-amber-100">
+                    Pending Officer Approval Review Required
+                  </h3>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
+                    Submitted by <strong>{staff.created_by || "HR Officer"}</strong> on {formatDateReadable(staff.created_at)}. Review employee information below before approving into official directory.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {!rejecting ? (
+                  <>
+                    <button
+                      onClick={() => setRejecting(true)}
+                      className="px-4 py-2 rounded-xl text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/80 hover:bg-rose-100 font-bold text-xs transition"
+                    >
+                      Reject Record
+                    </button>
+                    <button
+                      onClick={handleApproveStaff}
+                      className="px-5 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Approve & Enable Record</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setRejecting(false)}
+                    className="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-800 text-xs font-semibold"
+                  >
+                    Cancel Rejection
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {rejecting && (
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 space-y-2 mt-2">
+                <label className="block text-xs font-bold text-rose-800 dark:text-rose-300">
+                  Specify Reason for Rejection:
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Missing valid SSNIT number or station designation requires correction"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-rose-300 dark:border-rose-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white font-medium"
+                />
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    onClick={handleRejectStaff}
+                    className="px-4 py-1.5 rounded-lg text-white bg-rose-600 hover:bg-rose-700 text-xs font-bold shadow-xs"
+                  >
+                    Confirm Rejection
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Top Profile Overview Banner */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">

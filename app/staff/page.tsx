@@ -11,6 +11,7 @@ import ReinstateModal from "@/components/ReinstateModal";
 import ValidateStaffModal from "@/components/ValidateStaffModal";
 import MergeDuplicateModal from "@/components/MergeDuplicateModal";
 import ViewStaffDetailModal from "@/components/ViewStaffDetailModal";
+import MySubmissionsModal from "@/components/MySubmissionsModal";
 import {
   Select,
   SelectTrigger,
@@ -75,6 +76,7 @@ export default function StaffListPage() {
   const [mergeTarget, setMergeTarget] = useState<any | null>(null);
   const [viewStaffTarget, setViewStaffTarget] = useState<any | null>(null);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
 
   // Bulk Renew selection state
   const [selectedStaffIds, setSelectedStaffIds] = useState<number[]>([]);
@@ -421,6 +423,13 @@ export default function StaffListPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowSubmissionsModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 hover:bg-amber-100 text-xs font-bold border border-amber-300 dark:border-amber-800 transition self-start sm:self-auto shadow-xs"
+            >
+              <Clock className="h-4 w-4 text-amber-600 animate-pulse" />
+              <span>Track My Submissions</span>
+            </button>
             <a
               href="/api/export?filter=expiring&export_type=expiring"
               target="_blank"
@@ -442,7 +451,7 @@ export default function StaffListPage() {
 
         {/* Filter & Search Toolbar */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-          {/* Tab Switcher: Active Staff vs Duplicate Staff vs Archived Staff */}
+          {/* Tab Switcher: Active Staff vs Pending Approvals vs Duplicate Staff vs Archived Staff */}
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap">
             <button
               onClick={() => setStatusFilter("all")}
@@ -454,6 +463,18 @@ export default function StaffListPage() {
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span>Active Staff Directory</span>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter("pending")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                statusFilter === "pending"
+                  ? "bg-amber-600 text-white shadow-xs"
+                  : "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800"
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+              <span>Pending Officer Approvals ({staffList.filter((s) => s.approval_status === "PENDING_APPROVAL").length})</span>
             </button>
 
             <button
@@ -680,6 +701,18 @@ export default function StaffListPage() {
                             </Link>
                             <div className="font-mono text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
                               <span className="font-semibold text-slate-500">{staff.staff_code || `EMP-${staff.id}`}</span>
+                              {staff.approval_status === "PENDING_APPROVAL" && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-1">
+                                  <Clock className="h-3 w-3 animate-pulse text-amber-600" />
+                                  Pending HR Approval
+                                </span>
+                              )}
+                              {staff.approval_status === "REJECTED" && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1">
+                                  <XCircle className="h-3 w-3 text-rose-600" />
+                                  Rejected Submission
+                                </span>
+                              )}
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                                   staff.ssnit_no
@@ -775,6 +808,24 @@ export default function StaffListPage() {
                         {/* Actions */}
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Approve / Reject Actions for Pending Staff */}
+                            {staff.approval_status === "PENDING_APPROVAL" && (
+                              currentUserRole !== "HR Officer" ? (
+                                <button
+                                  onClick={() => handleApproveStaff(staff.id)}
+                                  title="Approve Temporary Staff Member"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-xs transition"
+                                >
+                                  <ShieldCheckIcon className="h-3.5 w-3.5" />
+                                  <span>Approve</span>
+                                </button>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                  Awaiting Approval
+                                </span>
+                              )
+                            )}
+
                             {/* Merge Duplicate Button */}
                             {duplicateStaffIds.has(staff.id) && (
                               <button
@@ -973,6 +1024,13 @@ export default function StaffListPage() {
         allStaff={staffList}
         onClose={() => setMergeTarget(null)}
         onSuccess={() => fetchStaff()}
+      />
+
+      <MySubmissionsModal
+        isOpen={showSubmissionsModal}
+        onClose={() => setShowSubmissionsModal(false)}
+        currentUserName={currentUserName}
+        onViewStaffDetail={(item) => setViewStaffTarget(item)}
       />
 
       <ConfirmModal
