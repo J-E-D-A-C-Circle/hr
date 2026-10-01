@@ -143,32 +143,55 @@ export default function AppointmentLetterModal({
         <style>
           @media print {
             @page { margin: 0; size: A4 portrait; }
-            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 210mm !important;
+              min-height: 297mm !important;
+              background-color: #FDF3C0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .letter-container {
+              position: relative !important;
+              width: 210mm !important;
+              min-height: 297mm !important;
+              box-sizing: border-box !important;
+              padding: 15mm 20mm !important;
+              margin: 0 !important;
+              border: none !important;
+              border-radius: 0 !important;
+              box-shadow: none !important;
+              background-color: #FDF3C0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
           }
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Georgia', 'Times New Roman', serif; line-height: 1.5; color: #111827; background: #FDF3C0; padding: 40px; }
-          .letter-container { position: relative; max-width: 800px; margin: 0 auto; background-color: #FDF3C0; padding: 40px; border: 1px solid #fcd34d; border-radius: 8px; overflow: hidden; }
+          * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Times New Roman', Times, serif !important; }
+          body { font-family: 'Times New Roman', Times, serif !important; font-size: 12pt !important; line-height: 1.5; color: #111827; background: #FDF3C0; padding: 20mm; }
+          .letter-container { position: relative; max-width: 800px; margin: 0 auto; background-color: #FDF3C0; padding: 30px 40px; border: 1px solid #fcd34d; border-radius: 8px; overflow: hidden; }
           .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 380px; height: 380px; opacity: 0.07; pointer-events: none; z-index: 1; }
           .content-z { position: relative; z-index: 10; }
-          .header-title { text-align: center; font-size: 20px; font-weight: 900; color: #008053; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
-          .header-grid { display: flex; justify-content: space-between; align-items: center; font-family: Arial, sans-serif; font-size: 11px; color: #1f2937; margin-top: 10px; }
-          .header-left { text-align: left; }
+          .header-title { text-align: center; font-size: 15pt !important; font-weight: 900; color: #008053; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; font-family: 'Times New Roman', Times, serif !important; }
+          .header-grid { display: flex; justify-content: space-between; align-items: center; font-size: 12pt !important; color: #1f2937; margin-top: 10px; font-family: 'Times New Roman', Times, serif !important; }
+          .header-left { text-align: left; font-size: 12pt !important; }
           .header-center { text-align: center; }
-          .header-right { text-align: right; }
+          .header-right { text-align: right; font-size: 12pt !important; }
           .header-logo { width: 70px; height: 70px; object-fit: contain; }
           .divider { border-top: 2px solid #008053; margin: 12px 0 24px 0; }
-          .ref-row { display: flex; justify-content: space-between; font-family: Arial, sans-serif; font-size: 13px; margin-bottom: 24px; }
-          .addressee { font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; }
-          .salutation { font-size: 13px; margin-bottom: 16px; }
-          .subject-title { font-size: 14px; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 2px; display: inline-block; margin-bottom: 20px; }
-          .body-text { font-size: 13px; line-height: 1.6; text-align: justify; margin-bottom: 28px; white-space: pre-line; }
+          .ref-row { display: flex; justify-content: space-between; font-size: 12pt !important; margin-bottom: 24px; font-family: 'Times New Roman', Times, serif !important; }
+          .addressee { font-size: 12pt !important; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif !important; }
+          .salutation { font-size: 12pt !important; margin-bottom: 16px; font-family: 'Times New Roman', Times, serif !important; }
+          .subject-title { font-size: 12pt !important; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 2px; display: inline-block; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif !important; }
+          .body-text { font-size: 12pt !important; line-height: 1.6; text-align: justify; margin-bottom: 28px; white-space: pre-line; font-family: 'Times New Roman', Times, serif !important; }
           .footer-block { margin-top: 30px; padding-top: 16px; border-top: 1px solid rgba(120, 53, 15, 0.2); }
-          .signatory-block { font-size: 12px; }
+          .signatory-block { font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
           .signature-svg { width: 140px; height: 48px; margin: 8px 0; }
-          .signatory-name { font-weight: 900; text-transform: uppercase; font-size: 13px; }
-          .signatory-title { font-weight: bold; color: #1f2937; }
-          .cc-box { margin-top: 16px; font-size: 11px; }
-          .cc-box ul { list-style: none; padding-left: 0; margin-top: 4px; }
+          .signatory-name { font-weight: 900; text-transform: uppercase; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .signatory-title { font-weight: bold; color: #1f2937; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .cc-box { margin-top: 16px; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .cc-box ul { list-style: none; padding-left: 0; margin-top: 4px; font-size: 12pt !important; }
+          .cc-box li { font-size: 12pt !important; }
         </style>
       </head>
       <body>
@@ -283,10 +306,19 @@ export default function AppointmentLetterModal({
       };
 
       const token = localStorage.getItem('token');
+      const targetStatus = appointmentType === 'REPOSTING' ? 'rejected' : 'approved';
+      const targetStation = application.posting_station || application.station?.name || application.posting_district || 'DVLA Head Office - Cantonments';
+      const targetDept = application.posting_department || application.department?.name || 'Operations';
+      const targetStart = application.service_period_start || application.servicePeriodStart || '2026-09-01';
+
       await axios.post(
         '/api/applications/review',
         {
           id: application.id,
+          status: targetStatus,
+          posting_station: targetStation,
+          posting_department: targetDept,
+          service_period_start: targetStart,
           appointmentLetterData: letterPayload,
         },
         {

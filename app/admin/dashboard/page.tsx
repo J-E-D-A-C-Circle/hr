@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import AppointmentLetterModal from '@/components/AppointmentLetterModal';
+import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 import { getFileViewUrl } from '@/lib/file-upload';
 
@@ -419,18 +420,17 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex items-center gap-2">
-                {selectedApplication.status === 'approved' && (
-                  <button
-                    onClick={() => {
-                      setLetterApplication(selectedApplication);
-                      setIsLetterGeneratorOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d5c2e] hover:bg-emerald-800 text-white text-xs font-bold shadow-xs"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    Letter
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    setLetterApplication(selectedApplication);
+                    setIsLetterGeneratorOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 text-xs font-black shadow-xs cursor-pointer"
+                  title="Assign applicant and configure official appointment letter"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-950" />
+                  <span>Assign & Issue Letter</span>
+                </button>
                 <button
                   onClick={() => setModalOpen(false)}
                   className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors"
@@ -640,12 +640,30 @@ export default function AdminDashboard() {
               )}
 
               {activeModalTab === 'review' && (
-                <div className="space-y-4">
-                  <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                    <FileCheck className="w-4 h-4 text-[#0d5c2e]" /> Admin Approval Form
-                  </h4>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                      <FileCheck className="w-4 h-4 text-[#0d5c2e]" /> Admin Approval & Official Letter Decision
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLetterApplication({
+                          ...selectedApplication,
+                          posting_station: reviewData.posting_station,
+                          posting_department: reviewData.posting_department,
+                          service_period_start: reviewData.service_period_start,
+                        });
+                        setIsLetterGeneratorOpen(true);
+                      }}
+                      className="text-xs font-bold text-[#0d5c2e] hover:underline flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-amber-500" />
+                      Advanced Letter Editor
+                    </button>
+                  </div>
 
-                  <div className="space-y-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
                     <div>
                       <label className="block text-slate-700 font-bold mb-1">Posting Station *</label>
                       <ShadcnSelect
@@ -693,12 +711,36 @@ export default function AdminDashboard() {
 
                     <div>
                       <label className="block text-slate-700 font-bold mb-1">Review Notes / Remarks</label>
-                      <textarea
-                        rows={3}
+                      <input
+                        type="text"
                         value={reviewData.review_notes}
                         onChange={(e) => setReviewData({ ...reviewData, review_notes: e.target.value })}
                         placeholder="Add review remarks or internal notes..."
                         className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-[#0d5c2e]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Live Synced Official Appointment Letter Document View */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                      <span className="uppercase tracking-wider">Synced Official Appointment Letter Preview (Times New Roman 12pt)</span>
+                      <span className="font-mono text-[#0d5c2e] font-extrabold bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                        Live Synced View
+                      </span>
+                    </div>
+                    <div className="bg-amber-100/50 p-4 rounded-2xl border border-amber-300/80 shadow-inner">
+                      <OfficialAppointmentLetter
+                        referenceNumber={selectedApplication.nss_number || String(selectedApplication.id || '0000')}
+                        applicantName={`${selectedApplication.first_name} ${selectedApplication.middle_name ? selectedApplication.middle_name + ' ' : ''}${selectedApplication.last_name}`}
+                        applicantAddress={selectedApplication.residential_address || 'ACCRA - GHANA'}
+                        positionTitle={selectedApplication.course_program || 'NSS Personnel'}
+                        departmentName={reviewData.posting_department || 'Operations'}
+                        postingStationName={reviewData.posting_station || 'Head Office'}
+                        appointmentType={selectedApplication.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'}
+                        effectiveDate={reviewData.service_period_start ? new Date(reviewData.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Monday, September 1, 2026'}
+                        issueDate={new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                        customRefNumber={`DVLA/HR/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear()).slice(-2)}/PLACMT/${(selectedApplication.nss_number || String(selectedApplication.id || '0127')).slice(-4)}`}
                       />
                     </div>
                   </div>
@@ -752,11 +794,26 @@ export default function AdminDashboard() {
                       <X className="w-4 h-4" /> Reject
                     </button>
                     <button
+                      onClick={() => {
+                        setLetterApplication({
+                          ...selectedApplication,
+                          posting_station: reviewData.posting_station,
+                          posting_department: reviewData.posting_department,
+                          service_period_start: reviewData.service_period_start,
+                        });
+                        setIsLetterGeneratorOpen(true);
+                      }}
+                      disabled={reviewing}
+                      className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4 text-emerald-950" /> Assign & Issue Letter
+                    </button>
+                    <button
                       onClick={() => handleSaveReview('approved')}
                       disabled={reviewing}
-                      className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0d5c2e] hover:bg-emerald-800 text-white text-xs font-extrabold shadow-xs transition-all active:scale-95 disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#0d5c2e] hover:bg-emerald-800 text-white text-xs font-extrabold shadow-xs transition-all active:scale-95 disabled:opacity-50"
                     >
-                      <Check className="w-4 h-4" /> Approve & Post
+                      <Check className="w-4 h-4" /> Quick Approve
                     </button>
                   </div>
                 )}

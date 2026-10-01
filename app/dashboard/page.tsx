@@ -240,9 +240,26 @@ export default function Dashboard() {
                 margin: 0;
                 size: A4 portrait;
               }
-              body {
-                margin: 0;
-                padding: 0;
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                background-color: #FDF3C0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .letter-container {
+                position: relative !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                box-sizing: border-box !important;
+                padding: 15mm 20mm !important;
+                margin: 0 !important;
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                background-color: #FDF3C0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
               }
@@ -251,20 +268,22 @@ export default function Dashboard() {
               margin: 0;
               padding: 0;
               box-sizing: border-box;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             body { 
-              font-family: 'Georgia', 'Times New Roman', serif;
+              font-family: 'Times New Roman', Times, serif !important;
+              font-size: 12pt !important;
               line-height: 1.5;
               color: #111827;
               background: #FDF3C0;
-              padding: 40px;
+              padding: 20mm;
             }
             .letter-container {
               position: relative;
               max-width: 800px;
               margin: 0 auto;
               background-color: #FDF3C0;
-              padding: 40px;
+              padding: 30px 40px;
               border: 1px solid #fcd34d;
               border-radius: 8px;
               overflow: hidden;
@@ -286,25 +305,26 @@ export default function Dashboard() {
             }
             .header-title {
               text-align: center;
-              font-size: 20px;
+              font-size: 15pt !important;
               font-weight: 900;
               color: #008053;
               letter-spacing: 0.5px;
               text-transform: uppercase;
               margin-bottom: 8px;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .header-grid {
               display: flex;
               justify-content: space-between;
               align-items: center;
-              font-family: Arial, sans-serif;
-              font-size: 11px;
+              font-size: 12pt !important;
               color: #1f2937;
               margin-top: 10px;
+              font-family: 'Times New Roman', Times, serif !important;
             }
-            .header-left { text-align: left; }
+            .header-left { text-align: left; font-size: 12pt !important; }
             .header-center { text-align: center; }
-            .header-right { text-align: right; }
+            .header-right { text-align: right; font-size: 12pt !important; }
             .header-logo {
               width: 70px;
               height: 70px;
@@ -317,38 +337,44 @@ export default function Dashboard() {
             .ref-row {
               display: flex;
               justify-content: space-between;
-              font-family: Arial, sans-serif;
-              font-size: 13px;
+              font-size: 12pt !important;
               margin-bottom: 24px;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .addressee {
-              font-size: 14px;
+              font-size: 12pt !important;
               font-weight: bold;
               text-transform: uppercase;
               margin-bottom: 20px;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .salutation {
-              font-size: 13px;
+              font-size: 12pt !important;
               margin-bottom: 16px;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .subject-title {
-              font-size: 14px;
+              font-size: 12pt !important;
               font-weight: 900;
               text-transform: uppercase;
               border-bottom: 1px solid #111827;
               padding-bottom: 2px;
               display: inline-block;
               margin-bottom: 20px;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .body-text {
-              font-size: 13px;
+              font-size: 12pt !important;
               line-height: 1.6;
               text-align: justify;
               margin-bottom: 28px;
               white-space: pre-line;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .body-text p {
+              font-size: 12pt !important;
               margin-bottom: 14px;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .footer-block {
               margin-top: 30px;
@@ -356,7 +382,8 @@ export default function Dashboard() {
               border-top: 1px solid rgba(120, 53, 15, 0.2);
             }
             .signatory-block {
-              font-size: 12px;
+              font-size: 12pt !important;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .signature-svg {
               width: 140px;
@@ -366,20 +393,28 @@ export default function Dashboard() {
             .signatory-name {
               font-weight: 900;
               text-transform: uppercase;
-              font-size: 13px;
+              font-size: 12pt !important;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .signatory-title {
               font-weight: bold;
               color: #1f2937;
+              font-size: 12pt !important;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .cc-box {
               margin-top: 16px;
-              font-size: 11px;
+              font-size: 12pt !important;
+              font-family: 'Times New Roman', Times, serif !important;
             }
             .cc-box ul {
               list-style: none;
               padding-left: 0;
               margin-top: 4px;
+              font-size: 12pt !important;
+            }
+            .cc-box li {
+              font-size: 12pt !important;
             }
           </style>
         </head>
@@ -501,14 +536,32 @@ export default function Dashboard() {
     router.replace('/login');
   };
 
+  const hasLetter = (() => {
+    if (!application || !(application as any).additional_info) return false;
+    try {
+      const parsed = typeof (application as any).additional_info === 'string'
+        ? JSON.parse((application as any).additional_info)
+        : (application as any).additional_info;
+      return Boolean(parsed?.appointmentLetterData || parsed?.appointmentType || parsed?.customRefNumber);
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  const isAssigned = application?.status === 'approved' && hasLetter;
+
   const getStatusMessage = () => {
     if (!application) return { text: 'Your application is pending', color: 'bg-yellow-50 text-yellow-800', border: 'border-yellow-300' };
     
+    if (application.status === 'approved' && !isAssigned) {
+      return { text: 'Application Under Review (Pending Placement & Letter Assignment)', color: 'bg-sky-50 text-sky-800', border: 'border-sky-300' };
+    }
+
     switch (application.status) {
       case 'draft':
         return { text: 'Application draft saved - Action Required', color: 'bg-emerald-50 text-emerald-900', border: 'border-emerald-400' };
       case 'approved':
-        return { text: 'Your application is successful', color: 'bg-green-50 text-green-900', border: 'border-green-500' };
+        return { text: 'Your application is successful & official letter assigned', color: 'bg-green-50 text-green-900', border: 'border-green-500' };
       case 'rejected':
         return { text: 'Your application is rejected', color: 'bg-red-50 text-red-800', border: 'border-red-300' };
       case 'under_review':
@@ -747,44 +800,48 @@ export default function Dashboard() {
 
                   {/* Step 3 */}
                   <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    application.status === 'approved'
+                    isAssigned
                       ? 'bg-emerald-50 border-emerald-200 ring-2 ring-emerald-400/50'
+                      : application.status === 'approved'
+                      ? 'bg-amber-50 border-amber-200'
                       : application.status === 'rejected'
                       ? 'bg-rose-50 border-rose-200'
                       : 'bg-gray-50 border-gray-200'
                   }`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                      application.status === 'approved'
+                      isAssigned
                         ? 'bg-emerald-600 text-white'
                         : application.status === 'rejected'
                         ? 'bg-rose-600 text-white'
+                        : application.status === 'approved'
+                        ? 'bg-amber-500 text-white'
                         : 'bg-gray-300 text-gray-600'
                     }`}>
-                      {application.status === 'approved' ? '✓' : application.status === 'rejected' ? '✕' : '3'}
+                      {isAssigned ? '✓' : application.status === 'rejected' ? '✕' : '3'}
                     </div>
                     <div>
                       <span className="text-xs font-bold text-gray-900 block">3. Station Placement</span>
                       <span className="text-[11px] text-gray-500">
-                        {application.posting_station ? application.posting_station : 'Pending Station'}
+                        {isAssigned ? (application.posting_station || 'Assigned Station') : 'Pending Station'}
                       </span>
                     </div>
                   </div>
 
                   {/* Step 4 */}
                   <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    application.status === 'approved'
+                    isAssigned
                       ? 'bg-emerald-50 border-emerald-200'
                       : 'bg-gray-50 border-gray-200'
                   }`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                      application.status === 'approved' ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
+                      isAssigned ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
                     }`}>
-                      {application.status === 'approved' ? '✓' : '4'}
+                      {isAssigned ? '✓' : '4'}
                     </div>
                     <div>
                       <span className="text-xs font-bold text-gray-900 block">4. Official Release</span>
                       <span className="text-[11px] text-gray-500">
-                        {application.status === 'approved' ? 'Letter Ready' : 'Awaiting Approval'}
+                        {isAssigned ? 'Letter Ready & Issued' : 'Awaiting Assignment'}
                       </span>
                     </div>
                   </div>
@@ -816,8 +873,8 @@ export default function Dashboard() {
                   </Button>
                 </div>
 
-                {/* Card 2: Download Appointment Letter (Top Right - only if approved) */}
-                {application.status === 'approved' ? (
+                {/* Card 2: Download Appointment Letter (Top Right - only if fully assigned) */}
+                {isAssigned ? (
                   <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-6 py-7 flex flex-col gap-2 items-start min-h-[210px]">
                     <div className="mb-2 p-2 bg-emerald-100 rounded-lg">
                       <DownloadCloud className="w-8 h-8 text-emerald-600" />
@@ -834,19 +891,21 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-6 py-7 flex flex-col gap-2 items-start min-h-[210px] opacity-50">
+                  <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-6 py-7 flex flex-col gap-2 items-start min-h-[210px] opacity-60">
                     <div className="mb-2 p-2 bg-gray-100 rounded-lg">
                       <DownloadCloud className="w-8 h-8 text-gray-400" />
                     </div>
                     <div className="text-base font-bold mb-1 text-gray-700">Download Appointment Letter</div>
                     <div className="text-[15px] text-gray-500 mb-3">
-                      Download your appointment letter to get started at DVLA. (Available only if application is approved)
+                      {application.status === 'approved'
+                        ? 'Your application review is complete, but official placement & appointment letter generation by HR is pending.'
+                        : 'Download your appointment letter once your application has been approved and assigned by admin.'}
                     </div>
                     <Button
                       className="mt-auto px-6 py-2 rounded-full text-white font-semibold bg-gray-400 shadow-sm cursor-not-allowed"
                       disabled
                     >
-                      Download Letter
+                      Pending Assignment
                     </Button>
                   </div>
                 )}
