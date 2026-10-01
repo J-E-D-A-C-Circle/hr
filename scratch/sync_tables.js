@@ -26,7 +26,7 @@ async function syncTables() {
           id INT AUTO_INCREMENT PRIMARY KEY,
           phone_number VARCHAR(255) NOT NULL,
           token VARCHAR(10) NOT NULL,
-          expires_at TIMESTAMP NOT NULL,
+          expires_at DATETIME NOT NULL,
           is_used BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           INDEX idx_phone_number (phone_number),
