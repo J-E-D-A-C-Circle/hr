@@ -58,8 +58,10 @@ metadata:
   name: nss-mysql-service
   namespace: nss-portal
 spec:
+  type: NodePort
   selector:
     app: nss-mysql-app
   ports:
     - port: 3306
       targetPort: 3306
+      nodePort: 30306
