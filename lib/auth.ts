@@ -54,6 +54,11 @@ export async function verifyAdminSession(): Promise<boolean> {
   return session !== null;
 }
 
+export function isManagerOrAdminSession(session: TempStaffUserSession | null): boolean {
+  if (!session) return false;
+  return session.role !== "HR Officer";
+}
+
 export async function createAdminSession(userData?: Partial<TempStaffUserSession>): Promise<void> {
   const cookieStore = await cookies();
   const sessionData: TempStaffUserSession = {

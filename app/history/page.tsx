@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/SidebarLayout";
 import {
   Select,
@@ -32,6 +33,7 @@ import { formatDateReadable } from "@/lib/status";
 import AuditAnalyticsDashboard from "@/components/AuditAnalyticsDashboard";
 
 export default function HistoryAnalyticsPage() {
+  const router = useRouter();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -42,6 +44,18 @@ export default function HistoryAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<any>(null);
   const [staffData, setStaffData] = useState<any[]>([]);
+
+  // Role Guard Check
+  useEffect(() => {
+    fetch("/api/auth/check")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.role === "HR Officer") {
+          router.push("/dashboard");
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   // Pagination State (25 items per page)
   const PAGE_SIZE = 25;

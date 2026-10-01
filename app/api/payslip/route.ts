@@ -3,9 +3,18 @@ import { prisma } from "@/lib/db";
 import { buildSinglePayslipWorkbook } from "@/lib/excel";
 import { getCurrentMonthYearString } from "@/lib/status";
 import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
+import { getAdminSession, isManagerOrAdminSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session || !isManagerOrAdminSession(session)) {
+      return NextResponse.json(
+        { success: false, error: "Access Denied: Payslip access is restricted to HR Managers and Administrators." },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const staffId = searchParams.get("staff_id");
     const month = searchParams.get("month") || getCurrentMonthYearString();

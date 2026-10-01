@@ -61,7 +61,28 @@ export default function AuditAnalyticsDashboard() {
     );
   }
 
-  const { summary, demographics, geographics } = data;
+  const summary = data?.summary || {
+    totalStaff: 0,
+    activeCount: 0,
+    expiringCount: 0,
+    expiredCount: 0,
+    terminatedCount: 0,
+    pendingApprovalCount: 0,
+    approvedCount: 0,
+    rejectedCount: 0,
+    totalGrossSalary: 0,
+    totalEmployerNssf: 0,
+    totalNetSalary: 0,
+  };
+  const demographics = data?.demographics || {
+    gender: { male: 0, female: 0, unspecified: 0, malePercent: 0, femalePercent: 0 },
+    ageBrackets: { under25: 0, age25to34: 0, age35to44: 0, age45to54: 0, age55plus: 0, unknown: 0 },
+    salaryBands: { under1400: 0, band1400to1800: 0, band1801to2500: 0, above2500: 0 },
+  };
+  const geographics = data?.geographics || {
+    totalStations: 0,
+    stations: [],
+  };
 
   return (
     <div className="space-y-6">
@@ -99,10 +120,10 @@ export default function AuditAnalyticsDashboard() {
             <DollarSign className="h-5 w-5 text-amber-600" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white font-mono">
-            GH₵{summary.totalGrossSalary.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            GH₵{(summary.totalGrossSalary || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] font-semibold text-slate-500">
-            Employer NSSF (13%): GH₵{summary.totalEmployerNssf.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            Employer NSSF (13%): GH₵{(summary.totalEmployerNssf || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -257,23 +278,31 @@ export default function AuditAnalyticsDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {geographics.stations.map((st: any) => (
-                <tr key={st.station} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 font-medium">
-                  <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <MapPin className="h-3.5 w-3.5 text-emerald-500" />
-                    <span>{st.station}</span>
-                  </td>
-                  <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{st.headcount}</td>
-                  <td className="p-3 text-emerald-600 dark:text-emerald-400 font-bold">{st.active}</td>
-                  <td className="p-3 text-amber-600 dark:text-amber-400 font-bold">{st.expiring}</td>
-                  <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">
-                    GH₵{st.grossSalary.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    GH₵{st.netSalary.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              {geographics.stations.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-slate-400 font-medium">
+                    No station distribution data available.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                geographics.stations.map((st: any) => (
+                  <tr key={st.station} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 font-medium">
+                    <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>{st.station}</span>
+                    </td>
+                    <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{st.headcount}</td>
+                    <td className="p-3 text-emerald-600 dark:text-emerald-400 font-bold">{st.active}</td>
+                    <td className="p-3 text-amber-600 dark:text-amber-400 font-bold">{st.expiring}</td>
+                    <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">
+                      GH₵{st.grossSalary.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      GH₵{st.netSalary.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/SidebarLayout";
 import {
   ShieldCheck,
@@ -28,10 +29,23 @@ import Link from "next/link";
 import { formatDateTimeDDMMYYYY } from "@/lib/status";
 
 export default function AuditLogsPage() {
+  const router = useRouter();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
+
+  // Role Guard Check
+  useEffect(() => {
+    fetch("/api/auth/check")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.role === "HR Officer") {
+          router.push("/dashboard");
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   // Pagination State (25 items per page)
   const PAGE_SIZE = 25;

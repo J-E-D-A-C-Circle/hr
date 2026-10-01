@@ -133,12 +133,13 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     .toUpperCase()
     .slice(0, 2);
 
-  const navItems = [
+  const rawNavItems = [
     {
       label: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
       badge: null,
+      restricted: false,
     },
     {
       label: "Staff Directory",
@@ -146,38 +147,48 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       icon: Users,
       badge: stats?.active !== undefined ? `${stats.active}` : null,
       badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      restricted: false,
     },
     {
       label: "Deductions",
       href: "/deductions",
       icon: Calculator,
       badge: null,
+      restricted: true,
     },
     {
       label: "History & Analytics",
       href: "/history",
       icon: TrendingUp,
       badge: null,
+      restricted: true,
     },
     {
       label: "Audit Logs",
       href: "/audit-logs",
       icon: ShieldCheck,
       badge: null,
+      restricted: true,
     },
     {
       label: "Staff Payslips",
       href: "/payslip",
       icon: Receipt,
       badge: null,
+      restricted: true,
     },
     {
       label: "Monthly Export",
       href: "/export",
       icon: Download,
       badge: null,
+      restricted: false,
     },
   ];
+
+  const navItems = user.role === "HR Officer"
+    ? rawNavItems.filter((item) => !item.restricted)
+    : rawNavItems;
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -435,7 +446,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                       {user.name}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block truncate">
-                      HR Officer
+                      {user.role}
                     </span>
                   </div>
                 </div>

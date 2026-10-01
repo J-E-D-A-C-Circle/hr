@@ -67,10 +67,10 @@ export async function GET(request: NextRequest) {
       // Standard Full Data Directory Export includes ALL employees across all status categories
 
       if (filter === "currently_employed") {
-        // Active + Expiring Soon
-        return item.computedStatus === "Active" || item.computedStatus === "Expiring Soon";
+        // Active + Expiring Soon + Expired (All non-terminated active payroll staff)
+        return item.computedStatus === "Active" || item.computedStatus === "Expiring Soon" || item.computedStatus === "Expired";
       } else if (filter === "active") {
-        return item.computedStatus === "Active";
+        return item.computedStatus === "Active" || item.computedStatus === "Expiring Soon";
       } else if (filter === "expiring") {
         return item.computedStatus === "Expiring Soon";
       } else if (filter === "expired") {

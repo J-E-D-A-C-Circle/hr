@@ -1,7 +1,19 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { computeContractStatus } from "@/lib/status";
 import { calculateGhanaDeductions, getDeductionRates, getPayeTaxBrackets } from "@/lib/payroll";
+import { getAdminSession, isManagerOrAdminSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session || !isManagerOrAdminSession(session)) {
+      return NextResponse.json(
+        { success: false, error: "Access Denied: Deductions view is restricted to HR Managers and Administrators." },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const departmentFilter = searchParams.get("department") || "";
     const paymentStatusFilter = searchParams.get("paymentStatus") || "";

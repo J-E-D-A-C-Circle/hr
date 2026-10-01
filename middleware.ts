@@ -88,14 +88,19 @@ export function middleware(request: NextRequest) {
 
   const session = request.cookies.get(TEMPSTAFF_SESSION_COOKIE);
   let isTempstaffValid = false;
+  let userRole = "HR Officer";
 
   if (session?.value && session.value !== "logged_out") {
     if (session.value === TEMPSTAFF_SESSION_VALUE) {
       isTempstaffValid = true;
+      userRole = "HR Manager";
     } else {
       try {
         const parsed = JSON.parse(session.value);
         isTempstaffValid = !!(parsed?.username || parsed?.name || parsed?.email);
+        if (parsed?.role) {
+          userRole = parsed.role;
+        }
       } catch {
         isTempstaffValid = false;
       }
@@ -105,6 +110,20 @@ export function middleware(request: NextRequest) {
   if (!isTempstaffValid) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Role Access Guard: HR Officer cannot access management/financial views
+  const isRestrictedForOfficer = [
+    "/deductions",
+    "/payslip",
+    "/history",
+    "/audit-logs",
+    "/import",
+  ].some((r) => pathname === r || pathname.startsWith(r + "/"));
+
+  if (isRestrictedForOfficer && userRole === "HR Officer") {
+    const dashboardUrl = new URL("/dashboard", request.url);
+    return NextResponse.redirect(dashboardUrl);
   }
 
   return NextResponse.next();

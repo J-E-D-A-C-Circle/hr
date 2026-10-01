@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeContractStatus } from "@/lib/status";
 import { calculateGhanaDeductions } from "@/lib/payroll";
+import { getAdminSession, isManagerOrAdminSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session || !isManagerOrAdminSession(session)) {
+      return NextResponse.json(
+        { success: false, error: "Access Denied: Analytics reports are restricted to HR Managers and Administrators." },
+        { status: 403 }
+      );
+    }
+
     const staffList = await prisma.staff.findMany({
       include: {
         contracts: {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/SidebarLayout";
 import {
   Select,
@@ -37,6 +38,7 @@ import { PaymentStatusModal } from "@/components/PaymentStatusModal";
 import { DEFAULT_2026_GRA_BRACKETS, PayeBracketItem } from "@/lib/payroll";
 
 export default function DeductionsPage() {
+  const router = useRouter();
   const [deductionsData, setDeductionsData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -50,14 +52,18 @@ export default function DeductionsPage() {
   const [userRole, setUserRole] = useState<string>("HR_ADMINISTRATOR");
 
   useEffect(() => {
-    try {
-      const match = document.cookie.match(/(?:^|; )\s*staff_admin_session=([^;]*)/);
-      if (match) {
-        const parsed = JSON.parse(decodeURIComponent(match[1]));
-        if (parsed?.role) setUserRole(parsed.role);
-      }
-    } catch {}
-  }, []);
+    fetch("/api/auth/check")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.role) {
+          setUserRole(data.user.role);
+          if (data.user.role === "HR Officer") {
+            router.push("/dashboard");
+          }
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   const canEditSettings = useMemo(() => {
     const r = (userRole || "").toUpperCase();

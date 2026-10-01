@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/SidebarLayout";
 import StatusBadge from "@/components/StatusBadge";
 import {
@@ -31,6 +32,7 @@ import { formatDateReadable, getCurrentMonthYearString, getRecentMonthOptions } 
 import { calculateGhanaDeductions } from "@/lib/payroll";
 
 export default function PayslipPage() {
+  const router = useRouter();
   const currentMonthStr = getCurrentMonthYearString();
   const recentMonths = getRecentMonthOptions(12);
 
@@ -40,6 +42,18 @@ export default function PayslipPage() {
   const [search, setSearch] = useState<string>("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Role Guard Check
+  useEffect(() => {
+    fetch("/api/auth/check")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.role === "HR Officer") {
+          router.push("/dashboard");
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   // Fetch all staff
   useEffect(() => {

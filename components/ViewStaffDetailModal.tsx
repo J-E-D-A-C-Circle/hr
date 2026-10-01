@@ -79,17 +79,19 @@ export default function ViewStaffDetailModal({
   const isPending = approvalStatus === "PENDING_APPROVAL";
   const isRejected = approvalStatus === "REJECTED";
 
+  const roleUpper = (currentUserRole || "").toUpperCase();
   const canApproveReject =
-    currentUserRole === "Approval Officer" ||
-    currentUserRole === "HR Director" ||
-    currentUserRole === "SUPER_ADMIN" ||
-    currentUserRole === "Superadmin";
+    roleUpper.includes("MANAGER") ||
+    roleUpper.includes("DIRECTOR") ||
+    roleUpper.includes("ADMIN") ||
+    roleUpper.includes("SUPER") ||
+    roleUpper.includes("LEAD");
 
   const canSeeAuditTab =
-    currentUserRole === "HR Manager" ||
-    currentUserRole === "HR Director" ||
-    currentUserRole === "SUPER_ADMIN" ||
-    currentUserRole === "Superadmin";
+    roleUpper.includes("MANAGER") ||
+    roleUpper.includes("DIRECTOR") ||
+    roleUpper.includes("ADMIN") ||
+    roleUpper.includes("SUPER");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
