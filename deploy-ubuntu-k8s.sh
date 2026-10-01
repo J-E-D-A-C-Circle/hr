@@ -46,6 +46,7 @@ $KUBECTL apply -f k8s/configmap.yaml
 $KUBECTL apply -f k8s/secret.yaml
 $KUBECTL apply -f k8s/pv-pvc.yaml
 $KUBECTL apply -f k8s/mysql-deployment.yaml
+$KUBECTL apply -f k8s/phpmyadmin-deployment.yaml
 $KUBECTL apply -f k8s/deployment.yaml
 $KUBECTL apply -f k8s/service.yaml
 
@@ -62,6 +63,7 @@ echo "============================================================"
 echo "✅ DVLA NSS Portal successfully deployed to Kubernetes!"
 echo "============================================================"
 echo "Access points:"
-echo "  - LoadBalancer / Port: http://<YOUR_UBUNTU_SERVER_IP>:8080"
-echo "  - Cluster IP Service: port 8080 inside namespace 'nss-portal'"
+echo "  - Web Portal: http://<YOUR_UBUNTU_SERVER_IP>:8080"
+echo "  - phpMyAdmin: http://<YOUR_UBUNTU_SERVER_IP>:30881"
+echo "  - MySQL NodePort: <YOUR_UBUNTU_SERVER_IP>:30306"
 echo "============================================================"
