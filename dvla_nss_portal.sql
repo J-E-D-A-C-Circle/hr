@@ -213,8 +213,109 @@ ALTER TABLE `audit_logs`
 ALTER TABLE `nss_applications`
   ADD CONSTRAINT `nss_applications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `nss_applications_ibfk_2` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `stations`
+--
+
+CREATE TABLE `stations` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `station_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL UNIQUE,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `region` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `capacity` int NOT NULL DEFAULT '20',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_region` (`region`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `stations`
+--
+
+INSERT INTO `stations` (`id`, `station_code`, `name`, `region`, `capacity`) VALUES
+(1, 'st-headoffice', 'DVLA Head Office - Cantonments', 'Greater Accra', 50),
+(2, 'st-37', 'Accra Regional Office - 37', 'Greater Accra', 35),
+(3, 'st-tema', 'Tema Regional Office', 'Greater Accra', 25),
+(4, 'st-weija', 'Weija District Office', 'Greater Accra', 20),
+(5, 'st-kumasi', 'Kumasi Regional Office - Adum', 'Ashanti', 30),
+(6, 'st-takoradi', 'Takoradi Regional Office', 'Western', 20),
+(7, 'st-tamale', 'Tamale Regional Office', 'Northern', 15),
+(8, 'st-sunyani', 'Sunyani Regional Office', 'Bono', 15),
+(9, 'st-capecoast', 'Cape Coast Regional Office', 'Central', 15),
+(10, 'st-ho', 'Ho Regional Office', 'Volta', 15),
+(11, 'st-koforidua', 'Koforidua Regional Office', 'Eastern', 15);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `departments`
+--
+
+CREATE TABLE `departments` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `station_id` int NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_station_dept` (`station_id`, `name`),
+  KEY `station_id` (`station_id`),
+  CONSTRAINT `departments_ibfk_1` FOREIGN KEY (`station_id`) REFERENCES `stations` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `departments`
+--
+
+INSERT INTO `departments` (`station_id`, `name`) VALUES
+(1, 'IT & Software Engineering'),
+(1, 'Executive Secretariat'),
+(1, 'Research & Development'),
+(1, 'Administration & Human Resources'),
+(1, 'Legal & Compliance'),
+(1, 'Finance & Accounting'),
+(1, 'Internal Audit'),
+(1, 'Procurement & Supply Chain'),
+(2, 'Driver Licensing & Testing'),
+(2, 'Vehicle Inspection & Registration'),
+(2, 'Customer Experience & Desk'),
+(2, 'Revenue & Cashier'),
+(3, 'Heavy Vehicle Inspection & Clearance'),
+(3, 'Port Transit Clearance'),
+(3, 'Driver Licensing'),
+(3, 'Customer Service Desk'),
+(4, 'Driver Licensing & Renewal'),
+(4, 'Vehicle Inspection & Testing'),
+(4, 'Client Records & Information'),
+(5, 'Driver Licensing & Testing'),
+(5, 'Vehicle Inspection & Certification'),
+(5, 'Regional Administration'),
+(5, 'Accounts & Revenue Desk'),
+(6, 'Driver Testing & Certification'),
+(6, 'Commercial & Logistics Vehicle Registry'),
+(6, 'Client Services & Front Desk'),
+(7, 'Driver Licensing & Testing'),
+(7, 'Vehicle Inspection & Registration'),
+(7, 'Regional Records & Admin'),
+(8, 'Driver Licensing'),
+(8, 'Vehicle Inspection'),
+(8, 'Customer Service & Cashier'),
+(9, 'Driver Licensing & Renewal'),
+(9, 'Vehicle Inspection & Testing'),
+(9, 'Front Desk & Inquiries'),
+(10, 'Driver Testing & Licensing'),
+(10, 'Vehicle Inspection Unit'),
+(10, 'Administrative Support'),
+(11, 'Driver Licensing & Testing'),
+(11, 'Vehicle Inspection & Registration'),
+(11, 'Client Records & Inquiries');
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+

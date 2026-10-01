@@ -101,3 +101,25 @@ export const auditLogs = mysqlTable('audit_logs', {
     createdAtIdx: index('idx_created_at').on(table.createdAt),
   };
 });
+
+export const stations = mysqlTable('stations', {
+  id: int('id').primaryKey().autoincrement(),
+  stationCode: varchar('station_code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  region: varchar('region', { length: 100 }).notNull(),
+  capacity: int('capacity').default(20).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow(),
+}, (table) => {
+  return {
+    regionIdx: index('idx_region').on(table.region),
+  };
+});
+
+export const departments = mysqlTable('departments', {
+  id: int('id').primaryKey().autoincrement(),
+  stationId: int('station_id').notNull().references(() => stations.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+

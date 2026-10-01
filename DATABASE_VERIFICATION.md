@@ -44,17 +44,11 @@ The following columns were added for the approval/posting system:
    ```
 
 ### If database already exists:
-1. Run the migration script: `database/migration_add_station_department.sql`
+1. Run the stations & departments migration script:
    ```sql
-   mysql -u root -p < database/migration_add_station_department.sql
+   mysql -u root -p dvla_nss_portal < database/migration_add_stations_and_departments.sql
    ```
-   
-   Or manually:
-   ```sql
-   USE dvla_nss_portal;
-   ALTER TABLE nss_applications ADD COLUMN posting_station VARCHAR(255) NULL AFTER posting_district;
-   ALTER TABLE nss_applications ADD COLUMN posting_department VARCHAR(255) NULL AFTER posting_station;
-   ```
+
 
 ### Verify Connection:
 Visit: `http://localhost/api/test-connection.php`
