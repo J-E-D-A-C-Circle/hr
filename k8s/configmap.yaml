@@ -13,3 +13,4 @@ data:
   DATABASE_URL: "mysql://hr_user:hr_password@nss-mysql-service:3306/dvla_nss_portal"
   ADMIN_EMAIL: "admin@dvla.gov.gh"
   WIGAL_SENDER_ID: "DVLA NSS"
+  WIGAL_BASE_URL: "https://frogapi.wigal.com.gh"

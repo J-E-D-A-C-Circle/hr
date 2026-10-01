@@ -53,6 +53,14 @@ function getWigalCredentials() {
   return { apiKey, username, defaultSenderId };
 }
 
+function getWigalBaseUrl(): string {
+  const customUrl = process.env.WIGAL_BASE_URL || process.env.FROG_BASE_URL || process.env.SMS_BASE_URL;
+  if (customUrl) {
+    return customUrl.replace(/\/+$/, '');
+  }
+  return 'https://frogapi.wigal.com.gh';
+}
+
 /**
  * Sends a general SMS message using Frog API v3.
  * Endpoint: POST https://frogapi.wigal.com.gh/api/v3/sms/send
@@ -80,7 +88,8 @@ export async function sendWigalSms({
   }
 
   try {
-    const url = 'https://frogapi.wigal.com.gh/api/v3/sms/send';
+    const baseUrl = getWigalBaseUrl();
+    const url = `${baseUrl}/api/v3/sms/send`;
     const msgId = `MSG_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
     const payload = {
@@ -100,6 +109,7 @@ export async function sendWigalSms({
         'Accept': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(12000),
     });
 
     const responseText = await response.text();
@@ -125,7 +135,11 @@ export async function sendWigalSms({
       formattedNumber,
     };
   } catch (error: any) {
-    console.error('[Frog API v3 SMS] Network Error:', error);
+    const baseUrl = getWigalBaseUrl();
+    console.error(`❌ [Frog API v3 SMS Network Error] Failed reaching ${baseUrl}:`, error.message || error);
+    if (error.name === 'TimeoutError' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.warn(`💡 [Network Advice] Server outbound request to ${baseUrl} failed (${error.code || error.name}). If this server is behind a firewall/proxy, configure WIGAL_BASE_URL=http://10.70.X.X:PORT in .env or request outbound whitelisting.`);
+    }
     return {
       success: false,
       status: 500,
@@ -164,7 +178,8 @@ export async function generateFrogOtp({
   }
 
   try {
-    const url = 'https://frogapi.wigal.com.gh/api/v3/sms/otp/generate';
+    const baseUrl = getWigalBaseUrl();
+    const url = `${baseUrl}/api/v3/sms/otp/generate`;
     const payload = {
       number: formattedNumber,
       expiry: expiryMinutes,
@@ -183,6 +198,7 @@ export async function generateFrogOtp({
         'Accept': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(12000),
     });
 
     const responseText = await response.text();
@@ -208,7 +224,11 @@ export async function generateFrogOtp({
       formattedNumber,
     };
   } catch (error: any) {
-    console.error('[Frog API v3 OTP Generate] Error:', error);
+    const baseUrl = getWigalBaseUrl();
+    console.error(`❌ [Frog API v3 OTP Generate Error] Failed reaching ${baseUrl}:`, error.message || error);
+    if (error.name === 'TimeoutError' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.warn(`💡 [Network Advice] Server outbound request to ${baseUrl} failed (${error.code || error.name}). If this server is behind a firewall/proxy, configure WIGAL_BASE_URL=http://10.70.X.X:PORT in .env or request outbound whitelisting.`);
+    }
     return {
       success: false,
       status: 500,
@@ -242,7 +262,8 @@ export async function verifyFrogOtp({
   }
 
   try {
-    const url = 'https://frogapi.wigal.com.gh/api/v3/sms/otp/verify';
+    const baseUrl = getWigalBaseUrl();
+    const url = `${baseUrl}/api/v3/sms/otp/verify`;
     const payload = {
       otpcode: code,
       number: formattedNumber,
@@ -257,6 +278,7 @@ export async function verifyFrogOtp({
         'Accept': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(12000),
     });
 
     const responseText = await response.text();
@@ -283,7 +305,8 @@ export async function verifyFrogOtp({
       formattedNumber,
     };
   } catch (error: any) {
-    console.error('[Frog API v3 OTP Verify] Error:', error);
+    const baseUrl = getWigalBaseUrl();
+    console.error(`❌ [Frog API v3 OTP Verify Error] Failed reaching ${baseUrl}:`, error.message || error);
     return {
       success: false,
       status: 500,
