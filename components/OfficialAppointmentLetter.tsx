@@ -132,20 +132,28 @@ export default function OfficialAppointmentLetter({
       </div>
 
       {/* LETTER REFERENCE & DATE ROW */}
-      <div className="flex justify-between items-start mb-6 relative z-10" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-        <div className="space-y-1">
-          <div>
-            <span className="font-bold">My Ref:</span>......<span className="font-mono font-bold text-gray-900" style={{ fontSize: '12pt' }}>{displayRef}</span>
+      <div className="flex justify-between items-start mb-6 relative z-10 gap-6" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+        <div className="space-y-2 min-w-[300px]">
+          <div className="flex items-baseline gap-1">
+            <span className="font-bold whitespace-nowrap">My Ref:</span>
+            <span className="inline-block border-b border-dotted border-gray-900 font-mono font-bold text-gray-900 px-1 min-w-[220px]">
+              {displayRef}
+            </span>
           </div>
-          <div>
-            <span className="font-bold">Your Ref:</span>......<span className="font-mono font-bold text-gray-900" style={{ fontSize: '12pt' }}>{yourRef || '....................................'}</span>
+          <div className="flex items-baseline gap-1">
+            <span className="font-bold whitespace-nowrap">Your Ref:</span>
+            <span className="inline-block border-b border-dotted border-gray-900 font-mono font-bold text-gray-900 px-1 min-w-[220px]">
+              {yourRef || '\u00A0'}
+            </span>
           </div>
         </div>
         <div className="text-right">
-          <div className="font-bold text-gray-900 uppercase" style={{ fontSize: '12pt' }}>
-            {issueDate}
+          <div className="flex items-baseline justify-end gap-1">
+            <span className="font-bold whitespace-nowrap">Date:</span>
+            <span className="inline-block border-b border-dotted border-gray-900 font-bold text-gray-900 uppercase px-1 min-w-[160px] text-center">
+              {issueDate || '\u00A0'}
+            </span>
           </div>
-          <div className="text-gray-500 font-mono" style={{ fontSize: '12pt' }}>............/............/20..........</div>
         </div>
       </div>
 
