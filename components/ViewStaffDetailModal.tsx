@@ -19,6 +19,7 @@ import {
   Award,
   DollarSign,
   UserCheck,
+  Pencil,
 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import { formatDateReadable } from "@/lib/status";
@@ -31,6 +32,7 @@ interface ViewStaffDetailModalProps {
   currentUserName?: string;
   onApprove?: () => void;
   onReject?: (reason: string) => void;
+  onEdit?: (staff: any) => void;
 }
 
 export default function ViewStaffDetailModal({
@@ -41,6 +43,7 @@ export default function ViewStaffDetailModal({
   currentUserName = "Admin",
   onApprove,
   onReject,
+  onEdit,
 }: ViewStaffDetailModalProps) {
   const [activeTab, setActiveTab] = useState<"details" | "audit">("details");
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -132,12 +135,27 @@ export default function ViewStaffDetailModal({
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl transition"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onEdit(staff);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition"
+                title="Edit Employee Data"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span>Edit Data</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}

@@ -11,6 +11,7 @@ import ReinstateModal from "@/components/ReinstateModal";
 import ValidateStaffModal from "@/components/ValidateStaffModal";
 import MergeDuplicateModal from "@/components/MergeDuplicateModal";
 import ViewStaffDetailModal from "@/components/ViewStaffDetailModal";
+import EditStaffModal from "@/components/EditStaffModal";
 import MySubmissionsModal from "@/components/MySubmissionsModal";
 import {
   Select,
@@ -46,6 +47,7 @@ import {
   Clock,
   XCircle,
   ShieldCheck as ShieldCheckIcon,
+  Pencil,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -75,6 +77,7 @@ export default function StaffListPage() {
   const [validateTarget, setValidateTarget] = useState<any | null>(null);
   const [mergeTarget, setMergeTarget] = useState<any | null>(null);
   const [viewStaffTarget, setViewStaffTarget] = useState<any | null>(null);
+  const [editStaffTarget, setEditStaffTarget] = useState<any | null>(null);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
 
@@ -880,6 +883,15 @@ export default function StaffListPage() {
                               <Eye className="h-4 w-4" />
                             </button>
 
+                            {/* Edit Employee Data (Pencil Icon) */}
+                            <button
+                              onClick={() => setEditStaffTarget(staff)}
+                              title="Edit Employee Data (Personal, SSNIT, Bank & Contract)"
+                              className="p-1.5 rounded-lg text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/60 dark:text-amber-400 transition"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+
                             {/* Renew Button (Active or Expiring) */}
                             {currentContract && !currentContract.is_terminated && (
                               <button
@@ -1033,6 +1045,17 @@ export default function StaffListPage() {
         currentUserName={currentUserName}
         onApprove={() => viewStaffTarget && handleApproveStaff(viewStaffTarget.id)}
         onReject={(reason) => viewStaffTarget && handleRejectStaff(viewStaffTarget.id, reason)}
+        onEdit={(staff) => setEditStaffTarget(staff)}
+      />
+
+      <EditStaffModal
+        isOpen={!!editStaffTarget}
+        staff={editStaffTarget}
+        onClose={() => setEditStaffTarget(null)}
+        onSuccess={() => {
+          fetchStaff();
+          setToast({ type: "success", message: "Employee data updated successfully." });
+        }}
       />
 
       <MergeDuplicateModal

@@ -7,6 +7,7 @@ import StatusBadge from "@/components/StatusBadge";
 import RenewModal from "@/components/RenewModal";
 import MySubmissionsModal from "@/components/MySubmissionsModal";
 import ViewStaffDetailModal from "@/components/ViewStaffDetailModal";
+import EditStaffModal from "@/components/EditStaffModal";
 import {
   Users,
   AlertTriangle,
@@ -22,6 +23,7 @@ import {
   Building,
   CheckCircle2,
   Eye,
+  Pencil,
 } from "lucide-react";
 import { formatDateReadable } from "@/lib/status";
 
@@ -43,6 +45,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string>("HR Officer");
   const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
   const [viewStaffTarget, setViewStaffTarget] = useState<any | null>(null);
+  const [editStaffTarget, setEditStaffTarget] = useState<any | null>(null);
 
   // Renew modal target
   const [renewTarget, setRenewTarget] = useState<any | null>(null);
@@ -398,12 +401,21 @@ export default function DashboardPage() {
                       <RefreshCw className="h-3.5 w-3.5" />
                       <span>Renew Contract (+6 Mo)</span>
                     </button>
-                    <Link
-                      href={`/staff/${item.id}`}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 transition"
+                    <button
+                      onClick={() => setEditStaffTarget(item)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 text-xs font-semibold border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 transition"
+                      title="Edit Employee Data"
                     >
-                      View Profile
-                    </Link>
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span>Edit Data</span>
+                    </button>
+                    <button
+                      onClick={() => setViewStaffTarget(item)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>View</span>
+                    </button>
                   </div>
                 </div>
               ))
@@ -464,6 +476,14 @@ export default function DashboardPage() {
           fetchDashboard();
           setViewStaffTarget(null);
         }}
+        onEdit={(staff) => setEditStaffTarget(staff)}
+      />
+
+      <EditStaffModal
+        isOpen={!!editStaffTarget}
+        staff={editStaffTarget}
+        onClose={() => setEditStaffTarget(null)}
+        onSuccess={fetchDashboard}
       />
     </SidebarLayout>
   );
