@@ -20,6 +20,8 @@ import {
   DollarSign,
   UserCheck,
   Pencil,
+  Download,
+  ArrowRightLeft,
 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import { formatDateReadable } from "@/lib/status";
@@ -51,6 +53,12 @@ export default function ViewStaffDetailModal({
   const [rejecting, setRejecting] = useState<boolean>(false);
   const [rejectReason, setRejectReason] = useState<string>("");
   const [processingEditAction, setProcessingEditAction] = useState<boolean>(false);
+
+  // Transfer Modal State
+  const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
+  const [newStation, setNewStation] = useState<string>("");
+  const [transferReason, setTransferReason] = useState<string>("");
+  const [transferLoading, setTransferLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && staff?.id) {
@@ -118,6 +126,57 @@ export default function ViewStaffDetailModal({
     } finally {
       setProcessingEditAction(false);
     }
+  };
+
+  const handleTransferSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStation.trim()) {
+      alert("New Station / Department is required.");
+      return;
+    }
+    setTransferLoading(true);
+    try {
+      const res = await fetch(`/api/staff/${staff.id}/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          new_department: newStation.trim(),
+          transfer_reason: transferReason.trim(),
+          user_name: currentUserName,
+          user_role: currentUserRole,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to transfer staff member station");
+      alert(json.message || "Station transfer request processed successfully.");
+      setShowTransferModal(false);
+      if (onApprove) onApprove();
+      else fetchStaffAuditLogs(staff.id);
+    } catch (err: any) {
+      alert(err.message || "Failed to transfer station.");
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+
+  const handleExportStaffLogs = () => {
+    if (!auditLogs || auditLogs.length === 0) return;
+    const headers = ["Timestamp", "User Name", "User Role", "Action", "Details"];
+    const rows = auditLogs.map((log) => [
+      `"${new Date(log.created_at).toLocaleString("en-GB")}"`,
+      `"${log.user_name || ""}"`,
+      `"${log.user_role || ""}"`,
+      `"${log.action || ""}"`,
+      `"${(log.details || "").replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${(staff?.full_name || "Staff").replace(/\s+/g, "_")}_Activity_Log.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!isOpen || !staff) return null;
@@ -194,6 +253,26 @@ export default function ViewStaffDetailModal({
                 <span>Edit Data</span>
               </button>
             )}
+
+            {/* Station Transfer Button (Only allowed if contract is Active) */}
+            <button
+              onClick={() => {
+                setNewStation(staff.department || "");
+                setTransferReason("");
+                setShowTransferModal(true);
+              }}
+              disabled={staff.computedStatus !== "Active" && currentContract?.is_terminated}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-xs transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title={
+                staff.computedStatus === "Active" || !currentContract?.is_terminated
+                  ? "Transfer Staff Member to New Station / Location"
+                  : "Transfer Disabled (Contract is not active)"
+              }
+            >
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              <span>Transfer Station</span>
+            </button>
+
             <button
               onClick={onClose}
               className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl transition"
@@ -549,9 +628,20 @@ export default function ViewStaffDetailModal({
                   <History className="h-4 w-4 text-emerald-500" />
                   Chronological Audit Trail & Activity Logs for {staff.full_name}
                 </h4>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  Showing {auditLogs.length} events logged
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportStaffLogs}
+                    disabled={auditLogs.length === 0}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] flex items-center gap-1 hover:bg-emerald-100 transition disabled:opacity-40"
+                    title="Export Employee Activity Log to CSV"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {auditLogs.length} events
+                  </span>
+                </div>
               </div>
 
               {loadingLogs ? (
@@ -565,11 +655,12 @@ export default function ViewStaffDetailModal({
               ) : (
                 <div className="relative border-l-2 border-slate-200 dark:border-slate-800 ml-3 space-y-6 py-2">
                   {auditLogs.map((log) => {
-                    const isApprove = log.action === "APPROVE";
-                    const isReject = log.action === "REJECT";
+                    const isApprove = log.action === "APPROVE" || log.action === "APPROVE_EDIT" || log.action === "APPROVE_RENEWAL";
+                    const isReject = log.action === "REJECT" || log.action === "REJECT_EDIT";
                     const isCreate = log.action === "CREATE" || log.action === "SUBMIT_FOR_APPROVAL";
                     const isRenew = log.action === "RENEW" || log.action === "BULK_RENEW";
                     const isValidate = log.action === "VALIDATE";
+                    const isTransfer = log.action === "STATION_TRANSFER" || log.action === "SUBMIT_TRANSFER_FOR_APPROVAL";
 
                     const badgeBg = isApprove
                       ? "bg-emerald-500"
@@ -581,6 +672,8 @@ export default function ViewStaffDetailModal({
                       ? "bg-purple-500"
                       : isValidate
                       ? "bg-teal-500"
+                      : isTransfer
+                      ? "bg-indigo-500"
                       : "bg-slate-500";
 
                     return (
@@ -626,6 +719,86 @@ export default function ViewStaffDetailModal({
           </button>
         </div>
       </div>
+
+      {/* Station Transfer Sub-Modal Dialog */}
+      {showTransferModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                  Station Transfer — {staff.full_name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowTransferModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleTransferSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Current Station / Department:
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={staff.department || "Unassigned Station"}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-slate-500 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Target Station / Location <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. TEMA HARBOUR, WEIJA OFFICE, TAKORADI PORT"
+                  value={newStation}
+                  onChange={(e) => setNewStation(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Transfer Reason / Notes:
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Operational re-assignment per HR directive"
+                  value={transferReason}
+                  onChange={(e) => setTransferReason(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferModal(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 font-bold hover:bg-slate-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={transferLoading}
+                  className="px-5 py-2 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-bold shadow-md shadow-blue-600/20 transition disabled:opacity-50"
+                >
+                  {transferLoading ? "Processing Transfer..." : "Submit Station Transfer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

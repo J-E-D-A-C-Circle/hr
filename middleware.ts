@@ -112,6 +112,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Role Access Guard: Validation Officers cannot access /staff directory or management views
+  const isRestrictedForValidationOfficer = [
+    "/staff",
+    "/deductions",
+    "/history",
+    "/audit-logs",
+    "/import",
+  ].some((r) => pathname === r || pathname.startsWith(r + "/"));
+
+  if (isRestrictedForValidationOfficer && userRole.toUpperCase().includes("VALIDAT")) {
+    const dashboardUrl = new URL("/dashboard", request.url);
+    return NextResponse.redirect(dashboardUrl);
+  }
+
   // Role Access Guard: HR Officer cannot access management/financial views
   const isRestrictedForOfficer = [
     "/deductions",

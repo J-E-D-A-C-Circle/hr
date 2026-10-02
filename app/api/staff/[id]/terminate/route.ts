@@ -14,7 +14,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { termination_date, termination_reason } = body;
+    const { termination_date, termination_reason, user_name, user_role } = body;
 
     if (!termination_date || !termination_reason) {
       return NextResponse.json(
@@ -22,6 +22,18 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    const actorName = user_name || "HR Officer";
+    const actorRole = user_role || "HR Officer";
+    const roleUpper = actorRole.toUpperCase();
+
+    const isApprovalAuthority =
+      roleUpper.includes("APPROVAL") ||
+      roleUpper.includes("MANAGER") ||
+      roleUpper.includes("DIRECTOR") ||
+      roleUpper.includes("INSPECTOR") ||
+      roleUpper.includes("ADMIN") ||
+      roleUpper.includes("SUPER");
 
     const parsedTerminationDate = parseFlexibleDate(termination_date) || new Date();
 
@@ -39,12 +51,70 @@ export async function POST(
       );
     }
 
+    const staff = await prisma.staff.findUnique({ where: { id: staffId } });
+
+    // If submitted by HR Officer, submit for Approval Officer approval
+    if (!isApprovalAuthority) {
+      const terminationPayload = {
+        requested_by: actorName,
+        requested_role: actorRole,
+        requested_at: new Date().toISOString(),
+        type: "TERMINATION",
+        termination_date: parsedTerminationDate.toISOString(),
+        termination_reason: termination_reason.trim(),
+      };
+
+      const updated = await prisma.staff.update({
+        where: { id: staffId },
+        data: {
+          pending_edits: JSON.stringify(terminationPayload),
+          approval_status: "PENDING_TERMINATION_APPROVAL",
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          user_name: actorName,
+          user_role: actorRole,
+          action: "SUBMIT_TERMINATION_FOR_APPROVAL",
+          details: `${actorName} (${actorRole}) submitted contract termination request for ${staff?.full_name || "Staff"}. Reason: ${termination_reason.trim()}. Awaiting Approval Officer review.`,
+          staff_id: staffId,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        isPendingApproval: true,
+        message: "Contract termination request submitted to Approval Officer for review.",
+        data: updated,
+      });
+    }
+
+    // Direct termination execution for Approval Authorities
     const updatedContract = await prisma.contract.update({
       where: { id: currentContract.id },
       data: {
         is_terminated: true,
         termination_date: parsedTerminationDate,
         termination_reason: termination_reason.trim(),
+      },
+    });
+
+    await prisma.staff.update({
+      where: { id: staffId },
+      data: {
+        approval_status: "APPROVED",
+        pending_edits: null,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        user_name: actorName,
+        user_role: actorRole,
+        action: "TERMINATE",
+        details: `${actorName} (${actorRole}) terminated contract for ${staff?.full_name || "Staff"}. Reason: ${termination_reason.trim()}`,
+        staff_id: staffId,
       },
     });
 

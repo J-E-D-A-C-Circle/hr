@@ -34,6 +34,8 @@ export default function AuditLogsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("2026");
 
   // Role Guard Check
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [actionFilter, search]);
+  }, [actionFilter, search, monthFilter, yearFilter]);
 
   const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
 
@@ -68,7 +70,7 @@ export default function AuditLogsPage() {
       const actionParam = actionFilter !== "all" ? actionFilter : "";
       const searchParam = search.trim();
       const res = await fetch(
-        `/api/audit-logs?action=${encodeURIComponent(actionParam)}&search=${encodeURIComponent(searchParam)}`
+        `/api/audit-logs?action=${encodeURIComponent(actionParam)}&search=${encodeURIComponent(searchParam)}&month=${monthFilter}&year=${yearFilter}`
       );
       const json = await res.json();
       if (res.ok && json.success) {
@@ -83,7 +85,30 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [actionFilter, search]);
+  }, [actionFilter, search, monthFilter, yearFilter]);
+
+  const handleExportCSV = () => {
+    if (!logs || logs.length === 0) return;
+    const headers = ["Log ID", "Timestamp", "User Name", "User Role", "Action Type", "Event Details", "Staff ID"];
+    const rows = logs.map((log) => [
+      log.id,
+      `"${new Date(log.created_at).toLocaleString("en-GB")}"`,
+      `"${log.user_name || ""}"`,
+      `"${log.user_role || ""}"`,
+      `"${log.action || ""}"`,
+      `"${(log.details || "").replace(/"/g, '""')}"`,
+      log.staff_id || "",
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `TempStaff_Audit_Logs_${yearFilter}_${monthFilter}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <SidebarLayout>
@@ -100,21 +125,31 @@ export default function AuditLogsPage() {
             </p>
           </div>
 
-          <button
-            onClick={fetchLogs}
-            className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-2 self-start md:self-auto transition"
-          >
-            <RefreshCw className="h-4 w-4 text-emerald-500" />
-            <span>Refresh Audit Log</span>
-          </button>
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <button
+              onClick={handleExportCSV}
+              disabled={logs.length === 0}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition disabled:opacity-50"
+            >
+              <FileText className="h-4 w-4" />
+              <span>Export Audit Logs (CSV)</span>
+            </button>
+            <button
+              onClick={fetchLogs}
+              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-2 transition"
+            >
+              <RefreshCw className="h-4 w-4 text-emerald-500" />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative w-full sm:w-80">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="relative w-full">
             <input
               type="text"
-              placeholder="Search activity details or user..."
+              placeholder="Search details or user..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
@@ -122,22 +157,59 @@ export default function AuditLogsPage() {
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
           </div>
 
-          <div className="w-full sm:w-60">
-            <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter Action" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All System Actions</SelectItem>
-                <SelectItem value="BULK_RENEW">Bulk Contract Renewals</SelectItem>
-                <SelectItem value="RENEW">Single Contract Renewals</SelectItem>
-                <SelectItem value="PAYMENT_STATUS_CHANGE">Payment Status Change</SelectItem>
-                <SelectItem value="TERMINATE">Early Terminations</SelectItem>
-                <SelectItem value="REINSTATE">Staff Reinstatements</SelectItem>
-                <SelectItem value="CREATE">Staff Enrollments</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Month Filter */}
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter Month" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Months</SelectItem>
+              <SelectItem value="1">January</SelectItem>
+              <SelectItem value="2">February</SelectItem>
+              <SelectItem value="3">March</SelectItem>
+              <SelectItem value="4">April</SelectItem>
+              <SelectItem value="5">May</SelectItem>
+              <SelectItem value="6">June</SelectItem>
+              <SelectItem value="7">July</SelectItem>
+              <SelectItem value="8">August</SelectItem>
+              <SelectItem value="9">September</SelectItem>
+              <SelectItem value="10">October</SelectItem>
+              <SelectItem value="11">November</SelectItem>
+              <SelectItem value="12">December</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Year Filter */}
+          <Select value={yearFilter} onValueChange={setYearFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter Year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              <SelectItem value="2026">2026</SelectItem>
+              <SelectItem value="2025">2025</SelectItem>
+              <SelectItem value="2024">2024</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Action Filter */}
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter Action" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Actions</SelectItem>
+              <SelectItem value="BULK_RENEW">Bulk Renewals</SelectItem>
+              <SelectItem value="RENEW">Renewals</SelectItem>
+              <SelectItem value="SUBMIT_EDIT_FOR_APPROVAL">Edit Requests</SelectItem>
+              <SelectItem value="APPROVE_EDIT">Approved Edits</SelectItem>
+              <SelectItem value="STATION_TRANSFER">Station Transfers</SelectItem>
+              <SelectItem value="PAYMENT_STATUS_CHANGE">Payment Holds</SelectItem>
+              <SelectItem value="TERMINATE">Terminations</SelectItem>
+              <SelectItem value="REINSTATE">Reinstatements</SelectItem>
+              <SelectItem value="CREATE">Staff Enrollments</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Audit Log Table */}

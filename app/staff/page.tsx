@@ -944,15 +944,6 @@ export default function StaffListPage() {
                                 <span>Reinstate</span>
                               </button>
                             )}
-
-                            {/* Delete Staff Record Button */}
-                            <button
-                              onClick={() => requestDeleteStaffFromTable(staff)}
-                              title="Permanently Delete Staff Record"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1023,7 +1014,14 @@ export default function StaffListPage() {
         isOpen={!!renewTarget}
         onClose={() => setRenewTarget(null)}
         staff={renewTarget}
-        onSuccess={fetchStaff}
+        onSuccess={(result: any) => {
+          fetchStaff();
+          if (result?.isPendingApproval) {
+            setToast({ type: "info", message: result.message || "Contract renewal request submitted to Approval Officer for review." });
+          } else {
+            setToast({ type: "success", message: "Contract renewed successfully." });
+          }
+        }}
       />
 
       {/* Terminate Modal */}
@@ -1031,7 +1029,14 @@ export default function StaffListPage() {
         isOpen={!!terminateTarget}
         onClose={() => setTerminateTarget(null)}
         staff={terminateTarget}
-        onSuccess={fetchStaff}
+        onSuccess={(result: any) => {
+          fetchStaff();
+          if (result?.isPendingApproval) {
+            setToast({ type: "info", message: result.message || "Contract termination request submitted to Approval Officer for review." });
+          } else {
+            setToast({ type: "success", message: "Contract terminated successfully." });
+          }
+        }}
       />
 
       {/* Reinstate Modal */}

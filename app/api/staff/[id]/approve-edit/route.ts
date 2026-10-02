@@ -34,7 +34,112 @@ export async function POST(
     try {
       parsedEdits = JSON.parse(staff.pending_edits);
     } catch {
-      return NextResponse.json({ success: false, error: "Invalid pending edit payload" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Invalid pending request payload" }, { status: 400 });
+    }
+
+    const requesterName = parsedEdits.requested_by || "HR Officer";
+    const requestType = parsedEdits.type || "EDIT";
+
+    // Handle Renewal Approval
+    if (requestType === "RENEWAL" || staff.approval_status === "PENDING_RENEWAL_APPROVAL") {
+      const currentContract = await prisma.contract.findFirst({
+        where: { staff_id: staffId, is_current: true },
+      });
+
+      if (currentContract) {
+        const newStartDate = parsedEdits.new_start_date ? new Date(parsedEdits.new_start_date) : currentContract.end_date;
+        const newEndDate = parsedEdits.new_end_date ? new Date(parsedEdits.new_end_date) : calculateEndDate(newStartDate);
+        const nextRenewalNumber = parsedEdits.renewal_number || (currentContract.renewal_number + 1);
+
+        await prisma.$transaction(async (tx: any) => {
+          await tx.contract.updateMany({
+            where: { staff_id: staffId },
+            data: { is_current: false },
+          });
+
+          await tx.contract.create({
+            data: {
+              staff_id: staffId,
+              start_date: newStartDate,
+              end_date: newEndDate,
+              renewal_number: nextRenewalNumber,
+              is_current: true,
+              is_terminated: false,
+            },
+          });
+
+          await tx.staff.update({
+            where: { id: staffId },
+            data: {
+              approval_status: "APPROVED",
+              approved_by: actorName,
+              approved_at: new Date(),
+              pending_edits: null,
+            },
+          });
+        });
+
+        await prisma.auditLog.create({
+          data: {
+            user_name: actorName,
+            user_role: actorRole,
+            action: "APPROVE_RENEWAL",
+            details: `${actorName} (${actorRole}) APPROVED contract renewal request for ${staff.full_name} submitted by ${requesterName}.`,
+            staff_id: staffId,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: `Contract renewal request for ${staff.full_name} has been approved.`,
+        });
+      }
+    }
+
+    // Handle Termination Approval
+    if (requestType === "TERMINATION" || staff.approval_status === "PENDING_TERMINATION_APPROVAL") {
+      const currentContract = await prisma.contract.findFirst({
+        where: { staff_id: staffId, is_current: true },
+      });
+
+      if (currentContract) {
+        const termDate = parsedEdits.termination_date ? new Date(parsedEdits.termination_date) : new Date();
+        const termReason = parsedEdits.termination_reason || "Approved by Approval Officer";
+
+        await prisma.contract.update({
+          where: { id: currentContract.id },
+          data: {
+            is_terminated: true,
+            termination_date: termDate,
+            termination_reason: termReason,
+          },
+        });
+
+        await prisma.staff.update({
+          where: { id: staffId },
+          data: {
+            approval_status: "APPROVED",
+            approved_by: actorName,
+            approved_at: new Date(),
+            pending_edits: null,
+          },
+        });
+
+        await prisma.auditLog.create({
+          data: {
+            user_name: actorName,
+            user_role: actorRole,
+            action: "APPROVE_TERMINATION",
+            details: `${actorName} (${actorRole}) APPROVED contract termination request for ${staff.full_name} submitted by ${requesterName}.`,
+            staff_id: staffId,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: `Contract termination request for ${staff.full_name} has been approved.`,
+        });
+      }
     }
 
     const changes = parsedEdits.changes || {};
@@ -109,20 +214,19 @@ export async function POST(
       },
     });
 
-    const requesterName = parsedEdits.requested_by || "HR Officer";
     await prisma.auditLog.create({
       data: {
         user_name: actorName,
         user_role: actorRole,
         action: "APPROVE_EDIT",
-        details: `${actorName} (${actorRole}) APPROVED employee edit request for ${updated.full_name} submitted by ${requesterName}.`,
+        details: `${actorName} (${actorRole}) APPROVED employee change request for ${updated.full_name} submitted by ${requesterName}.`,
         staff_id: staffId,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: `Employee edit request for ${updated.full_name} has been approved and applied.`,
+      message: `Employee change request for ${updated.full_name} has been approved and applied.`,
       data: updated,
     });
   } catch (error: any) {

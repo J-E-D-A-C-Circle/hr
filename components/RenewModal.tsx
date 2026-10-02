@@ -60,12 +60,25 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
     setError(null);
 
     try {
+      let userName = "HR Officer";
+      let userRole = "HR Officer";
+      try {
+        const checkRes = await fetch("/api/auth/check");
+        const checkJson = await checkRes.json();
+        if (checkJson?.user) {
+          userName = checkJson.user.name || checkJson.user.username || "HR Officer";
+          userRole = checkJson.user.role || "HR Officer";
+        }
+      } catch {}
+
       const res = await fetch(`/api/staff/${staff.id}/renew`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           custom_start_date: startDate,
           custom_end_date: endDate,
+          user_name: userName,
+          user_role: userRole,
         }),
       });
 
@@ -74,7 +87,7 @@ export default function RenewModal({ isOpen, onClose, staff, onSuccess }: RenewM
         throw new Error(json.error || "Failed to renew contract.");
       }
 
-      onSuccess();
+      onSuccess(json);
       onClose();
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");

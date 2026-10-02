@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get("action");
     const search = searchParams.get("search");
     const staffIdParam = searchParams.get("staff_id");
+    const month = searchParams.get("month");
+    const year = searchParams.get("year");
 
     const whereClause: any = {};
     if (staffIdParam) {
@@ -32,10 +34,33 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Month & Year filtering
+    if (year && year !== "all") {
+      const y = parseInt(year, 10);
+      if (!isNaN(y)) {
+        let startDate: Date;
+        let endDate: Date;
+
+        if (month && month !== "all") {
+          const m = parseInt(month, 10) - 1; // 0-indexed in JS Date
+          startDate = new Date(y, m, 1, 0, 0, 0, 0);
+          endDate = new Date(y, m + 1, 0, 23, 59, 59, 999);
+        } else {
+          startDate = new Date(y, 0, 1, 0, 0, 0, 0);
+          endDate = new Date(y, 11, 31, 23, 59, 59, 999);
+        }
+
+        whereClause.created_at = {
+          gte: startDate,
+          lte: endDate,
+        };
+      }
+    }
+
     const logs = await prisma.auditLog.findMany({
       where: whereClause,
       orderBy: { created_at: "desc" },
-      take: 200,
+      take: 500,
     });
 
     return NextResponse.json({

@@ -34,12 +34,25 @@ export default function TerminateModal({ isOpen, onClose, staff, onSuccess }: Te
     setError(null);
 
     try {
+      let userName = "HR Officer";
+      let userRole = "HR Officer";
+      try {
+        const checkRes = await fetch("/api/auth/check");
+        const checkJson = await checkRes.json();
+        if (checkJson?.user) {
+          userName = checkJson.user.name || checkJson.user.username || "HR Officer";
+          userRole = checkJson.user.role || "HR Officer";
+        }
+      } catch {}
+
       const res = await fetch(`/api/staff/${staff.id}/terminate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           termination_date: terminationDate,
           termination_reason: reason.trim(),
+          user_name: userName,
+          user_role: userRole,
         }),
       });
 
@@ -48,7 +61,7 @@ export default function TerminateModal({ isOpen, onClose, staff, onSuccess }: Te
         throw new Error(json.error || "Failed to terminate contract.");
       }
 
-      onSuccess();
+      onSuccess(json);
       onClose();
     } catch (err: any) {
       setError(err.message || "An error occurred while terminating contract.");
