@@ -29,11 +29,12 @@ model Staff {
   unpaid_reason       String?
   ssnit_no            String?
   nia_number          String?
-  approval_status     String?    @default("APPROVED") // "PENDING_APPROVAL", "APPROVED", "REJECTED"
+  approval_status     String?    @default("APPROVED") // "PENDING_APPROVAL", "APPROVED", "REJECTED", "PENDING_EDIT_APPROVAL"
   created_by          String?    @default("HR Officer")
   approved_by         String?
   approved_at         DateTime?
   rejection_reason    String?
+  pending_edits       String?    @db.Text
   created_at          DateTime   @default(now())
 
   contracts           Contract[]

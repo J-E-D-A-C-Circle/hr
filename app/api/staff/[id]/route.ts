@@ -102,9 +102,74 @@ export async function PATCH(
       }
     }
 
-    const previousStaff = await prisma.staff.findUnique({ where: { id: staffId } });
+    const actorName = user_name || "HR Officer";
+    const actorRole = user_role || "HR Officer";
+    const roleUpper = actorRole.toUpperCase();
 
-    // Update current contract start_date & end_date if provided
+    const isApprovalAuthority =
+      roleUpper.includes("APPROVAL") ||
+      roleUpper.includes("MANAGER") ||
+      roleUpper.includes("DIRECTOR") ||
+      roleUpper.includes("INSPECTOR") ||
+      roleUpper.includes("ADMIN") ||
+      roleUpper.includes("SUPER");
+
+    // If submitted by an HR Officer (not an approval authority), send for Approval Officer approval
+    if (!isApprovalAuthority) {
+      const editPayload = {
+        requested_by: actorName,
+        requested_role: actorRole,
+        requested_at: new Date().toISOString(),
+        changes: {
+          staff_code,
+          full_name,
+          date_of_birth,
+          gender,
+          email,
+          ssnit_no,
+          nia_number,
+          role,
+          department,
+          phone,
+          bank_name,
+          bank_branch,
+          bank_account,
+          salary,
+          start_date,
+          end_date,
+        },
+      };
+
+      const updated = await prisma.staff.update({
+        where: { id: staffId },
+        data: {
+          pending_edits: JSON.stringify(editPayload),
+          approval_status: "PENDING_EDIT_APPROVAL",
+        },
+        include: {
+          contracts: { orderBy: { created_at: "desc" } },
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          user_name: actorName,
+          user_role: actorRole,
+          action: "SUBMIT_EDIT_FOR_APPROVAL",
+          details: `${actorName} (${actorRole}) submitted an employee edit request for ${previousStaff?.full_name || updated.full_name} awaiting Approval Officer review.`,
+          staff_id: staffId,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        isPendingApproval: true,
+        message: "Edit request submitted to Approval Officer for review.",
+        data: updated,
+      });
+    }
+
+    // Direct Edit path for Approval Officers, HR Managers & Administrators
     if (start_date || end_date) {
       const currentContract = await prisma.contract.findFirst({
         where: { staff_id: staffId, is_current: true },
@@ -133,7 +198,7 @@ export async function PATCH(
       }
     }
 
-    const updated = await (prisma as any).staff.update({
+    const updated = await prisma.staff.update({
       where: { id: staffId },
       data: {
         staff_code: staff_code !== undefined ? staff_code : undefined,
@@ -150,6 +215,7 @@ export async function PATCH(
         bank_branch: bank_branch !== undefined ? bank_branch : undefined,
         bank_account: bank_account !== undefined ? bank_account : undefined,
         salary: salary !== undefined ? (salary ? parseFloat(salary) : null) : undefined,
+        pending_edits: null,
       },
       include: {
         contracts: {
@@ -157,9 +223,6 @@ export async function PATCH(
         },
       },
     });
-
-    const actorName = user_name || "HR Officer";
-    const actorRole = user_role || "HR Officer";
 
     // Track changed fields for detailed audit trail
     const changedFields: string[] = [];
@@ -185,7 +248,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({ success: true, message: "Staff profile updated successfully.", data: updated });
   } catch (error: any) {
     console.error("PATCH /api/staff/[id] error:", error);
     return NextResponse.json(

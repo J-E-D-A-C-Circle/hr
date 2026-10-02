@@ -50,6 +50,7 @@ export default function ViewStaffDetailModal({
   const [loadingLogs, setLoadingLogs] = useState<boolean>(false);
   const [rejecting, setRejecting] = useState<boolean>(false);
   const [rejectReason, setRejectReason] = useState<string>("");
+  const [processingEditAction, setProcessingEditAction] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && staff?.id) {
@@ -72,6 +73,50 @@ export default function ViewStaffDetailModal({
       console.error("Error fetching staff audit logs:", err);
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const handleApproveEditRequest = async () => {
+    if (!staff?.id) return;
+    setProcessingEditAction(true);
+    try {
+      const res = await fetch(`/api/staff/${staff.id}/approve-edit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_name: currentUserName, user_role: currentUserRole }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to approve edit request");
+      if (onApprove) onApprove();
+      else if (onClose) onClose();
+    } catch (err: any) {
+      alert(err.message || "Failed to approve edit request.");
+    } finally {
+      setProcessingEditAction(false);
+    }
+  };
+
+  const handleRejectEditRequest = async () => {
+    if (!staff?.id) return;
+    setProcessingEditAction(true);
+    try {
+      const res = await fetch(`/api/staff/${staff.id}/reject-edit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_name: currentUserName,
+          user_role: currentUserRole,
+          rejection_reason: rejectReason || "Edit request rejected by Approval Officer",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to reject edit request");
+      if (onReject) onReject("Edit request rejected");
+      else if (onClose) onClose();
+    } catch (err: any) {
+      alert(err.message || "Failed to reject edit request.");
+    } finally {
+      setProcessingEditAction(false);
     }
   };
 
@@ -215,11 +260,95 @@ export default function ViewStaffDetailModal({
                   <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block">
                     Approval Workflow
                   </span>
-                  <span className={`font-bold text-xs mt-1 block ${isPending ? "text-amber-600" : isRejected ? "text-rose-600" : "text-emerald-600"}`}>
-                    {approvalStatus === "PENDING_APPROVAL" ? "Pending Officer Review" : approvalStatus}
+                  <span className={`font-bold text-xs mt-1 block ${isPending || approvalStatus === "PENDING_EDIT_APPROVAL" ? "text-amber-600" : isRejected ? "text-rose-600" : "text-emerald-600"}`}>
+                    {approvalStatus === "PENDING_APPROVAL"
+                      ? "Pending New Staff Approval"
+                      : approvalStatus === "PENDING_EDIT_APPROVAL" || staff.pending_edits
+                      ? "Pending Edit Approval"
+                      : approvalStatus}
                   </span>
                 </div>
               </div>
+
+              {/* Pending Employee Edit Request Comparison Card */}
+              {staff.pending_edits && (() => {
+                let editObj: any = null;
+                try { editObj = JSON.parse(staff.pending_edits); } catch {}
+                if (!editObj || !editObj.changes) return null;
+                const changes = editObj.changes;
+                const changedEntries = Object.entries(changes).filter(([k, v]) => {
+                  if (v === undefined || v === null || v === "") return false;
+                  let curr: any = (staff as any)[k];
+                  if (k === "salary") curr = staff.salary ? String(staff.salary) : "";
+                  return String(v) !== String(curr || "");
+                });
+
+                return (
+                  <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Pencil className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <h4 className="font-bold text-amber-900 dark:text-amber-100 text-xs">
+                          Pending Employee Edit Request Submitted by {editObj.requested_by || "HR Officer"}
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-700 dark:text-amber-300 font-semibold">
+                        {formatDateReadable(editObj.requested_at)}
+                      </span>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-800/80 overflow-hidden text-xs">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-amber-100/60 dark:bg-amber-950/80 text-amber-950 dark:text-amber-100 font-bold text-[11px]">
+                          <tr>
+                            <th className="p-2 border-b border-amber-200 dark:border-amber-800">Field Name</th>
+                            <th className="p-2 border-b border-amber-200 dark:border-amber-800">Current Profile Value</th>
+                            <th className="p-2 border-b border-amber-200 dark:border-amber-800">Requested Edit Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-amber-100 dark:divide-amber-900/40 font-medium">
+                          {changedEntries.length === 0 ? (
+                            <tr>
+                              <td colSpan={3} className="p-3 text-center text-slate-500 italic">No field differences detected.</td>
+                            </tr>
+                          ) : (
+                            changedEntries.map(([key, val]) => (
+                              <tr key={key}>
+                                <td className="p-2 capitalize font-bold text-slate-700 dark:text-slate-300">{key.replace("_", " ")}</td>
+                                <td className="p-2 text-slate-400 line-through">{String((staff as any)[key] || "—")}</td>
+                                <td className="p-2 text-amber-700 dark:text-amber-300 font-bold">{String(val)}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {canApproveReject && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-200 dark:border-amber-800">
+                        <button
+                          type="button"
+                          onClick={handleRejectEditRequest}
+                          disabled={processingEditAction}
+                          className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold transition flex items-center gap-1 shadow-xs disabled:opacity-50"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          <span>Reject Edit Request</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleApproveEditRequest}
+                          disabled={processingEditAction}
+                          className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold transition flex items-center gap-1 shadow-xs disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>Approve & Apply Edits</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Bio & Contact Information Grid */}
               <div className="space-y-2">

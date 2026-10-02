@@ -117,7 +117,7 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
       }
 
       if (onSuccess) {
-        onSuccess(json.data);
+        onSuccess(json);
       }
       onClose();
     } catch (err: any) {

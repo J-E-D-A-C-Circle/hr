@@ -271,6 +271,15 @@ export default function StaffListPage() {
     roleUpper.includes("ADMIN") ||
     roleUpper.includes("SUPER");
 
+  // Only Validation Officers, HR Managers, Directors, Inspectors & Administrators can see/use validate button
+  const canValidateStaff =
+    roleUpper.includes("VALIDAT") ||
+    roleUpper.includes("MANAGER") ||
+    roleUpper.includes("DIRECTOR") ||
+    roleUpper.includes("INSPECTOR") ||
+    roleUpper.includes("ADMIN") ||
+    roleUpper.includes("SUPER");
+
   const isValidatedForMonth = (staffItem: any, month: string) => {
     if (!staffItem.validations) return false;
     return staffItem.validations.some((v: any) => v.month.toLowerCase() === month.toLowerCase());
@@ -817,7 +826,15 @@ export default function StaffListPage() {
 
                         {/* Status Badge */}
                         <td className="px-4 py-3.5">
-                          <StatusBadge status={status} daysRemaining={days} size="sm" />
+                          <div className="flex flex-col gap-1 items-start">
+                            <StatusBadge status={status} daysRemaining={days} size="sm" />
+                            {staff.approval_status === "PENDING_EDIT_APPROVAL" && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-800 flex items-center gap-1 animate-pulse">
+                                <Clock className="h-3 w-3 text-amber-600" />
+                                <span>Pending Edit Approval</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Renewal # */}
@@ -857,23 +874,25 @@ export default function StaffListPage() {
                               </button>
                             )}
 
-                            {/* Validate Button (Tick Icon) */}
-                            <button
-                              onClick={() => setValidateTarget(staff)}
-                              disabled={status === "Expired" || status === "Terminated"}
-                              title={
-                                status === "Expired" || status === "Terminated"
-                                  ? `Validation Disabled (${status} Staff)`
-                                  : "Click to Validate Staff for Monthly Payment"
-                              }
-                              className={`p-1.5 rounded-lg transition ${
-                                status === "Expired" || status === "Terminated"
-                                  ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40"
-                                  : "text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                              }`}
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </button>
+                            {/* Validate Button (Tick Icon - Restricted to Validation Officer, HR Manager, Director, Inspector, Admin) */}
+                            {canValidateStaff && (
+                              <button
+                                onClick={() => setValidateTarget(staff)}
+                                disabled={status === "Expired" || status === "Terminated"}
+                                title={
+                                  status === "Expired" || status === "Terminated"
+                                    ? `Validation Disabled (${status} Staff)`
+                                    : "Click to Validate Staff for Monthly Payment"
+                                }
+                                className={`p-1.5 rounded-lg transition ${
+                                  status === "Expired" || status === "Terminated"
+                                    ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40"
+                                    : "text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                }`}
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </button>
+                            )}
 
                             <button
                               onClick={() => setViewStaffTarget(staff)}
@@ -1052,9 +1071,13 @@ export default function StaffListPage() {
         isOpen={!!editStaffTarget}
         staff={editStaffTarget}
         onClose={() => setEditStaffTarget(null)}
-        onSuccess={() => {
+        onSuccess={(result) => {
           fetchStaff();
-          setToast({ type: "success", message: "Employee data updated successfully." });
+          if (result?.isPendingApproval) {
+            setToast({ type: "info", message: result.message || "Edit request submitted to Approval Officer for review." });
+          } else {
+            setToast({ type: "success", message: "Employee data updated successfully." });
+          }
         }}
       />
 
