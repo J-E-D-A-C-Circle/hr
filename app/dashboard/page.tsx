@@ -195,23 +195,22 @@ export default function Dashboard() {
         year: 'numeric',
       }).toUpperCase();
 
-      const applicantName = letterObj.applicantName 
-        || `${app.first_name || ''} ${app.middle_name ? app.middle_name + ' ' : ''}${app.last_name || ''}`.trim() 
-        || 'APPLICANT';
-      const applicantAddress = letterObj.applicantAddress || app.residential_address || 'ACCRA - GHANA';
-      const refCode = (app.nss_number || String(app.id || '0127')).slice(-4);
-      const displayRef = letterObj.customRefNumber || `DVLA/HR/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear()).slice(-2)}/${letterType === 'reposting' ? 'REPOST' : 'PLACMT'}/${refCode}`;
+      const dynamicFullName = `${app.first_name || ''} ${app.middle_name ? app.middle_name + ' ' : ''}${app.last_name || ''}`.trim();
+      const applicantName = letterObj.applicantName || dynamicFullName || user?.full_name || 'NSS Personnel';
+      const applicantAddress = letterObj.applicantAddress || app.residential_address || '';
+      const refSuffix = app.nss_number || String(app.id || '0127');
+      const displayRef = letterObj.customRefNumber || `DVLA/HR/NSS/${refSuffix}`;
       const yourRef = letterObj.yourRef || '....................................';
 
       const displaySubject = letterObj.customSubject || (letterType === 'reposting' 
-        ? 'OFFICIAL REPOSTING & RE-ASSIGNMENT RELEASE'
-        : 'NSS POSTING APPOINTMENT');
+        ? 'REPOSTING OF NATIONAL SERVICE PERSONNEL.'
+        : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
 
-      const salutation = letterObj.salutation || 'Dear Sir/Madam,';
-      const stationName = app.posting_station || app.posting_district || app.district || 'Head Office (Accra 37)';
-      const deptName = app.posting_department || 'Operations';
-      const posTitle = app.course_program || 'NSS Personnel';
-      const effectiveDate = letterObj.effectiveDate || (app.service_period_start ? formatDate(app.service_period_start) : 'Monday, September 1, 2026');
+      const salutation = letterObj.salutation || `Dear ${applicantName},`;
+      const stationName = app.posting_station || app.posting_district || app.district || 'Bonwire District Office';
+      const serviceYear = app.service_year ? `${app.service_year}/${parseInt(String(app.service_year), 10) + 1}` : '2025/2026';
+      const commencementDate = letterObj.commencementDate || (app.service_period_start ? formatDate(app.service_period_start) : 'Monday, 17th November, 2025');
+      const endDate = letterObj.endDate || (app.service_period_end ? formatDate(app.service_period_end) : 'Friday, 30th October, 2026');
       const signatoryName = letterObj.signatoryName || 'EPHRAIM NII TAN SACKEY';
       const signatoryTitle = letterObj.signatoryTitle || 'AG. DIRECTOR HR';
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
@@ -221,11 +220,7 @@ export default function Dashboard() {
         : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
         ? letterObj.ccList
         : [
-            'Chief Executive',
-            'Deputy Chief Executives',
-            'Ag. Director, IT',
-            'Ag. Director Administration',
-            'Manager, HR (C&B)',
+            'District Licensing Manager',
           ];
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
@@ -451,14 +446,13 @@ export default function Dashboard() {
                 </div>
                 <div style="text-align: right;">
                   <strong style="text-transform: uppercase;">${issueDate}</strong><br/>
-                  <span style="font-family: monospace; font-size: 11px; color: #6b7280;">............/............/20..........</span>
                 </div>
               </div>
 
               <!-- ADDRESSEE -->
               <div class="addressee">
                 <div>${applicantName}</div>
-                <div style="color: #374151; font-weight: normal;">${applicantAddress}</div>
+                ${applicantAddress ? `<div style="color: #374151; font-weight: normal;">${applicantAddress}</div>` : ''}
               </div>
 
               <!-- SALUTATION -->
@@ -471,26 +465,18 @@ export default function Dashboard() {
 
               <!-- BODY PARAGRAPHS -->
               <div class="body-text">
-                ${letterObj.customBodyText ? letterObj.customBodyText : letterType === 'reposting' ? `
-                  This is to formally inform you that, your application for National Service placement at the Driver and Vehicle Licensing Authority (DVLA) has NOT BEEN ACCEPTED.
-
-                  Consequently, this official notification serves as your formal release letter for re-posting back to the National Service Scheme (NSS) Secretariat for re-assignment to an alternative user agency.
-
-                  You are kindly advised to submit a copy of this official release letter to the regional or national NSS Secretariat to facilitate your re-posting.
-
-                  Thank you.
-                ` : `
-                  This is to inform you that, you have been temporarily posted to the ${stationName} as an ${posTitle}, assigned to the ${deptName} Department, effective ${effectiveDate}.
-
-                  You are to report to the Ag. Director Human Resource and Ag. Director Administration, for necessary instructions and directives concerning your official duties.
-
-                  Thank you.
+                ${letterObj.customBodyText ? `<div style="white-space: pre-line;">${letterObj.customBodyText}</div>` : `
+                  <p>This is to inform you that you have been ${letterType === 'reposting' ? 'reposted' : 'assigned'} to the <strong>${stationName}</strong> for the <strong>${serviceYear}</strong> service year.</p>
+                  <p>Your National Service commences on <strong>${commencementDate}</strong> and ends on <strong>${endDate}</strong>.</p>
+                  <p>You are required to report to the District Licensing Manager for orientation and assignment.</p>
+                  <p>Please note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.</p>
                 `}
               </div>
 
               <!-- FOOTER & SIGNATURE -->
               <div class="footer-block">
                 <div class="signatory-block">
+                  <div style="margin-bottom: 8px;">Thank you.</div>
                   <div>Yours faithfully,</div>
                   <div style="margin: 8px 0;">
                     <svg class="signature-svg" viewBox="0 0 200 60" fill="none" stroke="#1a365d" stroke-width="2">
@@ -506,7 +492,7 @@ export default function Dashboard() {
                   <div class="cc-box">
                     <strong>Cc:</strong>
                     <ul>
-                      ${ccListItems.map(item => `<li>&bull; ${item}</li>`).join('')}
+                      ${ccListItems.map(item => `<li>${item}</li>`).join('')}
                     </ul>
                   </div>
                 </div>

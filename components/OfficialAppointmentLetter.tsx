@@ -7,11 +7,14 @@ export interface OfficialAppointmentLetterProps {
   verificationCode?: string;
   applicantName: string;
   applicantAddress?: string;
-  positionTitle: string;
-  departmentName: string;
+  positionTitle?: string;
+  departmentName?: string;
   postingStationName?: string;
   appointmentType?: string; // TEMPORARY, CONTRACT, PERMANENT, REPOSTING
   effectiveDate?: string;
+  commencementDate?: string;
+  endDate?: string;
+  serviceYear?: string;
   issueDate?: string;
   salutation?: string;
   customRefNumber?: string;
@@ -32,14 +35,17 @@ export interface OfficialAppointmentLetterProps {
 export default function OfficialAppointmentLetter({
   referenceNumber,
   applicantName,
-  applicantAddress = 'ACCRA - GHANA',
-  positionTitle,
-  departmentName,
+  applicantAddress,
+  positionTitle = 'NSS Personnel',
+  departmentName = 'Licensing',
   postingStationName = 'Head Office',
   appointmentType = 'TEMPORARY',
-  effectiveDate = 'Monday, August 3, 2026',
-  issueDate = 'JULY 30, 2026',
-  salutation = 'Dear Sir/Madam,',
+  effectiveDate = 'Monday, 17th November, 2025',
+  commencementDate = 'Monday, 17th November, 2025',
+  endDate = 'Friday, 30th October, 2026',
+  serviceYear = '2025/2026',
+  issueDate,
+  salutation,
   customRefNumber,
   yourRef,
   customSubject,
@@ -53,13 +59,15 @@ export default function OfficialAppointmentLetter({
   ccList,
   isPrintView = false,
 }: OfficialAppointmentLetterProps) {
-  const displayRef = customRefNumber || `DVLA/HR/07/26/PLACMT/${referenceNumber?.slice(-4) || '0127'}`;
+  const displayRef = customRefNumber || (referenceNumber ? `DVLA/HR/NSS/${referenceNumber}` : 'DVLA/HR/NSS/11/5/25');
   const displaySubject = customSubject || (
     appointmentType === 'CONTRACT' ? 'OFFER OF CONTRACT APPOINTMENT' :
     appointmentType === 'PERMANENT' ? 'OFFER OF PERMANENT APPOINTMENT' :
-    appointmentType === 'REPOSTING' ? 'OFFICIAL REPOSTING & RE-ASSIGNMENT RELEASE' :
-    'NSS POSTING APPOINTMENT'
+    appointmentType === 'REPOSTING' ? 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' :
+    'POSTING OF NATIONAL SERVICE PERSONNEL.'
   );
+
+  const displaySalutation = salutation || (applicantName ? `Dear ${applicantName},` : 'Dear Sir/Madam,');
 
   // Parse CC list array or multiline string
   const formattedCcList: string[] = typeof ccList === 'string'
@@ -67,11 +75,7 @@ export default function OfficialAppointmentLetter({
     : Array.isArray(ccList) && ccList.length > 0
     ? ccList
     : [
-        'Chief Executive',
-        'Deputy Chief Executives',
-        'Ag. Director, IT',
-        'Ag. Director Administration',
-        'Manager, HR (C&B)',
+        'District Licensing Manager',
       ];
 
   return (
@@ -160,12 +164,12 @@ export default function OfficialAppointmentLetter({
       {/* CANDIDATE ADDRESSEE */}
       <div className="mb-6 space-y-0.5 uppercase font-bold text-gray-900 relative z-10" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
         <div className="font-black text-gray-950" style={{ fontSize: '12pt' }}>{applicantName}</div>
-        <div className="text-gray-700" style={{ fontSize: '12pt' }}>{applicantAddress}</div>
+        {applicantAddress && <div className="text-gray-700" style={{ fontSize: '12pt' }}>{applicantAddress}</div>}
       </div>
 
       {/* SALUTATION */}
       <div className="mb-4 text-gray-900 relative z-10" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-        {salutation}
+        {displaySalutation}
       </div>
 
       {/* SUBJECT TITLE */}
@@ -188,7 +192,7 @@ export default function OfficialAppointmentLetter({
               This appointment is for an initial period of <strong>{contractDuration}</strong>, subject to satisfactory performance and renewal. Your remuneration and terms of engagement will be in accordance with <strong>{salaryGrade}</strong>.
             </p>
             <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              You are requested to report to the Ag. Director Human Resource for formal documentation and assumption of duty.
+              You are requested to report to the District Licensing Manager for orientation and assignment.
             </p>
             <p className="pt-2" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
               Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
@@ -200,10 +204,10 @@ export default function OfficialAppointmentLetter({
               I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>.
             </p>
             <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              Your appointment is subject to a probation period of <strong>{probationPeriod}</strong>, during which your performance and conduct will be evaluated for confirmation. Your salary and benefits will be attached to <strong>{salaryGrade}</strong> of the Authority&apos;s Approved Salary Structure.
+              Your appointment is subject to a probation period of <strong>{probationPeriod}</strong>, during which your performance and conduct will be evaluated for confirmation.
             </p>
             <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              You are required to report to the Ag. Director Human Resource on <strong>{effectiveDate}</strong> for formal onboarding and IPPD payroll documentation.
+              You are required to report to the District Licensing Manager for orientation and assignment.
             </p>
             <p className="pt-2" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
               Kindly sign and return the duplicate copy of this letter to signify your formal acceptance of this offer.
@@ -212,22 +216,26 @@ export default function OfficialAppointmentLetter({
         ) : (
           <>
             <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              This is to inform you that, you have been temporarily posted to the{' '}
-              <strong>{postingStationName}</strong> as an <strong>{positionTitle}</strong>, assigned to
-              the <strong>{departmentName} Department</strong>, effective <strong>{effectiveDate}</strong>.
+              This is to inform you that you have been {appointmentType === 'REPOSTING' ? 'reposted' : 'assigned'} to the <strong>{postingStationName}</strong> for the <strong>{serviceYear}</strong> service year.
             </p>
             <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              You are to report to the Ag. Director Human Resource and Ag. Director Administration, for necessary instructions and directives concerning your official duties.
+              Your National Service commences on <strong>{commencementDate}</strong> and ends on <strong>{endDate}</strong>.
             </p>
-            <p className="pt-2" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>Thank you.</p>
+            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+              You are required to report to the District Licensing Manager for orientation and assignment.
+            </p>
+            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+              Please note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.
+            </p>
           </>
         )}
       </div>
 
       {/* SIGNATORY & FOOTER */}
-      <div className="mt-8 pt-4 relative z-10 border-t border-amber-900/20" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+      <div className="mt-8 pt-4 relative z-10" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
         <div className="space-y-4">
           <div>
+            <div className="text-gray-900 mb-2" style={{ fontSize: '12pt' }}>Thank you.</div>
             <div className="text-gray-900" style={{ fontSize: '12pt' }}>Yours faithfully,</div>
             {/* Handwritten Signature SVG */}
             <div className="my-2 h-12 flex items-center">
@@ -248,7 +256,7 @@ export default function OfficialAppointmentLetter({
               <span className="font-bold" style={{ fontSize: '12pt' }}>Cc:</span>
               <ul className="space-y-0.5 text-gray-800">
                 {formattedCcList.map((item, idx) => (
-                  <li key={idx} style={{ fontSize: '12pt' }}>&bull; {item}</li>
+                  <li key={idx} style={{ fontSize: '12pt' }}>{item}</li>
                 ))}
               </ul>
             </div>

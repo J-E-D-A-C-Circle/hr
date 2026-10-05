@@ -60,19 +60,20 @@ export default function AppointmentLetterModal({
       setAppointmentType((existingLetter.appointmentType as any) || (application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'));
       setLetterDate(existingLetter.letterDate || todayStr);
       setSalutation(existingLetter.salutation || 'Dear Sir/Madam,');
-      setCustomRefNumber(existingLetter.customRefNumber || '');
+      const defaultRef = application.nss_number ? `DVLA/HR/NSS/${application.nss_number}` : `DVLA/HR/NSS/${application.id || '0127'}`;
+      setCustomRefNumber(existingLetter.customRefNumber || defaultRef);
       setYourRef(existingLetter.yourRef || '');
       setApplicantName(existingLetter.applicantName || fullName);
-      setApplicantAddress(existingLetter.applicantAddress || application.residential_address || 'ACCRA - GHANA');
+      setApplicantAddress(existingLetter.applicantAddress || application.residential_address || '');
       setCustomSubject(existingLetter.customSubject || '');
       setEffectiveDate(existingLetter.effectiveDate || initialEffectiveDate);
-      setSalaryGrade(existingLetter.salaryGrade || 'DVLA Grade 7 Step 1');
+      setSalaryGrade(existingLetter.salaryGrade || 'DVLA Salary Scale');
       setProbationPeriod(existingLetter.probationPeriod || 'six (6) months');
       setContractDuration(existingLetter.contractDuration || 'two (2) years');
       setSignatoryName(existingLetter.signatoryName || 'EPHRAIM NII TAN SACKEY');
       setSignatoryTitle(existingLetter.signatoryTitle || 'AG. DIRECTOR HR');
       setSignatoryForTitle(existingLetter.signatoryForTitle || 'FOR: CHIEF EXECUTIVE');
-      setCcText(existingLetter.ccText || 'Chief Executive\nDeputy Chief Executives\nAg. Director, IT\nAg. Director Administration\nManager, HR (C&B)');
+      setCcText(existingLetter.ccText || 'District Licensing Manager');
       setCustomBodyText(existingLetter.customBodyText || '');
     } else {
       setLetterDate(todayStr);
@@ -84,34 +85,25 @@ export default function AppointmentLetterModal({
   }, [application, isOpen]);
 
   const generateDefaultRef = (type: string) => {
-    if (!application) return '';
-    const monthStr = String(new Date().getMonth() + 1).padStart(2, '0');
-    const yearSuffix = String(new Date().getFullYear()).slice(-2);
-    const refSuffix = (application.referenceNumber || application.nss_number || String(application.id || '0000')).slice(-4);
-    let code = 'PLACMT';
-    if (type === 'CONTRACT') code = 'CONTR';
-    if (type === 'PERMANENT') code = 'PERM';
-    if (type === 'REPOSTING') code = 'REPOST';
-    return `DVLA/HR/${monthStr}/${yearSuffix}/${code}/${refSuffix}`;
+    if (!application) return 'DVLA/HR/NSS/0127';
+    const refCode = application.nss_number || String(application.id || '0127');
+    return `DVLA/HR/NSS/${refCode}`;
   };
 
   const applyDefaultTemplate = (type: 'TEMPORARY' | 'REPOSTING', dateStr?: string, effDateOverride?: string) => {
     if (!application) return;
-    const posTitle = application.position?.title || application.position_title || application.course_program || 'NSS Personnel';
-    const deptName = application.department?.name || application.posting_department || 'Operations';
-    const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office (Accra 37)';
-    const effDate = effDateOverride || effectiveDate || 'Monday, September 1, 2026';
+    const stationName = application.station?.name || application.posting_station || application.posting_district || 'Bonwire District Office';
     const ref = generateDefaultRef(type);
     setCustomRefNumber(ref);
     if (type === 'REPOSTING') {
-      setCustomSubject('OFFICIAL REPOSTING & RE-ASSIGNMENT RELEASE');
+      setCustomSubject('REPOSTING OF NATIONAL SERVICE PERSONNEL.');
       setCustomBodyText(
-        `This is to formally inform you that, your application for National Service placement at the Driver and Vehicle Licensing Authority (DVLA) has NOT BEEN ACCEPTED.\n\nConsequently, this official notification serves as your formal release letter for re-posting back to the National Service Scheme (NSS) Secretariat for re-assignment to an alternative user agency.\n\nYou are kindly advised to submit a copy of this official release letter to the regional or national NSS Secretariat to facilitate your re-posting.\n\nThank you.`
+        `This is to inform you that you have been reposted to the ${stationName} for the 2025/2026 service year.\n\nYour National Service commences on Monday, 17th November, 2025 and ends on Friday, 30th October, 2026.\n\nYou are required to report to the District Licensing Manager for orientation and assignment.\n\nPlease note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.`
       );
     } else {
-      setCustomSubject('NSS POSTING APPOINTMENT');
+      setCustomSubject('POSTING OF NATIONAL SERVICE PERSONNEL.');
       setCustomBodyText(
-        `This is to inform you that you have been posted to the ${stationName} as an NSS Personnel assigned to the ${deptName} Department under the National Service Scheme (NSS), effective ${effDate}.\n\nYou are to report to the Ag. Director Human Resource and Ag. Director Administration for necessary instructions and directives concerning your official duties.\n\nThank you.`
+        `This is to inform you that you have been assigned to the ${stationName} for the 2025/2026 service year.\n\nYour National Service commences on Monday, 17th November, 2025 and ends on Friday, 30th October, 2026.\n\nYou are required to report to the District Licensing Manager for orientation and assignment.\n\nPlease note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.`
       );
     }
   };
