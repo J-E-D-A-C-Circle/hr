@@ -11,5 +11,5 @@ spec:
     app: nss-portal-app
   ports:
     - name: http
-      port: 8080
+      port: 5000
       targetPort: 3000

@@ -32,9 +32,9 @@ define('DB_NAME', 'dvla_nss_portal');
 **Option B: Using PHP Built-in Server**
 ```bash
 cd api
-php -S localhost:8080
+php -S localhost:5000
 ```
-Then update API URLs in the frontend to `http://localhost:8080/`
+Then update API URLs in the frontend to `http://localhost:5000/`
 
 ### Step 4: Install Next.js Dependencies
 
