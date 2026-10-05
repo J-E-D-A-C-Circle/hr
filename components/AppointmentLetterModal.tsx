@@ -649,7 +649,7 @@ export default function AppointmentLetterModal({
                     Category: {appointmentType}
                   </span>
                 </div>
-                <div className="bg-amber-100/50 p-2 rounded-2xl border border-amber-300/80 max-h-[70vh] overflow-y-auto shadow-inner">
+                <div className="bg-slate-100 p-2 rounded-2xl border border-slate-200 max-h-[70vh] overflow-y-auto shadow-inner">
                   <OfficialAppointmentLetter
                     referenceNumber={application.referenceNumber || application.nss_number || String(application.id || '0000')}
                     applicantName={applicantName}

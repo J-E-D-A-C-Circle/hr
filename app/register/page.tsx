@@ -48,6 +48,10 @@ interface FormData {
   servicePeriodStart?: string;
   servicePeriodEnd?: string;
   additionalInfo?: string;
+  passportPhoto?: string;
+  idCardCopy?: string;
+  appointmentLetter?: string;
+  certificates?: string;
 }
 
 function formatGhanaCard(input: string): string {
@@ -159,8 +163,17 @@ export default function RegisterPage() {
               servicePeriodEnd: app.service_period_end ? app.service_period_end.split('T')[0] : prev.servicePeriodEnd,
               additionalInfo: app.additional_info || prev.additionalInfo,
               nssPin: app.nss_number || prev.nssPin,
+              passportPhoto: app.passport_photo || prev.passportPhoto,
+              idCardCopy: app.id_card_copy || prev.idCardCopy,
+              appointmentLetter: app.appointment_letter || prev.appointmentLetter,
+              certificates: app.certificates || prev.certificates,
             }));
             
+            if (app.passport_photo) setPassportFileName(app.passport_photo.split('/').pop() || 'Passport Attached');
+            if (app.id_card_copy) setIdCardFileName(app.id_card_copy.split('/').pop() || 'ID Card Attached');
+            if (app.appointment_letter) setAppointmentFileName(app.appointment_letter.split('/').pop() || 'Appointment Letter Attached');
+            if (app.certificates) setCvFileName(app.certificates.split('/').pop() || 'CV / File Attached');
+
             if (extra.currentStep && extra.currentStep > 1) {
               setCurrentStep(extra.currentStep);
             } else {
@@ -490,32 +503,32 @@ export default function RegisterPage() {
       }
       
       // Upload files first
-      let passportPhotoPath = null;
-      let idCardPath = null;
-      let appointmentLetterPath = null;
-      let cvPath = null;
+      let passportPhotoPath = (formData as any).passportPhoto || null;
+      let idCardPath = (formData as any).idCardCopy || null;
+      let appointmentLetterPath = (formData as any).appointmentLetter || null;
+      let cvPath = (formData as any).certificates || null;
       
       const passportFile = passportFileRef.current?.files?.[0] || passportCameraRef.current?.files?.[0];
       const idCardFile = idCardFileRef.current?.files?.[0];
       const appointmentFile = appointmentFileRef.current?.files?.[0] || appointmentCameraRef.current?.files?.[0];
       const cvFile = cvFileRef.current?.files?.[0];
 
-      if (!passportFile) {
+      if (!passportFile && !passportPhotoPath) {
         toast.error('Passport photo is compulsory. Please attach your Passport Photo.');
         setIsSubmitting(false);
         return;
       }
-      if (!idCardFile) {
+      if (!idCardFile && !idCardPath) {
         toast.error('Ghana Card / ID Card copy is compulsory. Please attach your ID Card file.');
         setIsSubmitting(false);
         return;
       }
-      if (!appointmentFile) {
+      if (!appointmentFile && !appointmentLetterPath) {
         toast.error('NSS Appointment letter is compulsory. Please attach your Appointment Letter.');
         setIsSubmitting(false);
         return;
       }
-      if (!cvFile) {
+      if (!cvFile && !cvPath) {
         toast.error('Curriculum Vitae (CV) / Certificates is compulsory. Please attach your CV.');
         setIsSubmitting(false);
         return;

@@ -76,10 +76,10 @@ export default function OfficialAppointmentLetter({
 
   return (
     <div
-      className={`relative w-full max-w-4xl mx-auto text-gray-900 shadow-xl rounded-lg p-8 md:p-14 border border-amber-300/60 overflow-hidden ${
+      className={`relative w-full max-w-4xl mx-auto text-gray-900 shadow-xl rounded-lg p-8 md:p-14 border border-gray-200 overflow-hidden ${
         isPrintView ? 'p-0 shadow-none border-none' : ''
       }`}
-      style={{ backgroundColor: '#FDF3C0', fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt' }}
+      style={{ backgroundColor: '#FFFFFF', fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt' }}
       id="official-letterhead"
     >
       {/* Background Watermark */}
