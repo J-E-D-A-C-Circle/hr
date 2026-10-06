@@ -1,165 +1,110 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users, nssApplications, verificationTokens } from '@/db/schema';
+import { nssApplications, verificationTokens, users } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { rateLimit } from '@/lib/rate-limit';
-import nodemailer from 'nodemailer';
-import { sendWigalSms } from '@/lib/wigal';
+import { sendWigalSms, generateFrogOtp, normalizePhoneForWigal } from '@/lib/wigal';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { method, identifier } = body; // method: 'email' | 'phone'
+    const rawInput = String(body.phoneNumber || body.identifier || '').trim();
 
-    if (!method || !['email', 'phone'].includes(method)) {
+    if (!rawInput) {
       return NextResponse.json(
-        { error: 'Valid method (email or phone) is required.' },
+        { error: 'Mobile phone number is required.' },
         { status: 400 }
       );
     }
 
-    const cleanIdentifier = String(identifier || '').trim();
-
-    if (!cleanIdentifier) {
+    // Extract digits and validate length
+    const cleanDigits = rawInput.replace(/\D/g, '');
+    if (cleanDigits.length < 9) {
       return NextResponse.json(
-        { error: method === 'email' ? 'Email address is required.' : 'Phone number is required.' },
+        { error: 'Please enter a valid mobile phone number (at least 9 digits).' },
         { status: 400 }
       );
     }
 
-    if (method === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(cleanIdentifier)) {
-        return NextResponse.json(
-          { error: 'Please enter a valid email address.' },
-          { status: 400 }
-        );
-      }
-    } else {
-      // Basic phone format validation
-      const cleanPhone = cleanIdentifier.replace(/[\s\-\(\)\+]/g, '');
-      if (cleanPhone.length < 9) {
-        return NextResponse.json(
-          { error: 'Please enter a valid phone number.' },
-          { status: 400 }
-        );
-      }
-    }
+    // Standardize to Ghanaian 10-digit mobile number (e.g. 024XXXXXXX)
+    const formattedPhone = normalizePhoneForWigal(rawInput);
+    const phoneSuffix = cleanDigits.slice(-9);
 
-    // Check if user exists with this email or phone number
-    let userFound = false;
+    // Look for matching user in nss_applications
+    const matchingApps = await db
+      .select({
+        id: nssApplications.id,
+        userId: nssApplications.userId,
+        firstName: nssApplications.firstName,
+        phoneNumber: nssApplications.phoneNumber,
+      })
+      .from(nssApplications)
+      .where(
+        sql`REPLACE(REPLACE(REPLACE(REPLACE(${nssApplications.phoneNumber}, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ${'%' + phoneSuffix}`
+      )
+      .limit(1);
 
-    if (method === 'email') {
-      const lowerEmail = cleanIdentifier.toLowerCase();
-      const existingUser = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(sql`LOWER(${users.email}) = ${lowerEmail}`);
-
-      if (existingUser.length > 0) {
-        userFound = true;
-      } else {
-        // Check if there is an application with this email
-        const existingApp = await db
-          .select({ id: nssApplications.id })
-          .from(nssApplications)
-          .where(sql`LOWER(${nssApplications.email}) = ${lowerEmail}`);
-        if (existingApp.length > 0) {
-          userFound = true;
-        }
-      }
-    } else {
-      // Clean phone check in applications
-      const cleanDigits = cleanIdentifier.replace(/\D/g, '');
-      const existingApps = await db
-        .select({ id: nssApplications.id })
-        .from(nssApplications)
-        .where(sql`REPLACE(REPLACE(REPLACE(${nssApplications.phoneNumber}, ' ', ''), '-', ''), '+', '') LIKE ${'%' + cleanDigits}`);
-
-      if (existingApps.length > 0) {
-        userFound = true;
-      } else {
-        // Also check if users table might have phone numbers or fallback
-        userFound = true; // Allow proceeding so security doesn't leak user enumeration easily if desired
-      }
-    }
-
-    if (!userFound) {
+    if (matchingApps.length === 0) {
       return NextResponse.json(
-        { error: `No registered account found with this ${method === 'email' ? 'email address' : 'phone number'}.` },
+        { error: 'No account found associated with this mobile phone number. Please check the number and try again.' },
         { status: 404 }
       );
     }
 
-    // Rate limiting
+    // Rate limiting: max 4 attempts per 15 minutes per phone/IP
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    const isAllowed = rateLimit(`forgot-pass:${cleanIdentifier}:${ip}`, 3, 15 * 60 * 1000);
+    const isAllowed = rateLimit(`forgot-pass:${formattedPhone}:${ip}`, 4, 15 * 60 * 1000);
     if (!isAllowed) {
       return NextResponse.json(
-        { error: 'Too many reset attempts. Please try again in 15 minutes.' },
+        { error: 'Too many reset attempts for this number. Please try again in 15 minutes.' },
         { status: 429 }
       );
     }
 
-    // Generate 6-digit OTP code
+    // Generate secure 6-digit OTP code
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+    console.log(`🔑 [Forgot Password OTP] Generated code ${otp} for ${formattedPhone}`);
 
     // Store in verification_tokens
     await db.insert(verificationTokens).values({
-      phoneNumber: cleanIdentifier, // storing either phone number or email address
+      phoneNumber: formattedPhone,
       token: otp,
       expiresAt,
     });
 
-    // Send code via Phone (Frog Wigal SMS) or Email (Nodemailer)
-    if (method === 'phone') {
-      await sendWigalSms({
-        destination: cleanIdentifier,
-        message: `Your DVLA NSS password reset code is: ${otp}. Valid for 10 minutes.`,
-      });
-    } else {
-      // Email delivery
-      if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-        try {
-          const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 587,
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
-            },
-          });
+    // Send SMS via Frog Wigal SMS API v3
+    let smsSuccess = false;
+    let smsResult = await sendWigalSms({
+      destination: formattedPhone,
+      message: `Your DVLA NSS password reset code is: ${otp}. Valid for 10 minutes.`,
+      senderId: 'DVLA NSS',
+    });
 
-          await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"DVLA NSS Portal" <no-reply@dvla.gov.gh>',
-            to: cleanIdentifier,
-            subject: 'DVLA NSS Portal - Password Reset Verification Code',
-            html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; rounded-lg: 12px;">
-                <h2 style="color: #16a34a; margin-bottom: 8px;">DVLA NSS Portal</h2>
-                <h3 style="margin-top: 0;">Password Reset Verification Code</h3>
-                <p>You requested a password reset for your DVLA NSS account.</p>
-                <div style="background-color: #f3f4f6; padding: 16px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #15803d; border-radius: 8px; margin: 20px 0;">
-                  ${otp}
-                </div>
-                <p style="font-size: 14px; color: #6b7280;">This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
-              </div>
-            `,
-          });
-        } catch (emailErr) {
-          console.error('[Forgot Password] Email sending error:', emailErr);
-        }
+    console.log(`📱 [Forgot Password SMS] Wigal send result:`, smsResult);
+
+    if (smsResult.success) {
+      smsSuccess = true;
+    } else {
+      console.warn('⚠️ [Forgot Password SMS] Quick SMS send failed, attempting Frog OTP generate fallback...');
+      const otpGenResult = await generateFrogOtp({
+        destination: formattedPhone,
+        senderId: 'DVLA NSS',
+        expiryMinutes: 10,
+        length: 6,
+        messageTemplate: `Your DVLA NSS password reset code is : %OTPCODE%. Valid for %EXPIRY% mins`,
+      });
+      console.log(`📱 [Forgot Password SMS] Fallback Frog OTP generate result:`, otpGenResult);
+      if (otpGenResult.success) {
+        smsSuccess = true;
       }
-      console.log(`[Forgot Password] Email OTP for ${cleanIdentifier}: ${otp}`);
     }
 
     return NextResponse.json({
-      message: `Verification code sent to your ${method === 'email' ? 'email' : 'phone number'}.`,
-      method,
-      target: cleanIdentifier,
-      // Pass debug code in dev mode for convenient testing if needed
+      message: 'A 6-digit verification code has been sent to your phone via SMS.',
+      phoneNumber: formattedPhone,
+      smsDelivered: smsSuccess,
       debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
     });
   } catch (error: any) {

@@ -34,9 +34,11 @@ export interface WigalApiResponse {
  * e.g., '233241234567' or '0241234567' -> '0241234567' (or standard formatting)
  */
 export function normalizePhoneForWigal(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\(\)\+]/g, '');
+  let cleaned = String(phone || '').replace(/[\s\-\(\)\+]/g, '');
   if (cleaned.startsWith('233') && cleaned.length === 12) {
     cleaned = '0' + cleaned.substring(3);
+  } else if (cleaned.length === 9) {
+    cleaned = '0' + cleaned;
   }
   return cleaned;
 }
@@ -97,10 +99,14 @@ export async function sendWigalSms({
 
     const payload = {
       senderid: source,
-      destination: formattedNumber,
-      message: message,
-      msgid: msgId,
-      smstype: 'text',
+      destinations: [
+        {
+          destination: formattedNumber,
+          message: message,
+          msgid: msgId,
+          smstype: 'text',
+        },
+      ],
     };
 
     const response = await fetch(url, {
