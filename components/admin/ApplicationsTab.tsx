@@ -16,7 +16,9 @@ import {
   ArrowUpDown,
   Building2,
   FileSpreadsheet,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -25,9 +27,10 @@ import { Application } from '@/lib/types/admin';
 interface ApplicationsTabProps {
   applications: Application[];
   onSelectApplication: (id: number) => void;
-  onBulkAction: (action: 'approve' | 'reject', ids: number[]) => void;
+  onBulkAction: (action: 'approve' | 'reject' | 'delete', ids: number[]) => void;
   onExportCSV: (items: Application[]) => void;
   loading: boolean;
+  onDeleteApplication?: (id: number) => Promise<void> | void;
 }
 
 export default function ApplicationsTab({
@@ -35,7 +38,8 @@ export default function ApplicationsTab({
   onSelectApplication,
   onBulkAction,
   onExportCSV,
-  loading
+  loading,
+  onDeleteApplication
 }: ApplicationsTabProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -44,6 +48,35 @@ export default function ApplicationsTab({
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [deleteTarget, setDeleteTarget] = useState<Application | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
+    try {
+      if (onDeleteApplication) {
+        await onDeleteApplication(deleteTarget.id);
+      }
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error('Delete applicant error:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      await onBulkAction('delete', selectedIds);
+      setSelectedIds([]);
+      setShowBulkDeleteConfirm(false);
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+    }
+  };
 
   // Filter logic
   const filtered = applications.filter((app) => {
@@ -219,10 +252,17 @@ export default function ApplicationsTab({
             </button>
             <button
               onClick={() => onBulkAction('reject', selectedIds)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-xs"
             >
               <X className="w-3.5 h-3.5" />
               Bulk Reject
+            </button>
+            <button
+              onClick={() => setShowBulkDeleteConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-xs transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Bulk Delete
             </button>
           </div>
         </div>
@@ -265,10 +305,10 @@ export default function ApplicationsTab({
                 <th className="p-4 cursor-pointer hover:text-white" onClick={() => handleSort('created_at')}>
                   <div className="flex items-center gap-1">
                     Submitted Date
-                    <ArrowUpDown className="w-3 h-3" />
+                    <ArrowUpDown className="w-3.5 h-3.5" />
                   </div>
                 </th>
-                <th className="p-4 text-right">Action</th>
+                <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -322,13 +362,32 @@ export default function ApplicationsTab({
                       <td className="p-4">{getStatusBadge(app.status)}</td>
                       <td className="p-4 text-slate-500 font-medium">{formatDate(app.created_at)}</td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => onSelectApplication(app.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d5c2e] hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-all"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          Review
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => onSelectApplication(app.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d5c2e] hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                            title="Review Application"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            Review
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget(app);
+                            }}
+                            disabled={deletingId === app.id}
+                            className="inline-flex items-center justify-center p-2 rounded-lg text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
+                            title={`Delete ${app.first_name} ${app.last_name}`}
+                            aria-label="Delete applicant"
+                          >
+                            {deletingId === app.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -366,6 +425,127 @@ export default function ApplicationsTab({
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal: Delete Single Applicant */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-600">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Delete Applicant</h3>
+                <p className="text-xs text-slate-500">Permanent data and file cleanup</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <p>
+                Are you sure you want to permanently delete{' '}
+                <strong className="text-slate-900">
+                  {deleteTarget.first_name} {deleteTarget.middle_name ? `${deleteTarget.middle_name} ` : ''}{deleteTarget.last_name}
+                </strong>{' '}
+                ({deleteTarget.nss_number || deleteTarget.email})?
+              </p>
+              <div className="p-2.5 bg-rose-50/70 rounded-lg border border-rose-200 text-rose-800 font-medium space-y-1">
+                <p className="font-bold flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  What will be deleted:
+                </p>
+                <ul className="list-disc list-inside text-[11px] text-rose-700 space-y-0.5 ml-1">
+                  <li>Applicant database record and account</li>
+                  <li>All uploaded files (Passport photo, ID card, Appointment letter, Certificates/CV)</li>
+                  <li>Associated placement & review data</li>
+                </ul>
+              </div>
+              <p className="text-slate-500 italic text-[11px]">This action cannot be undone.</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingId !== null}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deletingId !== null}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {deletingId === deleteTarget.id ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete Permanently
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Bulk Delete */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-600">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Bulk Delete Applicants</h3>
+                <p className="text-xs text-slate-500">Permanent data and file cleanup</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <p>
+                Are you sure you want to permanently delete all{' '}
+                <strong className="text-slate-900">{selectedIds.length}</strong> selected applicants?
+              </p>
+              <div className="p-2.5 bg-rose-50/70 rounded-lg border border-rose-200 text-rose-800 font-medium space-y-1">
+                <p className="font-bold flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  What will be deleted:
+                </p>
+                <ul className="list-disc list-inside text-[11px] text-rose-700 space-y-0.5 ml-1">
+                  <li>All {selectedIds.length} applicant records and user accounts</li>
+                  <li>All uploaded files for these applicants</li>
+                </ul>
+              </div>
+              <p className="text-slate-500 italic text-[11px]">This action cannot be undone.</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBulkDelete}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete All Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

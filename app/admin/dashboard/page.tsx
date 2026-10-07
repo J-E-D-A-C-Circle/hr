@@ -223,7 +223,29 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleBulkAction = async (action: 'approve' | 'reject', ids: number[]) => {
+  const handleBulkAction = async (action: 'approve' | 'reject' | 'delete', ids: number[]) => {
+    if (action === 'delete') {
+      toast.loading(`Deleting ${ids.length} applicants...`);
+      try {
+        const token = getValidAuthToken();
+        await Promise.all(
+          ids.map((id) =>
+            axios.delete(`/api/applications/${id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          )
+        );
+        toast.dismiss();
+        toast.success(`Successfully deleted ${ids.length} applicants and their files`);
+        setApplications((prev) => prev.filter((app) => !ids.includes(app.id)));
+        fetchApplications();
+      } catch (err: any) {
+        toast.dismiss();
+        toast.error('Failed deleting applicants: ' + (err.response?.data?.error || err.message));
+      }
+      return;
+    }
+
     const defaultStation = 'DVLA Head Office - Cantonments';
     const defaultDept = 'Administration & HR';
 
@@ -251,6 +273,26 @@ export default function AdminDashboard() {
     } catch (err: any) {
       toast.dismiss();
       toast.error('Failed processing bulk actions');
+    }
+  };
+
+  const handleDeleteApplication = async (id: number) => {
+    try {
+      const token = getValidAuthToken();
+      await axios.delete(`/api/applications/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('Applicant and all uploaded files deleted successfully');
+      setApplications((prev) => prev.filter((app) => app.id !== id));
+      if (selectedApplication?.id === id) {
+        setModalOpen(false);
+        setSelectedApplication(null);
+      }
+      fetchApplications();
+    } catch (error: any) {
+      console.error('Delete applicant error:', error);
+      toast.error(error.response?.data?.error || 'Failed to delete applicant');
+      throw error;
     }
   };
 
@@ -362,6 +404,7 @@ export default function AdminDashboard() {
               onBulkAction={handleBulkAction}
               onExportCSV={handleExportCSV}
               loading={loading}
+              onDeleteApplication={handleDeleteApplication}
             />
           )}
 

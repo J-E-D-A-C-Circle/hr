@@ -6,7 +6,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { formatDate, formatDateTime } from '@/lib/utils';
-import { FileText, Eye } from 'lucide-react';
+import { FileText, Eye, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import AppointmentLetterModal from '@/components/AppointmentLetterModal';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 import { getFileViewUrl } from '@/lib/file-upload';
@@ -52,11 +52,30 @@ export default function ApplicationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState(false);
   const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [reviewData, setReviewData] = useState({
     status: '',
     review_notes: '',
     service_period_start: '',
   });
+
+  const handleDelete = async () => {
+    if (!application) return;
+    setIsDeleting(true);
+    try {
+      const token = getValidAuthToken();
+      await axios.delete(`/api/applications/${application.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Applicant and associated files deleted successfully');
+      router.push('/admin/dashboard');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete applicant');
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   useEffect(() => {
     const token = getValidAuthToken();
@@ -201,6 +220,15 @@ export default function ApplicationDetailPage() {
                 >
                   <FileText className="w-4 h-4 text-amber-400" />
                   <span>Generate Appointment Letter</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                  title="Delete Applicant"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete</span>
                 </button>
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusBadge(
@@ -487,6 +515,74 @@ export default function ApplicationDetailPage() {
           onClose={() => setIsLetterModalOpen(false)}
           application={application}
         />
+      )}
+
+      {/* Confirmation Modal: Delete Applicant */}
+      {showDeleteConfirm && application && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-600">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Delete Applicant</h3>
+                <p className="text-xs text-slate-500">Permanent data and file cleanup</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <p>
+                Are you sure you want to permanently delete{' '}
+                <strong className="text-slate-900">
+                  {application.first_name} {application.last_name}
+                </strong>{' '}
+                ({application.nss_number || application.email})?
+              </p>
+              <div className="p-2.5 bg-rose-50/70 rounded-lg border border-rose-200 text-rose-800 font-medium space-y-1">
+                <p className="font-bold flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  What will be deleted:
+                </p>
+                <ul className="list-disc list-inside text-[11px] text-rose-700 space-y-0.5 ml-1">
+                  <li>Applicant database record and account</li>
+                  <li>All uploaded files (Passport photo, ID, Appointment letter, Certificates/CV)</li>
+                  <li>Associated placement & review data</li>
+                </ul>
+              </div>
+              <p className="text-slate-500 italic text-[11px]">This action cannot be undone.</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete Permanently
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

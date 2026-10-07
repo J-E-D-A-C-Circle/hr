@@ -84,3 +84,5 @@ export async function GET(
     );
   }
 }
+
+export { DELETE } from '@/app/api/applications/[id]/route';
