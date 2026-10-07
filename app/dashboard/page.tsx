@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils';
 import { uploadFile } from '@/lib/file-upload';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
+import { SIGNATURE_BASE64 } from '@/lib/signature';
 
 const NAV = [
   { label: 'Dashboard', active: true },
@@ -231,32 +232,33 @@ export default function Dashboard() {
           <title>${letterType === 'reposting' ? 'DVLA NSS Reposting Release Letter' : 'DVLA NSS Appointment Letter'}</title>
           <style>
             @media print {
-              @page { 
-                margin: 0;
+              @page {
+                margin: 8mm 12mm;
                 size: A4 portrait;
               }
               html, body {
                 margin: 0 !important;
                 padding: 0 !important;
-                width: 210mm !important;
-                min-height: 297mm !important;
-                background-color: #FDF3C0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background-color: #FFFFFF !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
               }
               .letter-container {
                 position: relative !important;
-                width: 210mm !important;
-                min-height: 297mm !important;
+                width: 100% !important;
+                max-width: 190mm !important;
+                max-height: 275mm !important;
                 box-sizing: border-box !important;
-                padding: 15mm 20mm !important;
-                margin: 0 !important;
+                padding: 4mm 8mm !important;
+                margin: 0 auto !important;
                 border: none !important;
-                border-radius: 0 !important;
                 box-shadow: none !important;
-                background-color: #FDF3C0 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+                background-color: #FFFFFF !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                page-break-after: avoid !important;
               }
             }
             * {
@@ -268,18 +270,18 @@ export default function Dashboard() {
             body { 
               font-family: 'Times New Roman', Times, serif !important;
               font-size: 12pt !important;
-              line-height: 1.5;
+              line-height: 1.45;
               color: #111827;
-              background: #FDF3C0;
-              padding: 20mm;
+              background: #FFFFFF;
+              padding: 8mm;
             }
             .letter-container {
               position: relative;
-              max-width: 800px;
+              max-width: 780px;
               margin: 0 auto;
-              background-color: #FDF3C0;
-              padding: 30px 40px;
-              border: 1px solid #fcd34d;
+              background-color: #FFFFFF;
+              padding: 20px 30px;
+              border: 1px solid #e5e7eb;
               border-radius: 8px;
               overflow: hidden;
             }
@@ -288,9 +290,9 @@ export default function Dashboard() {
               top: 50%;
               left: 50%;
               transform: translate(-50%, -50%);
-              width: 380px;
-              height: 380px;
-              opacity: 0.07;
+              width: 340px;
+              height: 340px;
+              opacity: 0.06;
               pointer-events: none;
               z-index: 1;
             }
@@ -305,7 +307,7 @@ export default function Dashboard() {
               color: #008053;
               letter-spacing: 0.5px;
               text-transform: uppercase;
-              margin-bottom: 8px;
+              margin-bottom: 4px;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .header-grid {
@@ -314,38 +316,46 @@ export default function Dashboard() {
               align-items: center;
               font-size: 12pt !important;
               color: #1f2937;
-              margin-top: 10px;
+              margin-top: 8px;
               font-family: 'Times New Roman', Times, serif !important;
             }
-            .header-left { text-align: left; font-size: 12pt !important; }
+            .header-left { text-align: left; font-size: 12pt !important; line-height: 1.35; }
             .header-center { text-align: center; }
-            .header-right { text-align: right; font-size: 12pt !important; }
+            .header-right { text-align: right; font-size: 12pt !important; line-height: 1.35; }
             .header-logo {
-              width: 70px;
-              height: 70px;
+              width: 76px;
+              height: 76px;
               object-fit: contain;
             }
             .divider {
               border-top: 2px solid #008053;
-              margin: 12px 0 24px 0;
+              margin: 10px 0 16px 0;
             }
             .ref-row {
               display: flex;
               justify-content: space-between;
               font-size: 12pt !important;
-              margin-bottom: 24px;
+              margin-bottom: 16px;
               font-family: 'Times New Roman', Times, serif !important;
+            }
+            .ref-dotted {
+              display: inline-block;
+              border-bottom: 1px dotted #111827;
+              font-family: monospace;
+              font-weight: bold;
+              padding: 0 4px;
+              min-width: 200px;
             }
             .addressee {
               font-size: 12pt !important;
               font-weight: bold;
               text-transform: uppercase;
-              margin-bottom: 20px;
+              margin-bottom: 12px;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .salutation {
               font-size: 12pt !important;
-              margin-bottom: 16px;
+              margin-bottom: 10px;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .subject-title {
@@ -353,37 +363,36 @@ export default function Dashboard() {
               font-weight: 900;
               text-transform: uppercase;
               border-bottom: 1px solid #111827;
-              padding-bottom: 2px;
+              padding-bottom: 1px;
               display: inline-block;
-              margin-bottom: 20px;
+              margin-bottom: 12px;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .body-text {
               font-size: 12pt !important;
-              line-height: 1.6;
+              line-height: 1.5;
               text-align: justify;
-              margin-bottom: 28px;
+              margin-bottom: 16px;
               white-space: pre-line;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .body-text p {
-              font-size: 12pt !important;
-              margin-bottom: 14px;
-              font-family: 'Times New Roman', Times, serif !important;
+              margin-bottom: 10px;
             }
             .footer-block {
-              margin-top: 30px;
-              padding-top: 16px;
-              border-top: 1px solid rgba(120, 53, 15, 0.2);
+              margin-top: 14px;
+              padding-top: 8px;
             }
             .signatory-block {
               font-size: 12pt !important;
               font-family: 'Times New Roman', Times, serif !important;
             }
-            .signature-svg {
-              width: 140px;
+            .signature-img {
               height: 48px;
-              margin: 8px 0;
+              max-height: 48px;
+              width: auto;
+              object-fit: contain;
+              margin: 4px 0;
             }
             .signatory-name {
               font-weight: 900;
@@ -397,19 +406,25 @@ export default function Dashboard() {
               font-size: 12pt !important;
               font-family: 'Times New Roman', Times, serif !important;
             }
+            .signatory-for {
+              font-size: 11pt;
+              font-weight: bold;
+              color: #4b5563;
+              text-transform: uppercase;
+            }
             .cc-box {
-              margin-top: 16px;
-              font-size: 12pt !important;
+              margin-top: 10px;
+              font-size: 11pt !important;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .cc-box ul {
               list-style: none;
               padding-left: 0;
-              margin-top: 4px;
-              font-size: 12pt !important;
+              margin-top: 2px;
+              font-size: 11pt !important;
             }
             .cc-box li {
-              font-size: 12pt !important;
+              font-size: 11pt !important;
             }
           </style>
         </head>
@@ -441,11 +456,11 @@ export default function Dashboard() {
               <!-- REF & DATE -->
               <div class="ref-row">
                 <div>
-                  <strong>My Ref:</strong>......<span style="font-family: monospace; font-weight: bold;">${displayRef}</span><br/>
-                  <strong>Your Ref:</strong>......<span style="font-family: monospace; font-weight: bold;">${yourRef}</span>
+                  <div style="margin-bottom: 4px;"><strong>My Ref:</strong> <span class="ref-dotted">${displayRef}</span></div>
+                  <div><strong>Your Ref:</strong> <span class="ref-dotted">${yourRef || '&nbsp;'}</span></div>
                 </div>
                 <div style="text-align: right;">
-                  <strong style="text-transform: uppercase;">${issueDate}</strong><br/>
+                  <div><strong>Date:</strong> <span class="ref-dotted" style="text-transform: uppercase; min-width: 150px; text-align: center;">${issueDate || '&nbsp;'}</span></div>
                 </div>
               </div>
 
@@ -468,31 +483,27 @@ export default function Dashboard() {
                 ${letterObj.customBodyText ? `<div style="white-space: pre-line;">${letterObj.customBodyText}</div>` : `
                   <p>This is to inform you that you have been ${letterType === 'reposting' ? 'reposted' : 'assigned'} to the <strong>${stationName}</strong> for the <strong>${serviceYear}</strong> service year.</p>
                   <p>Your National Service commences on <strong>${commencementDate}</strong> and ends on <strong>${endDate}</strong>.</p>
-                  <p>You are required to report to the District Licensing Manager for orientation and assignment.</p>
-                  <p>Please note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.</p>
+                  <p>You are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
                 `}
               </div>
 
               <!-- FOOTER & SIGNATURE -->
               <div class="footer-block">
                 <div class="signatory-block">
-                  <div style="margin-bottom: 8px;">Thank you.</div>
-                  <div>Yours faithfully,</div>
-                  <div style="margin: 8px 0;">
-                    <svg class="signature-svg" viewBox="0 0 200 60" fill="none" stroke="#1a365d" stroke-width="2">
-                      <path d="M 10,45 Q 30,10 50,40 T 90,20 T 130,45 T 170,15" stroke-width="2.5" stroke-linecap="round" />
-                      <path d="M 25,35 Q 60,5 110,40 T 180,25" stroke-width="1.5" stroke-linecap="round" />
-                    </svg>
+                  <div>Thank you.</div>
+                  <div style="margin-top: 4px;">Yours faithfully,</div>
+                  <div style="margin: 4px 0;">
+                    <img src="${SIGNATURE_BASE64}" alt="Signature" class="signature-img" />
                   </div>
                   <div>
                     <div class="signatory-name">${signatoryName}</div>
                     <div class="signatory-title">${signatoryTitle}</div>
-                    <div style="font-size: 11px; font-weight: bold; color: #4b5563; text-transform: uppercase;">${signatoryForTitle}</div>
+                    <div class="signatory-for">${signatoryForTitle}</div>
                   </div>
                   <div class="cc-box">
                     <strong>Cc:</strong>
                     <ul>
-                      ${ccListItems.map(item => `<li>${item}</li>`).join('')}
+                      ${ccListItems.map(item => `<li>&bull; ${item}</li>`).join('')}
                     </ul>
                   </div>
                 </div>

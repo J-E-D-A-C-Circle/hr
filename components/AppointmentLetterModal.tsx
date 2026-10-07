@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, FileText, Sparkles, Check, RefreshCw, Eye, Edit3, Printer } from 'lucide-react';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
+import { SIGNATURE_BASE64 } from '@/lib/signature';
 
 interface AppointmentLetterModalProps {
   isOpen: boolean;
@@ -92,18 +93,18 @@ export default function AppointmentLetterModal({
 
   const applyDefaultTemplate = (type: 'TEMPORARY' | 'REPOSTING', dateStr?: string, effDateOverride?: string) => {
     if (!application) return;
-    const stationName = application.station?.name || application.posting_station || application.posting_district || 'Bonwire District Office';
+    const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
     const ref = generateDefaultRef(type);
     setCustomRefNumber(ref);
     if (type === 'REPOSTING') {
       setCustomSubject('REPOSTING OF NATIONAL SERVICE PERSONNEL.');
       setCustomBodyText(
-        `This is to inform you that you have been reposted to the ${stationName} for the 2025/2026 service year.\n\nYour National Service commences on Monday, 17th November, 2025 and ends on Friday, 30th October, 2026.\n\nYou are required to report to the District Licensing Manager for orientation and assignment.\n\nPlease note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.`
+        `This is to inform you that you have been reposted to the <strong>${stationName}</strong> for the <strong>2025/2026</strong> service year.\n\nYour National Service commences on <strong>Monday, 17th November, 2025</strong> and ends on <strong>Friday, 30th October, 2026</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
     } else {
       setCustomSubject('POSTING OF NATIONAL SERVICE PERSONNEL.');
       setCustomBodyText(
-        `This is to inform you that you have been assigned to the ${stationName} for the 2025/2026 service year.\n\nYour National Service commences on Monday, 17th November, 2025 and ends on Friday, 30th October, 2026.\n\nYou are required to report to the District Licensing Manager for orientation and assignment.\n\nPlease note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.`
+        `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>2025/2026</strong> service year.\n\nYour National Service commences on <strong>Monday, 17th November, 2025</strong> and ends on <strong>Friday, 30th October, 2026</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
     }
   };
@@ -134,56 +135,59 @@ export default function AppointmentLetterModal({
         <title>DVLA Official Appointment Letter - ${displayApplicantName}</title>
         <style>
           @media print {
-            @page { margin: 0; size: A4 portrait; }
+            @page { margin: 8mm 12mm; size: A4 portrait; }
             html, body {
               margin: 0 !important;
               padding: 0 !important;
-              width: 210mm !important;
-              min-height: 297mm !important;
-              background-color: #FDF3C0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              background-color: #FFFFFF !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
             .letter-container {
               position: relative !important;
-              width: 210mm !important;
-              min-height: 297mm !important;
+              width: 100% !important;
+              max-width: 190mm !important;
+              max-height: 275mm !important;
               box-sizing: border-box !important;
-              padding: 15mm 20mm !important;
-              margin: 0 !important;
+              padding: 4mm 8mm !important;
+              margin: 0 auto !important;
               border: none !important;
-              border-radius: 0 !important;
               box-shadow: none !important;
-              background-color: #FDF3C0 !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
+              background-color: #FFFFFF !important;
+              overflow: hidden !important;
+              page-break-inside: avoid !important;
+              page-break-after: avoid !important;
             }
           }
           * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Times New Roman', Times, serif !important; }
-          body { font-family: 'Times New Roman', Times, serif !important; font-size: 12pt !important; line-height: 1.5; color: #111827; background: #FDF3C0; padding: 20mm; }
-          .letter-container { position: relative; max-width: 800px; margin: 0 auto; background-color: #FDF3C0; padding: 30px 40px; border: 1px solid #fcd34d; border-radius: 8px; overflow: hidden; }
-          .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 380px; height: 380px; opacity: 0.07; pointer-events: none; z-index: 1; }
+          body { font-family: 'Times New Roman', Times, serif !important; font-size: 12pt !important; line-height: 1.45; color: #111827; background: #FFFFFF; padding: 8mm; }
+          .letter-container { position: relative; max-width: 780px; margin: 0 auto; background-color: #FFFFFF; padding: 20px 30px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+          .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; height: 340px; opacity: 0.06; pointer-events: none; z-index: 1; }
           .content-z { position: relative; z-index: 10; }
-          .header-title { text-align: center; font-size: 15pt !important; font-weight: 900; color: #008053; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; font-family: 'Times New Roman', Times, serif !important; }
-          .header-grid { display: flex; justify-content: space-between; align-items: center; font-size: 12pt !important; color: #1f2937; margin-top: 10px; font-family: 'Times New Roman', Times, serif !important; }
-          .header-left { text-align: left; font-size: 12pt !important; }
+          .header-title { text-align: center; font-size: 15pt !important; font-weight: 900; color: #008053; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; font-family: 'Times New Roman', Times, serif !important; }
+          .header-grid { display: flex; justify-content: space-between; align-items: center; font-size: 12pt !important; color: #1f2937; margin-top: 8px; font-family: 'Times New Roman', Times, serif !important; }
+          .header-left { text-align: left; font-size: 12pt !important; line-height: 1.35; }
           .header-center { text-align: center; }
-          .header-right { text-align: right; font-size: 12pt !important; }
-          .header-logo { width: 70px; height: 70px; object-fit: contain; }
-          .divider { border-top: 2px solid #008053; margin: 12px 0 24px 0; }
-          .ref-row { display: flex; justify-content: space-between; font-size: 12pt !important; margin-bottom: 24px; font-family: 'Times New Roman', Times, serif !important; }
-          .addressee { font-size: 12pt !important; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif !important; }
-          .salutation { font-size: 12pt !important; margin-bottom: 16px; font-family: 'Times New Roman', Times, serif !important; }
-          .subject-title { font-size: 12pt !important; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 2px; display: inline-block; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif !important; }
-          .body-text { font-size: 12pt !important; line-height: 1.6; text-align: justify; margin-bottom: 28px; white-space: pre-line; font-family: 'Times New Roman', Times, serif !important; }
-          .footer-block { margin-top: 30px; padding-top: 16px; border-top: 1px solid rgba(120, 53, 15, 0.2); }
+          .header-right { text-align: right; font-size: 12pt !important; line-height: 1.35; }
+          .header-logo { width: 76px; height: 76px; object-fit: contain; }
+          .divider { border-top: 2px solid #008053; margin: 10px 0 16px 0; }
+          .ref-row { display: flex; justify-content: space-between; font-size: 12pt !important; margin-bottom: 16px; font-family: 'Times New Roman', Times, serif !important; }
+          .ref-dotted { display: inline-block; border-bottom: 1px dotted #111827; font-family: monospace; font-weight: bold; padding: 0 4px; min-width: 200px; }
+          .addressee { font-size: 12pt !important; font-weight: bold; text-transform: uppercase; margin-bottom: 12px; font-family: 'Times New Roman', Times, serif !important; }
+          .salutation { font-size: 12pt !important; margin-bottom: 10px; font-family: 'Times New Roman', Times, serif !important; }
+          .subject-title { font-size: 12pt !important; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 1px; display: inline-block; margin-bottom: 12px; font-family: 'Times New Roman', Times, serif !important; }
+          .body-text { font-size: 12pt !important; line-height: 1.5; text-align: justify; margin-bottom: 16px; white-space: pre-line; font-family: 'Times New Roman', Times, serif !important; }
+          .footer-block { margin-top: 14px; padding-top: 8px; }
           .signatory-block { font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
-          .signature-svg { width: 140px; height: 48px; margin: 8px 0; }
+          .signature-img { height: 48px; max-height: 48px; width: auto; object-fit: contain; margin: 4px 0; }
           .signatory-name { font-weight: 900; text-transform: uppercase; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
           .signatory-title { font-weight: bold; color: #1f2937; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
-          .cc-box { margin-top: 16px; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
-          .cc-box ul { list-style: none; padding-left: 0; margin-top: 4px; font-size: 12pt !important; }
-          .cc-box li { font-size: 12pt !important; }
+          .signatory-for { font-size: 11pt; font-weight: bold; color: #4b5563; text-transform: uppercase; }
+          .cc-box { margin-top: 10px; font-size: 11pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .cc-box ul { list-style: none; padding-left: 0; margin-top: 2px; font-size: 11pt !important; }
+          .cc-box li { font-size: 11pt !important; }
         </style>
       </head>
       <body>
@@ -210,12 +214,11 @@ export default function AppointmentLetterModal({
 
             <div class="ref-row">
               <div>
-                <strong>My Ref:</strong>......<span style="font-family: monospace; font-weight: bold;">${displayRef}</span><br/>
-                <strong>Your Ref:</strong>......<span style="font-family: monospace; font-weight: bold;">${displayYourRef}</span>
+                <div style="margin-bottom: 4px;"><strong>My Ref:</strong> <span class="ref-dotted">${displayRef}</span></div>
+                <div><strong>Your Ref:</strong> <span class="ref-dotted">${displayYourRef}</span></div>
               </div>
               <div style="text-align: right;">
-                <strong style="text-transform: uppercase;">${displayIssueDate}</strong><br/>
-                <span style="font-family: monospace; font-size: 11px; color: #6b7280;">............/............/20..........</span>
+                <div><strong>Date:</strong> <span class="ref-dotted" style="text-transform: uppercase; min-width: 150px; text-align: center;">${displayIssueDate}</span></div>
               </div>
             </div>
 
@@ -236,17 +239,15 @@ export default function AppointmentLetterModal({
 
             <div class="footer-block">
               <div class="signatory-block">
-                <div>Yours faithfully,</div>
-                <div style="margin: 8px 0;">
-                  <svg class="signature-svg" viewBox="0 0 200 60" fill="none" stroke="#1a365d" stroke-width="2">
-                    <path d="M 10,45 Q 30,10 50,40 T 90,20 T 130,45 T 170,15" stroke-width="2.5" stroke-linecap="round" />
-                    <path d="M 25,35 Q 60,5 110,40 T 180,25" stroke-width="1.5" stroke-linecap="round" />
-                  </svg>
+                <div>Thank you.</div>
+                <div style="margin-top: 4px;">Yours faithfully,</div>
+                <div style="margin: 4px 0;">
+                  <img src="${SIGNATURE_BASE64}" alt="Signature" class="signature-img" />
                 </div>
                 <div>
                   <div class="signatory-name">${displaySignatoryName}</div>
                   <div class="signatory-title">${displaySignatoryTitle}</div>
-                  <div style="font-size: 11px; font-weight: bold; color: #4b5563; text-transform: uppercase;">${displaySignatoryForTitle}</div>
+                  <div class="signatory-for">${displaySignatoryForTitle}</div>
                 </div>
                 <div class="cc-box">
                   <strong>Cc:</strong>

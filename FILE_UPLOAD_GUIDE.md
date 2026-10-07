@@ -110,7 +110,7 @@ const fileUrl = getFileViewUrl(application.passport_photo);
 - **ID Card**: JPEG, JPG, PNG, PDF
 
 ### File Size Limit:
-- Maximum: 5MB per file
+- Maximum: 10MB per file
 
 ### Security Features:
 1. File type validation using MIME type detection

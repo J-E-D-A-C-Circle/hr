@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Image from 'next/image';
+import { SIGNATURE_BASE64 } from '@/lib/signature';
 
 export interface OfficialAppointmentLetterProps {
   referenceNumber: string;
@@ -37,7 +38,7 @@ export default function OfficialAppointmentLetter({
   applicantName,
   applicantAddress,
   positionTitle = 'NSS Personnel',
-  departmentName = 'Licensing',
+  departmentName = '',
   postingStationName = 'Head Office',
   appointmentType = 'TEMPORARY',
   effectiveDate = 'Monday, 17th November, 2025',
@@ -80,15 +81,20 @@ export default function OfficialAppointmentLetter({
 
   return (
     <div
-      className={`relative w-full max-w-4xl mx-auto text-gray-900 shadow-xl rounded-lg p-8 md:p-14 border border-gray-200 overflow-hidden ${
+      className={`relative w-full max-w-4xl mx-auto text-gray-900 shadow-xl rounded-lg p-6 md:p-10 border border-gray-200 overflow-hidden ${
         isPrintView ? 'p-0 shadow-none border-none' : ''
       }`}
-      style={{ backgroundColor: '#FFFFFF', fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt' }}
+      style={{
+        backgroundColor: '#FFFFFF',
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '11pt',
+        lineHeight: 1.45,
+      }}
       id="official-letterhead"
     >
       {/* Background Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none select-none">
-        <div className="w-[420px] h-[420px] relative">
+      <div className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none select-none">
+        <div className="w-[360px] h-[360px] relative">
           <Image
             src="/oop.png"
             alt="Watermark Logo"
@@ -101,10 +107,16 @@ export default function OfficialAppointmentLetter({
 
       {/* TOP LETTERHEAD HEADER */}
       <div className="relative z-10" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-        <h1 className="text-center font-black text-[#008053] tracking-wide uppercase leading-tight" style={{ fontSize: '15pt', fontFamily: "'Times New Roman', Times, serif" }}>
+        <h1
+          className="text-center font-black text-[#008053] tracking-wide uppercase leading-tight"
+          style={{ fontSize: '15pt', fontFamily: "'Times New Roman', Times, serif" }}
+        >
           DRIVER AND VEHICLE LICENSING AUTHORITY
         </h1>
-        <div className="grid grid-cols-3 items-center mt-3 text-gray-800 leading-tight" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+        <div
+          className="grid grid-cols-3 items-center mt-3 text-gray-800 leading-tight"
+          style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
+        >
           {/* Left Contact Info */}
           <div className="text-left space-y-0.5" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
             <div><strong>Tel:</strong> 0302 764 529</div>
@@ -136,7 +148,10 @@ export default function OfficialAppointmentLetter({
       </div>
 
       {/* LETTER REFERENCE & DATE ROW */}
-      <div className="flex justify-between items-start mb-6 relative z-10 gap-6" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+      <div
+        className="flex justify-between items-start mb-6 relative z-10 gap-6"
+        style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
+      >
         <div className="space-y-2 min-w-[300px]">
           <div className="flex items-baseline gap-1">
             <span className="font-bold whitespace-nowrap">My Ref:</span>
@@ -162,101 +177,111 @@ export default function OfficialAppointmentLetter({
       </div>
 
       {/* CANDIDATE ADDRESSEE */}
-      <div className="mb-6 space-y-0.5 uppercase font-bold text-gray-900 relative z-10" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-        <div className="font-black text-gray-950" style={{ fontSize: '12pt' }}>{applicantName}</div>
-        {applicantAddress && <div className="text-gray-700" style={{ fontSize: '12pt' }}>{applicantAddress}</div>}
+      <div
+        className="mb-4 space-y-0.5 uppercase font-bold text-gray-900 relative z-10"
+        style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
+      >
+        <div className="font-black text-gray-950">{applicantName}</div>
+        {applicantAddress && <div className="text-gray-700 font-normal">{applicantAddress}</div>}
       </div>
 
       {/* SALUTATION */}
-      <div className="mb-4 text-gray-900 relative z-10" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+      <div
+        className="mb-4 text-gray-900 relative z-10"
+        style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
+      >
         {displaySalutation}
       </div>
 
       {/* SUBJECT TITLE */}
-      <div className="mb-6 relative z-10">
-        <h2 className="inline-block font-black uppercase text-gray-950 border-b border-gray-950 pb-0.5 tracking-wider" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+      <div className="mb-4 relative z-10">
+        <h2
+          className="inline-block font-black uppercase text-gray-950 border-b border-gray-950 pb-0.5 tracking-wider"
+          style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
+        >
           {displaySubject}
         </h2>
       </div>
 
       {/* BODY PARAGRAPHS */}
-      <div className="space-y-4 text-gray-900 leading-relaxed relative z-10 text-justify" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+      <div
+        className="space-y-3 text-gray-900 leading-relaxed relative z-10 text-justify"
+        style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
+      >
         {customBodyText ? (
-          <div className="whitespace-pre-line" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>{customBodyText}</div>
+          <div
+            className="whitespace-pre-line space-y-3"
+            dangerouslySetInnerHTML={{ __html: customBodyText }}
+          />
         ) : appointmentType === 'CONTRACT' ? (
           <>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> on a Contract basis, effective <strong>{effectiveDate}</strong>.
+            <p>
+              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName || 'Operations'} Department</strong> at <strong>{postingStationName}</strong> on a Contract basis ({contractDuration}), effective <strong>{effectiveDate}</strong>, in accordance with <strong>{salaryGrade}</strong>.
             </p>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              This appointment is for an initial period of <strong>{contractDuration}</strong>, subject to satisfactory performance and renewal. Your remuneration and terms of engagement will be in accordance with <strong>{salaryGrade}</strong>.
-            </p>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              You are requested to report to the District Licensing Manager for orientation and assignment.
-            </p>
-            <p className="pt-2" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
+            <p>
+              You are requested to report to the District Licensing Manager for orientation and assignment. Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
             </p>
           </>
         ) : appointmentType === 'PERMANENT' ? (
           <>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>.
+            <p>
+              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName || 'Operations'} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>, subject to a probation period of <strong>{probationPeriod}</strong>.
             </p>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              Your appointment is subject to a probation period of <strong>{probationPeriod}</strong>, during which your performance and conduct will be evaluated for confirmation.
-            </p>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              You are required to report to the District Licensing Manager for orientation and assignment.
-            </p>
-            <p className="pt-2" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              Kindly sign and return the duplicate copy of this letter to signify your formal acceptance of this offer.
+            <p>
+              You are required to report to the District Licensing Manager for orientation and assignment. Kindly sign and return the duplicate copy of this letter signifying your formal acceptance.
             </p>
           </>
         ) : (
           <>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              This is to inform you that you have been {appointmentType === 'REPOSTING' ? 'reposted' : 'assigned'} to the <strong>{postingStationName}</strong> for the <strong>{serviceYear}</strong> service year.
+            <p>
+              This is to inform you that you have been {appointmentType === 'REPOSTING' ? 'reposted' : 'assigned'} to the <strong>{postingStationName}</strong>{departmentName ? <> (<strong>{departmentName}</strong>)</> : ''} for the <strong>{serviceYear}</strong> service year.
             </p>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
+            <p>
               Your National Service commences on <strong>{commencementDate}</strong> and ends on <strong>{endDate}</strong>.
             </p>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              You are required to report to the District Licensing Manager for orientation and assignment.
-            </p>
-            <p style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-              Please note that you are expected to be of a good behavior and abide by the rules and regulations of the Authority. Your National Service may be terminated based on any misconduct.
+            <p>
+              You are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.
             </p>
           </>
         )}
       </div>
 
       {/* SIGNATORY & FOOTER */}
-      <div className="mt-8 pt-4 relative z-10" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-        <div className="space-y-4">
+      <div
+        className="mt-6 pt-3 relative z-10"
+        style={{ fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif" }}
+      >
+        <div className="space-y-3">
           <div>
-            <div className="text-gray-900 mb-2" style={{ fontSize: '12pt' }}>Thank you.</div>
-            <div className="text-gray-900" style={{ fontSize: '12pt' }}>Yours faithfully,</div>
-            {/* Handwritten Signature SVG */}
-            <div className="my-2 h-12 flex items-center">
-              <svg className="w-36 h-12 text-[#1a365d]" viewBox="0 0 200 60" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M 10,45 Q 30,10 50,40 T 90,20 T 130,45 T 170,15" strokeWidth="2.5" strokeLinecap="round" />
-                <path d="M 25,35 Q 60,5 110,40 T 180,25" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+            <div className="text-gray-900 mb-1">Thank you.</div>
+            <div className="text-gray-900">Yours faithfully,</div>
+
+            {/* Official Scanned Signature Image */}
+            <div className="my-1.5 h-12 flex items-center">
+              <img
+                src={SIGNATURE_BASE64}
+                alt="Authorized Signature"
+                className="h-12 w-auto max-h-12 object-contain"
+              />
             </div>
+
             <div>
-              <div className="font-black text-gray-950 uppercase tracking-wide" style={{ fontSize: '12pt' }}>{signatoryName}</div>
-              <div className="font-bold text-gray-800" style={{ fontSize: '12pt' }}>{signatoryTitle}</div>
-              <div className="font-bold text-gray-700 uppercase" style={{ fontSize: '12pt' }}>{signatoryForTitle}</div>
+              <div className="font-black text-gray-950 uppercase tracking-wide">{signatoryName}</div>
+              <div className="font-bold text-gray-800">{signatoryTitle}</div>
+              <div className="font-bold text-gray-700 uppercase">{signatoryForTitle}</div>
             </div>
           </div>
+
           {/* Cc List */}
-          <div className="pt-3 text-gray-800 leading-tight" style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}>
-            <div className="flex items-start gap-4">
-              <span className="font-bold" style={{ fontSize: '12pt' }}>Cc:</span>
+          <div
+            className="pt-2 text-gray-800 leading-tight"
+            style={{ fontSize: '10.5pt', fontFamily: "'Times New Roman', Times, serif" }}
+          >
+            <div className="flex items-start gap-3">
+              <span className="font-bold">Cc:</span>
               <ul className="space-y-0.5 text-gray-800">
                 {formattedCcList.map((item, idx) => (
-                  <li key={idx} style={{ fontSize: '12pt' }}>{item}</li>
+                  <li key={idx}>&bull; {item}</li>
                 ))}
               </ul>
             </div>
