@@ -138,6 +138,43 @@ export async function GET(request: Request) {
       }
     }
 
+    if (type === 'reposting') {
+      const letterData = app.appointmentLetterObject || app.appointmentLetterData;
+      const repostingBody = `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`;
+      
+      if (letterData && typeof letterData === 'object') {
+        const isStale = letterData.appointmentType !== 'REPOSTING' || 
+          letterData.customSubject === 'POSTING OF NATIONAL SERVICE PERSONNEL.' ||
+          letterData.customSubject === 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' ||
+          letterData.customSubject === 'REQUEST FOR REPOSTING' ||
+          !letterData.customBodyText ||
+          letterData.customBodyText.includes('assigned to') ||
+          letterData.customBodyText.includes('reposted to the') ||
+          letterData.customBodyText.includes('has requested to be released');
+
+        if (isStale) {
+          const sanitized = {
+            ...letterData,
+            appointmentType: 'REPOSTING',
+            customSubject: 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR',
+            salutation: 'Dear Madam,',
+            customBodyText: repostingBody,
+          };
+          app.appointmentLetterData = sanitized;
+          app.appointmentLetterObject = sanitized;
+        }
+      } else {
+        const defaultReposting = {
+          appointmentType: 'REPOSTING',
+          customSubject: 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR',
+          salutation: 'Dear Madam,',
+          customBodyText: repostingBody,
+        };
+        app.appointmentLetterData = defaultReposting;
+        app.appointmentLetterObject = defaultReposting;
+      }
+    }
+
     return NextResponse.json({
       application: app,
       pdf_data: app,

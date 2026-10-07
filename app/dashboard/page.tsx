@@ -199,21 +199,39 @@ export default function Dashboard() {
       const dynamicFullName = `${app.first_name || ''} ${app.middle_name ? app.middle_name + ' ' : ''}${app.last_name || ''}`.trim();
       const applicantName = letterObj.applicantName || dynamicFullName || user?.full_name || 'NSS Personnel';
       const applicantAddress = letterObj.applicantAddress || app.residential_address || '';
+      const isReposting = letterType === 'reposting' || app.status === 'rejected';
       const refSuffix = app.nss_number || String(app.id || '0127');
-      const displayRef = letterObj.customRefNumber || `DVLA/HR/NSS/${refSuffix}`;
-      const yourRef = letterObj.yourRef || '....................................';
+      const displayRef = letterObj.customRefNumber || (
+        isReposting ? `DVLA/ADMIN/NSS/${refSuffix}` : `DVLA/HR/NSS/${refSuffix}`
+      );
+      const yourRef = letterObj.yourRef || '';
 
-      const displaySubject = letterObj.customSubject || (letterType === 'reposting' 
-        ? 'REPOSTING OF NATIONAL SERVICE PERSONNEL.'
-        : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
+      const isStalePostingBody = letterObj.customBodyText && (
+        letterObj.customBodyText.includes('assigned to') || 
+        letterObj.customBodyText.includes('reposted to the') ||
+        letterObj.appointmentType !== 'REPOSTING' ||
+        letterObj.customBodyText.includes('has requested to be released')
+      );
 
-      const salutation = letterObj.salutation || `Dear ${applicantName},`;
+      const effectiveCustomBody = (!isReposting || !isStalePostingBody) ? letterObj.customBodyText : null;
+
+      const displaySubject = isReposting
+        ? (letterObj.appointmentType === 'REPOSTING' && letterObj.customSubject && letterObj.customSubject !== 'POSTING OF NATIONAL SERVICE PERSONNEL.' && letterObj.customSubject !== 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' && letterObj.customSubject !== 'REQUEST FOR REPOSTING'
+            ? letterObj.customSubject
+            : 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR')
+        : (letterObj.customSubject || 'POSTING OF NATIONAL SERVICE PERSONNEL.');
+
+      const salutation = isReposting
+        ? (letterObj.appointmentType === 'REPOSTING' && letterObj.salutation && letterObj.salutation !== `Dear ${applicantName},`
+            ? letterObj.salutation
+            : 'Dear Madam,')
+        : (letterObj.salutation || `Dear ${applicantName},`);
       const stationName = app.posting_station || app.posting_district || app.district || 'Bonwire District Office';
       const serviceYear = app.service_year ? `${app.service_year}/${parseInt(String(app.service_year), 10) + 1}` : '2025/2026';
       const commencementDate = letterObj.commencementDate || (app.service_period_start ? formatDate(app.service_period_start) : 'Monday, 17th November, 2025');
       const endDate = letterObj.endDate || (app.service_period_end ? formatDate(app.service_period_end) : 'Friday, 30th October, 2026');
       const signatoryName = letterObj.signatoryName || 'EPHRAIM NII TAN SACKEY';
-      const signatoryTitle = letterObj.signatoryTitle || 'AG. DIRECTOR HR';
+      const signatoryTitle = letterObj.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
       
       const ccListItems: string[] = typeof letterObj.ccText === 'string'
@@ -466,8 +484,14 @@ export default function Dashboard() {
 
               <!-- ADDRESSEE -->
               <div class="addressee">
-                <div>${applicantName}</div>
-                ${applicantAddress ? `<div style="color: #374151; font-weight: normal;">${applicantAddress}</div>` : ''}
+                ${isReposting ? `
+                  <div>THE EXECUTIVE DIRECTOR</div>
+                  <div>NATIONAL SERVICE SECRETARIAT</div>
+                  <div>ACCRA</div>
+                ` : `
+                  <div>${applicantName}</div>
+                  ${applicantAddress ? `<div style="color: #374151; font-weight: normal;">${applicantAddress}</div>` : ''}
+                `}
               </div>
 
               <!-- SALUTATION -->
@@ -480,8 +504,12 @@ export default function Dashboard() {
 
               <!-- BODY PARAGRAPHS -->
               <div class="body-text">
-                ${letterObj.customBodyText ? `<div style="white-space: pre-line;">${letterObj.customBodyText}</div>` : `
-                  <p>This is to inform you that you have been ${letterType === 'reposting' ? 'reposted' : 'assigned'} to the <strong>${stationName}</strong> for the <strong>${serviceYear}</strong> service year.</p>
+                ${isReposting ? (effectiveCustomBody ? `<div style="white-space: pre-line;">${effectiveCustomBody}</div>` : `
+                  <p>We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.</p>
+                  <p>By this letter we write to confirm the release of the National Service Person.</p>
+                  <p>Counting on your usual cooperation.</p>
+                `) : effectiveCustomBody ? `<div style="white-space: pre-line;">${effectiveCustomBody}</div>` : `
+                  <p>This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${serviceYear}</strong> service year.</p>
                   <p>Your National Service commences on <strong>${commencementDate}</strong> and ends on <strong>${endDate}</strong>.</p>
                   <p>You are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
                 `}
@@ -500,12 +528,14 @@ export default function Dashboard() {
                     <div class="signatory-title">${signatoryTitle}</div>
                     <div class="signatory-for">${signatoryForTitle}</div>
                   </div>
+                  ${!isReposting && ccListItems.length > 0 ? `
                   <div class="cc-box">
                     <strong>Cc:</strong>
                     <ul>
                       ${ccListItems.map(item => `<li>&bull; ${item}</li>`).join('')}
                     </ul>
                   </div>
+                  ` : ''}
                 </div>
               </div>
             </div>

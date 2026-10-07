@@ -55,29 +55,49 @@ export default function OfficialAppointmentLetter({
   probationPeriod = 'six (6) months',
   contractDuration = 'two (2) years',
   signatoryName = 'EPHRAIM NII TAN SACKEY',
-  signatoryTitle = 'AG. DIRECTOR HR',
+  signatoryTitle,
   signatoryForTitle = 'FOR: CHIEF EXECUTIVE',
   ccList,
   isPrintView = false,
 }: OfficialAppointmentLetterProps) {
-  const displayRef = customRefNumber || (referenceNumber ? `DVLA/HR/NSS/${referenceNumber}` : 'DVLA/HR/NSS/11/5/25');
-  const displaySubject = customSubject || (
-    appointmentType === 'CONTRACT' ? 'OFFER OF CONTRACT APPOINTMENT' :
-    appointmentType === 'PERMANENT' ? 'OFFER OF PERMANENT APPOINTMENT' :
-    appointmentType === 'REPOSTING' ? 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' :
-    'POSTING OF NATIONAL SERVICE PERSONNEL.'
+  const displayRef = customRefNumber || (
+    referenceNumber 
+      ? (appointmentType === 'REPOSTING' ? `DVLA/ADMIN/NSS/${referenceNumber}` : `DVLA/HR/NSS/${referenceNumber}`)
+      : (appointmentType === 'REPOSTING' ? 'DVLA/ADMIN/NSS/10/25' : 'DVLA/HR/NSS/11/5/25')
+  );
+  const isStaleSubject = appointmentType === 'REPOSTING' && (
+    customSubject === 'POSTING OF NATIONAL SERVICE PERSONNEL.' ||
+    customSubject === 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' ||
+    customSubject === 'REQUEST FOR REPOSTING'
+  );
+  const displaySubject = (isStaleSubject || !customSubject)
+    ? (
+        appointmentType === 'CONTRACT' ? 'OFFER OF CONTRACT APPOINTMENT' :
+        appointmentType === 'PERMANENT' ? 'OFFER OF PERMANENT APPOINTMENT' :
+        appointmentType === 'REPOSTING' ? 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR' :
+        'POSTING OF NATIONAL SERVICE PERSONNEL.'
+      )
+    : customSubject;
+
+  const displaySalutation = salutation || (appointmentType === 'REPOSTING' ? 'Dear Madam,' : applicantName ? `Dear ${applicantName},` : 'Dear Sir/Madam,');
+
+  const effectiveSignatoryTitle = signatoryTitle || (
+    appointmentType === 'REPOSTING' ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR'
   );
 
-  const displaySalutation = salutation || (applicantName ? `Dear ${applicantName},` : 'Dear Sir/Madam,');
+  const isStalePostingBody = customBodyText && appointmentType === 'REPOSTING' && (
+    customBodyText.includes('assigned to') || 
+    customBodyText.includes('reposted to the') ||
+    customBodyText.includes('has requested to be released')
+  );
+  const effectiveBodyText = isStalePostingBody ? undefined : customBodyText;
 
   // Parse CC list array or multiline string
   const formattedCcList: string[] = typeof ccList === 'string'
     ? ccList.split('\n').map(s => s.trim()).filter(Boolean)
     : Array.isArray(ccList) && ccList.length > 0
     ? ccList
-    : [
-        'District Licensing Manager',
-      ];
+    : (appointmentType === 'REPOSTING' ? [] : ['District Licensing Manager']);
 
   return (
     <div
@@ -176,13 +196,23 @@ export default function OfficialAppointmentLetter({
         </div>
       </div>
 
-      {/* CANDIDATE ADDRESSEE */}
+      {/* ADDRESSEE */}
       <div
         className="mb-4 space-y-0.5 uppercase font-bold text-gray-900 relative z-10"
         style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
       >
-        <div className="font-black text-gray-950">{applicantName}</div>
-        {applicantAddress && <div className="text-gray-700 font-normal">{applicantAddress}</div>}
+        {appointmentType === 'REPOSTING' ? (
+          <>
+            <div className="font-black text-gray-950">THE EXECUTIVE DIRECTOR</div>
+            <div>NATIONAL SERVICE SECRETARIAT</div>
+            <div>ACCRA</div>
+          </>
+        ) : (
+          <>
+            <div className="font-black text-gray-950">{applicantName}</div>
+            {applicantAddress && <div className="text-gray-700 font-normal whitespace-pre-line">{applicantAddress}</div>}
+          </>
+        )}
       </div>
 
       {/* SALUTATION */}
@@ -208,10 +238,10 @@ export default function OfficialAppointmentLetter({
         className="space-y-3 text-gray-900 leading-relaxed relative z-10 text-justify"
         style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
       >
-        {customBodyText ? (
+        {effectiveBodyText ? (
           <div
             className="whitespace-pre-line space-y-3"
-            dangerouslySetInnerHTML={{ __html: customBodyText }}
+            dangerouslySetInnerHTML={{ __html: effectiveBodyText }}
           />
         ) : appointmentType === 'CONTRACT' ? (
           <>
@@ -231,10 +261,22 @@ export default function OfficialAppointmentLetter({
               You are required to report to the District Licensing Manager for orientation and assignment. Kindly sign and return the duplicate copy of this letter signifying your formal acceptance.
             </p>
           </>
+        ) : appointmentType === 'REPOSTING' ? (
+          <>
+            <p>
+              We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.
+            </p>
+            <p>
+              By this letter we write to confirm the release of the National Service Person.
+            </p>
+            <p>
+              Counting on your usual cooperation.
+            </p>
+          </>
         ) : (
           <>
             <p>
-              This is to inform you that you have been {appointmentType === 'REPOSTING' ? 'reposted' : 'assigned'} to the <strong>{postingStationName}</strong>{departmentName ? <> (<strong>{departmentName}</strong>)</> : ''} for the <strong>{serviceYear}</strong> service year.
+              This is to inform you that you have been assigned to the <strong>{postingStationName}</strong>{departmentName ? <> (<strong>{departmentName}</strong>)</> : ''} for the <strong>{serviceYear}</strong> service year.
             </p>
             <p>
               Your National Service commences on <strong>{commencementDate}</strong> and ends on <strong>{endDate}</strong>.
@@ -267,25 +309,27 @@ export default function OfficialAppointmentLetter({
 
             <div>
               <div className="font-black text-gray-950 uppercase tracking-wide">{signatoryName}</div>
-              <div className="font-bold text-gray-800">{signatoryTitle}</div>
+              <div className="font-bold text-gray-800">{effectiveSignatoryTitle}</div>
               <div className="font-bold text-gray-700 uppercase">{signatoryForTitle}</div>
             </div>
           </div>
 
-          {/* Cc List */}
-          <div
-            className="pt-2 text-gray-800 leading-tight"
-            style={{ fontSize: '10.5pt', fontFamily: "'Times New Roman', Times, serif" }}
-          >
-            <div className="flex items-start gap-3">
-              <span className="font-bold">Cc:</span>
-              <ul className="space-y-0.5 text-gray-800">
-                {formattedCcList.map((item, idx) => (
-                  <li key={idx}>&bull; {item}</li>
-                ))}
-              </ul>
+          {/* Cc List - omitted for reposting letters */}
+          {formattedCcList.length > 0 && (
+            <div
+              className="pt-2 text-gray-800 leading-tight"
+              style={{ fontSize: '10.5pt', fontFamily: "'Times New Roman', Times, serif" }}
+            >
+              <div className="flex items-start gap-3">
+                <span className="font-bold">Cc:</span>
+                <ul className="space-y-0.5 text-gray-800">
+                  {formattedCcList.map((item, idx) => (
+                    <li key={idx}>&bull; {item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

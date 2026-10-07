@@ -58,15 +58,22 @@ export default function AppointmentLetterModal({
 
     const existingLetter = application.appointmentLetterObject || application.appointmentLetterData;
     if (existingLetter && typeof existingLetter === 'object') {
-      setAppointmentType((existingLetter.appointmentType as any) || (application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'));
+      const type = (existingLetter.appointmentType as any) || (application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY');
+      setAppointmentType(type);
       setLetterDate(existingLetter.letterDate || todayStr);
-      setSalutation(existingLetter.salutation || 'Dear Sir/Madam,');
+      setSalutation(existingLetter.salutation || (type === 'REPOSTING' ? 'Dear Madam,' : 'Dear Sir/Madam,'));
       const defaultRef = application.nss_number ? `DVLA/HR/NSS/${application.nss_number}` : `DVLA/HR/NSS/${application.id || '0127'}`;
       setCustomRefNumber(existingLetter.customRefNumber || defaultRef);
       setYourRef(existingLetter.yourRef || '');
       setApplicantName(existingLetter.applicantName || fullName);
       setApplicantAddress(existingLetter.applicantAddress || application.residential_address || '');
-      setCustomSubject(existingLetter.customSubject || '');
+      const isStaleSubject = type === 'REPOSTING' && (
+        !existingLetter.customSubject ||
+        existingLetter.customSubject === 'POSTING OF NATIONAL SERVICE PERSONNEL.' ||
+        existingLetter.customSubject === 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' ||
+        existingLetter.customSubject === 'REQUEST FOR REPOSTING'
+      );
+      setCustomSubject(isStaleSubject ? 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR' : (existingLetter.customSubject || ''));
       setEffectiveDate(existingLetter.effectiveDate || initialEffectiveDate);
       setSalaryGrade(existingLetter.salaryGrade || 'DVLA Salary Scale');
       setProbationPeriod(existingLetter.probationPeriod || 'six (6) months');
@@ -75,7 +82,19 @@ export default function AppointmentLetterModal({
       setSignatoryTitle(existingLetter.signatoryTitle || 'AG. DIRECTOR HR');
       setSignatoryForTitle(existingLetter.signatoryForTitle || 'FOR: CHIEF EXECUTIVE');
       setCcText(existingLetter.ccText || 'District Licensing Manager');
-      setCustomBodyText(existingLetter.customBodyText || '');
+      const isStaleBody = type === 'REPOSTING' && (
+        !existingLetter.customBodyText ||
+        existingLetter.customBodyText.includes('assigned to') ||
+        existingLetter.customBodyText.includes('reposted to the') ||
+        existingLetter.customBodyText.includes('has requested to be released')
+      );
+      if (isStaleBody) {
+        setCustomBodyText(
+          `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`
+        );
+      } else {
+        setCustomBodyText(existingLetter.customBodyText || '');
+      }
     } else {
       setLetterDate(todayStr);
       setEffectiveDate(initialEffectiveDate);
@@ -86,9 +105,9 @@ export default function AppointmentLetterModal({
   }, [application, isOpen]);
 
   const generateDefaultRef = (type: string) => {
-    if (!application) return 'DVLA/HR/NSS/0127';
-    const refCode = application.nss_number || String(application.id || '0127');
-    return `DVLA/HR/NSS/${refCode}`;
+    if (!application) return type === 'REPOSTING' ? 'DVLA/ADMIN/NSS/10/25' : 'DVLA/HR/NSS/0127';
+    const refCode = application.nss_number || String(application.id || '10/25');
+    return type === 'REPOSTING' ? `DVLA/ADMIN/NSS/${refCode}` : `DVLA/HR/NSS/${refCode}`;
   };
 
   const applyDefaultTemplate = (type: 'TEMPORARY' | 'REPOSTING', dateStr?: string, effDateOverride?: string) => {
@@ -97,12 +116,24 @@ export default function AppointmentLetterModal({
     const ref = generateDefaultRef(type);
     setCustomRefNumber(ref);
     if (type === 'REPOSTING') {
-      setCustomSubject('REPOSTING OF NATIONAL SERVICE PERSONNEL.');
+      setCustomSubject('RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR');
+      setApplicantName('THE EXECUTIVE DIRECTOR');
+      setApplicantAddress('NATIONAL SERVICE SECRETARIAT\nACCRA');
+      setSalutation('Dear Madam,');
+      setSignatoryTitle('AG. DIRECTOR HUMAN RESOURCE');
+      setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
+      setCcText('');
       setCustomBodyText(
-        `This is to inform you that you have been reposted to the <strong>${stationName}</strong> for the <strong>2025/2026</strong> service year.\n\nYour National Service commences on <strong>Monday, 17th November, 2025</strong> and ends on <strong>Friday, 30th October, 2026</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
+        `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`
       );
     } else {
       setCustomSubject('POSTING OF NATIONAL SERVICE PERSONNEL.');
+      setApplicantName(application?.full_name || `${application?.first_name || ''} ${application?.last_name || ''}`.trim());
+      setApplicantAddress(application?.residential_address || 'ACCRA - GHANA');
+      setSalutation(application?.full_name ? `Dear ${application.full_name},` : 'Dear Sir/Madam,');
+      setSignatoryTitle('AG. DIRECTOR HR');
+      setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
+      setCcText('District Licensing Manager');
       setCustomBodyText(
         `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>2025/2026</strong> service year.\n\nYour National Service commences on <strong>Monday, 17th November, 2025</strong> and ends on <strong>Friday, 30th October, 2026</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
@@ -118,8 +149,9 @@ export default function AppointmentLetterModal({
     const displayIssueDate = letterDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
     const displayApplicantName = applicantName || 'APPLICANT NAME';
     const displayApplicantAddress = applicantAddress || 'ACCRA - GHANA';
-    const displaySubjectText = customSubject || 'NSS POSTING APPOINTMENT';
-    const displayBodyText = customBodyText;
+    const displaySubjectText = customSubject || (appointmentType === 'REPOSTING' ? 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR' : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
+    const displaySalutation = salutation || (appointmentType === 'REPOSTING' ? 'Dear Madam,' : 'Dear Sir/Madam,');
+    const displayBodyText = customBodyText || (appointmentType === 'REPOSTING' ? `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.` : '');
     const displaySignatoryName = signatoryName || 'EPHRAIM NII TAN SACKEY';
     const displaySignatoryTitle = signatoryTitle || 'AG. DIRECTOR HR';
     const displaySignatoryForTitle = signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
@@ -223,11 +255,17 @@ export default function AppointmentLetterModal({
             </div>
 
             <div class="addressee">
-              <div>${displayApplicantName}</div>
-              <div style="color: #374151; font-weight: normal;">${displayApplicantAddress}</div>
+              ${appointmentType === 'REPOSTING' ? `
+                <div>THE EXECUTIVE DIRECTOR</div>
+                <div>NATIONAL SERVICE SECRETARIAT</div>
+                <div>ACCRA</div>
+              ` : `
+                <div>${displayApplicantName}</div>
+                <div style="color: #374151; font-weight: normal; white-space: pre-line;">${displayApplicantAddress}</div>
+              `}
             </div>
 
-            <div class="salutation">${salutation}</div>
+            <div class="salutation">${displaySalutation}</div>
 
             <div>
               <h2 class="subject-title">${displaySubjectText}</h2>
@@ -246,15 +284,17 @@ export default function AppointmentLetterModal({
                 </div>
                 <div>
                   <div class="signatory-name">${displaySignatoryName}</div>
-                  <div class="signatory-title">${displaySignatoryTitle}</div>
+                  <div class="signatory-title">${displaySignatoryTitle || (appointmentType === 'REPOSTING' ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR')}</div>
                   <div class="signatory-for">${displaySignatoryForTitle}</div>
                 </div>
+                ${appointmentType !== 'REPOSTING' && ccListItems.length > 0 ? `
                 <div class="cc-box">
                   <strong>Cc:</strong>
                   <ul>
                     ${ccListItems.map(item => `<li>&bull; ${item}</li>`).join('')}
                   </ul>
                 </div>
+                ` : ''}
               </div>
             </div>
           </div>
