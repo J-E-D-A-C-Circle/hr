@@ -3,6 +3,7 @@ import { getAuthPayload } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { nssApplications, users } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { getAutoServiceYear } from '@/lib/utils';
 
 export async function GET(request: Request) {
   try {
@@ -140,6 +141,7 @@ export async function GET(request: Request) {
 
     if (type === 'reposting') {
       const letterData = app.appointmentLetterObject || app.appointmentLetterData;
+      const currentServiceYear = getAutoServiceYear(app.service_year);
       const repostingBody = `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`;
       
       if (letterData && typeof letterData === 'object') {
@@ -156,7 +158,7 @@ export async function GET(request: Request) {
           const sanitized = {
             ...letterData,
             appointmentType: 'REPOSTING',
-            customSubject: 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR',
+            customSubject: `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${currentServiceYear} SERVICE YEAR`,
             salutation: 'Dear Madam,',
             customBodyText: repostingBody,
           };
@@ -166,7 +168,7 @@ export async function GET(request: Request) {
       } else {
         const defaultReposting = {
           appointmentType: 'REPOSTING',
-          customSubject: 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR',
+          customSubject: `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${currentServiceYear} SERVICE YEAR`,
           salutation: 'Dear Madam,',
           customBodyText: repostingBody,
         };

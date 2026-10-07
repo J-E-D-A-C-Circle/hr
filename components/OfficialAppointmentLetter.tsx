@@ -1,7 +1,7 @@
-'use client';
 import React from 'react';
 import Image from 'next/image';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
+import { getAutoServiceYear, getAutoEndDate } from '@/lib/utils';
 
 export interface OfficialAppointmentLetterProps {
   referenceNumber: string;
@@ -41,10 +41,10 @@ export default function OfficialAppointmentLetter({
   departmentName = '',
   postingStationName = 'Head Office',
   appointmentType = 'TEMPORARY',
-  effectiveDate = 'Monday, 17th November, 2025',
-  commencementDate = 'Monday, 17th November, 2025',
-  endDate = 'Friday, 30th October, 2026',
-  serviceYear = '2025/2026',
+  effectiveDate,
+  commencementDate,
+  endDate,
+  serviceYear,
   issueDate,
   salutation,
   customRefNumber,
@@ -60,6 +60,15 @@ export default function OfficialAppointmentLetter({
   ccList,
   isPrintView = false,
 }: OfficialAppointmentLetterProps) {
+  const currentYear = new Date().getFullYear();
+  const effectiveStart = commencementDate || effectiveDate || `Monday, 17th November, ${currentYear}`;
+  const effectiveServiceYear = (serviceYear && serviceYear !== '2025/2026') 
+    ? serviceYear 
+    : getAutoServiceYear(effectiveStart);
+  const effectiveEndDate = (endDate && !endDate.includes('2025') && !endDate.includes('30th October, 2026'))
+    ? endDate
+    : getAutoEndDate(effectiveStart);
+
   const displayRef = customRefNumber || (
     referenceNumber 
       ? (appointmentType === 'REPOSTING' ? `DVLA/ADMIN/NSS/${referenceNumber}` : `DVLA/HR/NSS/${referenceNumber}`)
@@ -68,13 +77,14 @@ export default function OfficialAppointmentLetter({
   const isStaleSubject = appointmentType === 'REPOSTING' && (
     customSubject === 'POSTING OF NATIONAL SERVICE PERSONNEL.' ||
     customSubject === 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' ||
-    customSubject === 'REQUEST FOR REPOSTING'
+    customSubject === 'REQUEST FOR REPOSTING' ||
+    customSubject?.includes('2025/2026')
   );
   const displaySubject = (isStaleSubject || !customSubject)
     ? (
         appointmentType === 'CONTRACT' ? 'OFFER OF CONTRACT APPOINTMENT' :
         appointmentType === 'PERMANENT' ? 'OFFER OF PERMANENT APPOINTMENT' :
-        appointmentType === 'REPOSTING' ? 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR' :
+        appointmentType === 'REPOSTING' ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${effectiveServiceYear} SERVICE YEAR` :
         'POSTING OF NATIONAL SERVICE PERSONNEL.'
       )
     : customSubject;
@@ -90,7 +100,12 @@ export default function OfficialAppointmentLetter({
     customBodyText.includes('reposted to the') ||
     customBodyText.includes('has requested to be released')
   );
-  const effectiveBodyText = isStalePostingBody ? undefined : customBodyText;
+  let effectiveBodyText = isStalePostingBody ? undefined : customBodyText;
+  if (effectiveBodyText && appointmentType !== 'REPOSTING') {
+    effectiveBodyText = effectiveBodyText
+      .replace(/2025\/2026/g, effectiveServiceYear)
+      .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${effectiveEndDate}</strong>`);
+  }
 
   // Parse CC list array or multiline string
   const formattedCcList: string[] = typeof ccList === 'string'
@@ -276,10 +291,10 @@ export default function OfficialAppointmentLetter({
         ) : (
           <>
             <p>
-              This is to inform you that you have been assigned to the <strong>{postingStationName}</strong>{departmentName ? <> (<strong>{departmentName}</strong>)</> : ''} for the <strong>{serviceYear}</strong> service year.
+              This is to inform you that you have been assigned to the <strong>{postingStationName}</strong>{departmentName ? <> (<strong>{departmentName}</strong>)</> : ''} for the <strong>{effectiveServiceYear}</strong> service year.
             </p>
             <p>
-              Your National Service commences on <strong>{commencementDate}</strong> and ends on <strong>{endDate}</strong>.
+              Your National Service commences on <strong>{effectiveStart}</strong> and ends on <strong>{effectiveEndDate}</strong>.
             </p>
             <p>
               You are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.

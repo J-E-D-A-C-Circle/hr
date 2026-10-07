@@ -4,6 +4,7 @@ import axios from 'axios';
 import { X, FileText, Sparkles, Check, RefreshCw, Eye, Edit3, Printer } from 'lucide-react';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
+import { getAutoServiceYear, getAutoEndDate } from '@/lib/utils';
 
 interface AppointmentLetterModalProps {
   isOpen: boolean;
@@ -71,9 +72,11 @@ export default function AppointmentLetterModal({
         !existingLetter.customSubject ||
         existingLetter.customSubject === 'POSTING OF NATIONAL SERVICE PERSONNEL.' ||
         existingLetter.customSubject === 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' ||
-        existingLetter.customSubject === 'REQUEST FOR REPOSTING'
+        existingLetter.customSubject === 'REQUEST FOR REPOSTING' ||
+        existingLetter.customSubject?.includes('2025/2026')
       );
-      setCustomSubject(isStaleSubject ? 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR' : (existingLetter.customSubject || ''));
+      const autoServiceYear = getAutoServiceYear(application.service_year);
+      setCustomSubject(isStaleSubject ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR` : (existingLetter.customSubject || ''));
       setEffectiveDate(existingLetter.effectiveDate || initialEffectiveDate);
       setSalaryGrade(existingLetter.salaryGrade || 'DVLA Salary Scale');
       setProbationPeriod(existingLetter.probationPeriod || 'six (6) months');
@@ -82,18 +85,35 @@ export default function AppointmentLetterModal({
       setSignatoryTitle(existingLetter.signatoryTitle || 'AG. DIRECTOR HR');
       setSignatoryForTitle(existingLetter.signatoryForTitle || 'FOR: CHIEF EXECUTIVE');
       setCcText(existingLetter.ccText || 'District Licensing Manager');
-      const isStaleBody = type === 'REPOSTING' && (
-        !existingLetter.customBodyText ||
-        existingLetter.customBodyText.includes('assigned to') ||
-        existingLetter.customBodyText.includes('reposted to the') ||
-        existingLetter.customBodyText.includes('has requested to be released')
-      );
-      if (isStaleBody) {
-        setCustomBodyText(
-          `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`
+      
+      if (type === 'REPOSTING') {
+        const isStaleBody = (
+          !existingLetter.customBodyText ||
+          existingLetter.customBodyText.includes('assigned to') ||
+          existingLetter.customBodyText.includes('reposted to the') ||
+          existingLetter.customBodyText.includes('has requested to be released')
         );
+        if (isStaleBody) {
+          setCustomBodyText(
+            `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`
+          );
+        } else {
+          setCustomBodyText(existingLetter.customBodyText || '');
+        }
       } else {
-        setCustomBodyText(existingLetter.customBodyText || '');
+        const startDateStr = existingLetter.effectiveDate || initialEffectiveDate;
+        const autoYear = getAutoServiceYear(application.service_year || startDateStr);
+        const autoEnd = getAutoEndDate(startDateStr);
+        let body = existingLetter.customBodyText || '';
+        if (body) {
+          body = body
+            .replace(/2025\/2026/g, autoYear)
+            .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${autoEnd}</strong>`);
+        } else {
+          const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
+          body = `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoYear}</strong> service year.\n\nYour National Service commences on <strong>${startDateStr}</strong> and ends on <strong>${autoEnd}</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`;
+        }
+        setCustomBodyText(body);
       }
     } else {
       setLetterDate(todayStr);
@@ -115,8 +135,16 @@ export default function AppointmentLetterModal({
     const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
     const ref = generateDefaultRef(type);
     setCustomRefNumber(ref);
+    const appStart = application.service_period_start || application.servicePeriodStart;
+    const fallbackDate = appStart 
+      ? new Date(appStart).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+      : `Monday, September 1, ${new Date().getFullYear()}`;
+    const effDate = effDateOverride || effectiveDate || fallbackDate;
+    const autoServiceYear = getAutoServiceYear(application?.service_year || effDate);
+    const autoEndDate = getAutoEndDate(effDate);
+
     if (type === 'REPOSTING') {
-      setCustomSubject('RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR');
+      setCustomSubject(`RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR`);
       setApplicantName('THE EXECUTIVE DIRECTOR');
       setApplicantAddress('NATIONAL SERVICE SECRETARIAT\nACCRA');
       setSalutation('Dear Madam,');
@@ -135,7 +163,7 @@ export default function AppointmentLetterModal({
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
       setCcText('District Licensing Manager');
       setCustomBodyText(
-        `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>2025/2026</strong> service year.\n\nYour National Service commences on <strong>Monday, 17th November, 2025</strong> and ends on <strong>Friday, 30th October, 2026</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
+        `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
     }
   };
@@ -149,9 +177,16 @@ export default function AppointmentLetterModal({
     const displayIssueDate = letterDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
     const displayApplicantName = applicantName || 'APPLICANT NAME';
     const displayApplicantAddress = applicantAddress || 'ACCRA - GHANA';
-    const displaySubjectText = customSubject || (appointmentType === 'REPOSTING' ? 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR' : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
+    const autoServiceYear = getAutoServiceYear(application?.service_year || effectiveDate);
+    const autoEndDate = getAutoEndDate(effectiveDate);
+    const displaySubjectText = customSubject || (appointmentType === 'REPOSTING' ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR` : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
     const displaySalutation = salutation || (appointmentType === 'REPOSTING' ? 'Dear Madam,' : 'Dear Sir/Madam,');
-    const displayBodyText = customBodyText || (appointmentType === 'REPOSTING' ? `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.` : '');
+    let displayBodyText = customBodyText || (appointmentType === 'REPOSTING' ? `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.` : '');
+    if (appointmentType !== 'REPOSTING' && displayBodyText) {
+      displayBodyText = displayBodyText
+        .replace(/2025\/2026/g, autoServiceYear)
+        .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${autoEndDate}</strong>`);
+    }
     const displaySignatoryName = signatoryName || 'EPHRAIM NII TAN SACKEY';
     const displaySignatoryTitle = signatoryTitle || 'AG. DIRECTOR HR';
     const displaySignatoryForTitle = signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
@@ -587,7 +622,29 @@ export default function AppointmentLetterModal({
                   <input
                     type="text"
                     value={effectiveDate}
-                    onChange={(e) => setEffectiveDate(e.target.value)}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      setEffectiveDate(newStart);
+                      const newEndDate = getAutoEndDate(newStart);
+                      const newYear = getAutoServiceYear(newStart);
+                      setCustomBodyText((prev) => {
+                        if (!prev || appointmentType === 'REPOSTING') return prev;
+                        let updated = prev;
+                        if (updated.includes('commences on')) {
+                          updated = updated.replace(
+                            /(commences on\s+<strong>)[^<]*?(<\/strong>\s+and ends on\s+<strong>)[^<]*?(<\/strong>)/i,
+                            `$1${newStart}$2${newEndDate}$3`
+                          );
+                        }
+                        if (updated.includes('service year')) {
+                          updated = updated.replace(
+                            /(for the\s+<strong>)[^<]*?(<\/strong>\s+service year)/i,
+                            `$1${newYear}$2`
+                          );
+                        }
+                        return updated;
+                      });
+                    }}
                     placeholder="e.g. Monday, September 1, 2026"
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-[#0F5132]"
                   />

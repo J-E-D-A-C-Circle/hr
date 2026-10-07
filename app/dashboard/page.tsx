@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DownloadCloud, LogOut, FileText, Home, Menu, X, Upload, ShieldCheck, ImageIcon, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getAutoServiceYear, getAutoEndDate } from '@/lib/utils';
 import { uploadFile } from '@/lib/file-upload';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
@@ -213,12 +213,28 @@ export default function Dashboard() {
         letterObj.customBodyText.includes('has requested to be released')
       );
 
-      const effectiveCustomBody = (!isReposting || !isStalePostingBody) ? letterObj.customBodyText : null;
+      let effectiveCustomBody = (!isReposting || !isStalePostingBody) ? letterObj.customBodyText : null;
+
+      const currentYear = new Date().getFullYear();
+      const serviceYear = getAutoServiceYear(app.service_year);
+
+      const commencementDate = letterObj.commencementDate || (
+        app.service_period_start 
+          ? new Date(app.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+          : `Monday, 17th November, ${currentYear}`
+      );
+      const endDate = getAutoEndDate(commencementDate || app.service_period_start || currentYear);
+
+      if (effectiveCustomBody && !isReposting) {
+        effectiveCustomBody = effectiveCustomBody
+          .replace(/2025\/2026/g, serviceYear)
+          .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${endDate}</strong>`);
+      }
 
       const displaySubject = isReposting
         ? (letterObj.appointmentType === 'REPOSTING' && letterObj.customSubject && letterObj.customSubject !== 'POSTING OF NATIONAL SERVICE PERSONNEL.' && letterObj.customSubject !== 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' && letterObj.customSubject !== 'REQUEST FOR REPOSTING'
             ? letterObj.customSubject
-            : 'RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE 2026/2027 SERVICE YEAR')
+            : `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${serviceYear} SERVICE YEAR`)
         : (letterObj.customSubject || 'POSTING OF NATIONAL SERVICE PERSONNEL.');
 
       const salutation = isReposting
@@ -227,9 +243,6 @@ export default function Dashboard() {
             : 'Dear Madam,')
         : (letterObj.salutation || `Dear ${applicantName},`);
       const stationName = app.posting_station || app.posting_district || app.district || 'Bonwire District Office';
-      const serviceYear = app.service_year ? `${app.service_year}/${parseInt(String(app.service_year), 10) + 1}` : '2025/2026';
-      const commencementDate = letterObj.commencementDate || (app.service_period_start ? formatDate(app.service_period_start) : 'Monday, 17th November, 2025');
-      const endDate = letterObj.endDate || (app.service_period_end ? formatDate(app.service_period_end) : 'Friday, 30th October, 2026');
       const signatoryName = letterObj.signatoryName || 'EPHRAIM NII TAN SACKEY';
       const signatoryTitle = letterObj.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';

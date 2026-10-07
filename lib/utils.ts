@@ -27,3 +27,62 @@ export function formatDateTime(dateStr?: string | Date | null): string {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
+/**
+ * Automatically computes the dynamic NSS service year (e.g. "2026/2027").
+ * Automatically rolls over to the current/next academic cycle.
+ */
+export function getAutoServiceYear(baseYearOrDate?: string | number | Date | null): string {
+  const currentYear = new Date().getFullYear();
+  let yearNum: number = currentYear;
+
+  if (typeof baseYearOrDate === 'number') {
+    yearNum = baseYearOrDate;
+  } else if (baseYearOrDate) {
+    const str = String(baseYearOrDate).trim();
+    const match = str.match(/\b(20\d\d)\b/);
+    if (match) {
+      yearNum = parseInt(match[1], 10);
+    }
+  }
+
+  if (isNaN(yearNum) || yearNum < currentYear) {
+    yearNum = currentYear;
+  }
+
+  return `${yearNum}/${yearNum + 1}`;
+}
+
+/**
+ * Automatically calculates the official NSS end date.
+ * The end date is always "30th October" in the year following the commencement start year.
+ * e.g. Start date in 2026 -> "Saturday, 30th October, 2027"
+ */
+export function getAutoEndDate(startDateOrYear?: string | number | Date | null): string {
+  const currentYear = new Date().getFullYear();
+  let startYear: number | null = null;
+
+  if (typeof startDateOrYear === 'number') {
+    startYear = startDateOrYear;
+  } else if (startDateOrYear) {
+    const d = new Date(startDateOrYear);
+    if (!isNaN(d.getTime())) {
+      startYear = d.getFullYear();
+    } else {
+      const match = String(startDateOrYear).match(/\b(20\d\d)\b/);
+      if (match) {
+        startYear = parseInt(match[1], 10);
+      }
+    }
+  }
+
+  if (!startYear || isNaN(startYear) || startYear < currentYear) {
+    startYear = currentYear;
+  }
+
+  const nextYear = startYear + 1;
+  const endD = new Date(nextYear, 9, 30); // 30th October
+  const weekday = endD.toLocaleDateString('en-US', { weekday: 'long' });
+  return `${weekday}, 30th October, ${nextYear}`;
+}
+
+
