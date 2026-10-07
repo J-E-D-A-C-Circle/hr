@@ -14,6 +14,11 @@ export async function uploadFile(
   fileType: 'passport' | 'appointment' | 'cv' | 'id_card',
   token: string
 ): Promise<UploadResponse> {
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error('File size exceeds 10MB limit. Please upload a smaller file.');
+  }
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('file_type', fileType);

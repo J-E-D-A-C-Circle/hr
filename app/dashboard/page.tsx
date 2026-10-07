@@ -66,6 +66,24 @@ export default function Dashboard() {
       return;
     }
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (passportFile && passportFile.size > MAX_FILE_SIZE) {
+      toast.error(`"${passportFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      return;
+    }
+    if (idCardFile && idCardFile.size > MAX_FILE_SIZE) {
+      toast.error(`"${idCardFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      return;
+    }
+    if (appointmentFile && appointmentFile.size > MAX_FILE_SIZE) {
+      toast.error(`"${appointmentFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      return;
+    }
+    if (cvFile && cvFile.size > MAX_FILE_SIZE) {
+      toast.error(`"${cvFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      return;
+    }
+
     setUploading(true);
     try {
       const token = getValidAuthToken() || localStorage.getItem('token') || '';

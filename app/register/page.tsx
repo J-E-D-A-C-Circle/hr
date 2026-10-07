@@ -534,42 +534,88 @@ export default function RegisterPage() {
         return;
       }
       
+      const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+
       if (passportFile) {
+        if (passportFile.size > MAX_UPLOAD_SIZE) {
+          toast.error(`"${passportFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          setIsSubmitting(false);
+          return;
+        }
         try {
           const uploadResult = await uploadFile(passportFile, 'passport', token);
           passportPhotoPath = uploadResult.file_path;
         } catch (uploadError: any) {
           console.error('Passport upload error:', uploadError);
+          const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
+          if (isSizeError) {
+            toast.error(uploadError.message || 'Passport photo exceeds the 10MB limit.');
+            setIsSubmitting(false);
+            return;
+          }
           throw new Error(`Passport photo upload failed: ${uploadError.message || 'Unknown error'}`);
         }
       }
 
       if (idCardFile) {
+        if (idCardFile.size > MAX_UPLOAD_SIZE) {
+          toast.error(`"${idCardFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          setIsSubmitting(false);
+          return;
+        }
         try {
           const uploadResult = await uploadFile(idCardFile, 'id_card', token);
           idCardPath = uploadResult.file_path;
         } catch (uploadError: any) {
           console.error('ID Card upload error:', uploadError);
+          const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
+          if (isSizeError) {
+            toast.error(uploadError.message || 'ID Card copy exceeds the 10MB limit.');
+            setIsSubmitting(false);
+            return;
+          }
           throw new Error(`ID Card upload failed: ${uploadError.message || 'Unknown error'}`);
         }
       }
       
       if (appointmentFile) {
+        if (appointmentFile.size > MAX_UPLOAD_SIZE) {
+          toast.error(`"${appointmentFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          setIsSubmitting(false);
+          return;
+        }
         try {
           const uploadResult = await uploadFile(appointmentFile, 'appointment', token);
           appointmentLetterPath = uploadResult.file_path;
         } catch (uploadError: any) {
           console.error('Appointment letter upload error:', uploadError);
+          const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
+          if (isSizeError) {
+            toast.error(uploadError.message || 'Appointment letter exceeds the 10MB limit.');
+            setIsSubmitting(false);
+            return;
+          }
           throw new Error(`Appointment letter upload failed: ${uploadError.message || 'Unknown error'}`);
         }
       }
       
       if (cvFile) {
+        if (cvFile.size > MAX_UPLOAD_SIZE) {
+          toast.error(`"${cvFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          setIsSubmitting(false);
+          return;
+        }
         try {
           const uploadResult = await uploadFile(cvFile, 'cv', token);
           cvPath = uploadResult.file_path;
         } catch (uploadError: any) {
           console.error('CV upload error:', uploadError);
+          const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
+          if (isSizeError) {
+            toast.error(uploadError.message || 'CV / Certificate exceeds the 10MB limit.');
+            setIsSubmitting(false);
+            return;
+          }
           throw new Error(`CV upload failed: ${uploadError.message || 'Unknown error'}`);
         }
       }
@@ -671,8 +717,13 @@ export default function RegisterPage() {
       // Redirect directly to dashboard (replace to prevent back navigation)
       router.replace('/dashboard');
     } catch (error: any) {
-      setSubmitError(error.message || 'Failed to submit application. Please try again.');
-      toast.error(error.message || 'Failed to submit application. Please try again.');
+      const isSizeError = error?.message?.toLowerCase().includes('10mb') || error?.message?.toLowerCase().includes('size exceeds');
+      if (isSizeError) {
+        toast.error(error.message || 'File size exceeds the 10MB limit. Please upload a smaller file.');
+      } else {
+        setSubmitError(error.message || 'Failed to submit application. Please try again.');
+        toast.error(error.message || 'Failed to submit application. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -692,23 +743,53 @@ export default function RegisterPage() {
   const appointmentCameraRef = useRef<HTMLInputElement | null>(null);
   const cvFileRef = useRef<HTMLInputElement | null>(null);
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
   const handlePassportSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (file && file.size > MAX_FILE_SIZE) {
+      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      e.target.value = '';
+      setPassportFileName('');
+      setSubmitError('');
+      return;
+    }
     setPassportFileName(file ? file.name : '');
   };
 
   const handleIdCardSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (file && file.size > MAX_FILE_SIZE) {
+      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      e.target.value = '';
+      setIdCardFileName('');
+      setSubmitError('');
+      return;
+    }
     setIdCardFileName(file ? file.name : '');
   };
 
   const handleAppointmentSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (file && file.size > MAX_FILE_SIZE) {
+      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      e.target.value = '';
+      setAppointmentFileName('');
+      setSubmitError('');
+      return;
+    }
     setAppointmentFileName(file ? file.name : '');
   };
 
   const handleCvSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (file && file.size > MAX_FILE_SIZE) {
+      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      e.target.value = '';
+      setCvFileName('');
+      setSubmitError('');
+      return;
+    }
     setCvFileName(file ? file.name : '');
   };
 

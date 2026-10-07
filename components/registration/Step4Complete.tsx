@@ -628,7 +628,7 @@ export function Step4Complete({
           {isSubmitting ? 'Submitting Application...' : 'Submit Application'}
         </Button>
       </div>
-      {submitError && (
+      {submitError && !submitError.toLowerCase().includes('10mb') && !submitError.toLowerCase().includes('size exceeds') && (
         <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
           {submitError}
         </div>

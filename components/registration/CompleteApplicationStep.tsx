@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ImageIcon, ShieldCheck, FileText, Upload } from 'lucide-react';
 import { RegistrationFormData } from '@/lib/validations/registration';
+import toast from 'react-hot-toast';
 
 interface CompleteApplicationStepProps {
   onBack: () => void;
@@ -35,7 +36,13 @@ export function CompleteApplicationStep({ onBack, onSubmit, isSubmitting, submit
 
   const handleFileChange = (field: keyof typeof files, e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFiles(prev => ({ ...prev, [field]: e.target.files![0] }));
+      const file = e.target.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+        e.target.value = '';
+        return;
+      }
+      setFiles(prev => ({ ...prev, [field]: file }));
     }
   };
 
@@ -140,7 +147,7 @@ export function CompleteApplicationStep({ onBack, onSubmit, isSubmitting, submit
           {isSubmitting ? 'Submitting Application...' : 'Submit Application'}
         </Button>
       </div>
-      {submitError && (
+      {submitError && !submitError.toLowerCase().includes('10mb') && !submitError.toLowerCase().includes('size exceeds') && (
         <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
           {submitError}
         </div>
