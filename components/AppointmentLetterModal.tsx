@@ -90,7 +90,7 @@ export default function AppointmentLetterModal({
         .map((s: string) => s.trim())
         .filter((s: string) => Boolean(s) && s !== 'District Licensing Manager')
         .join('\n');
-      setCcText(sanitizedCc);
+      setCcText(type === 'REPOSTING' ? '' : sanitizedCc);
       
       if (type === 'REPOSTING') {
         const isStaleBody = (
@@ -378,7 +378,7 @@ export default function AppointmentLetterModal({
         signatoryName,
         signatoryTitle,
         signatoryForTitle,
-        ccText,
+        ccText: appointmentType === 'REPOSTING' ? '' : ccText,
       };
 
       const token = localStorage.getItem('token');
@@ -723,18 +723,24 @@ export default function AppointmentLetterModal({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-700 mb-1">
-                    Cc Distribution List (One entry per line)
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={ccText}
-                    onChange={(e) => setCcText(e.target.value)}
-                    placeholder="Chief Executive&#10;Deputy Chief Executives&#10;Ag. Director, IT"
-                    className="w-full border border-gray-300 rounded-xl p-3 text-xs leading-relaxed text-gray-900 focus:ring-2 focus:ring-[#0F5132]"
-                  />
-                </div>
+                {appointmentType !== 'REPOSTING' ? (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-700 mb-1">
+                      Cc Distribution List (One entry per line)
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={ccText}
+                      onChange={(e) => setCcText(e.target.value)}
+                      placeholder="Chief Executive&#10;Deputy Chief Executives&#10;Ag. Director, IT"
+                      className="w-full border border-gray-300 rounded-xl p-3 text-xs leading-relaxed text-gray-900 focus:ring-2 focus:ring-[#0F5132]"
+                    />
+                  </div>
+                ) : (
+                  <div className="bg-gray-100 p-3 rounded-xl border border-gray-200 text-xs text-gray-500 font-medium">
+                    Cc Distribution does not apply to Reposting / Release letters.
+                  </div>
+                )}
               </div>
             </form>
 

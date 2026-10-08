@@ -528,11 +528,6 @@ export default function RegisterPage() {
         setIsSubmitting(false);
         return;
       }
-      if (!cvFile && !cvPath) {
-        toast.error('Curriculum Vitae (CV) / Certificates is compulsory. Please attach your CV.');
-        setIsSubmitting(false);
-        return;
-      }
       
       const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB
 

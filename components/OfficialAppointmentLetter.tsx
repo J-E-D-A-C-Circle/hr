@@ -332,7 +332,7 @@ export default function OfficialAppointmentLetter({
           </div>
 
           {/* Cc List - omitted for reposting letters */}
-          {formattedCcList.length > 0 && (
+          {appointmentType !== 'REPOSTING' && formattedCcList.length > 0 && (
             <div
               className="pt-2 text-gray-800 leading-tight"
               style={{ fontSize: '10.5pt', fontFamily: "'Times New Roman', Times, serif" }}

@@ -603,7 +603,7 @@ export function Step4Complete({
           {/* CV upload */}
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) / Certificates <span className="text-red-500">*</span></Label>
+              <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) / Certificates <span className="text-gray-400 font-normal text-xs">(Optional)</span></Label>
               {cvFileName && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
                   ✓ Attached
