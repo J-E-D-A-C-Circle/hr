@@ -34,7 +34,7 @@ export default function AppointmentLetterModal({
   const [signatoryName, setSignatoryName] = useState<string>('EPHRAIM NII TAN SACKEY');
   const [signatoryTitle, setSignatoryTitle] = useState<string>('AG. DIRECTOR HR');
   const [signatoryForTitle, setSignatoryForTitle] = useState<string>('FOR: CHIEF EXECUTIVE');
-  const [ccText, setCcText] = useState<string>('Chief Executive\nDeputy Chief Executives\nAg. Director, IT\nAg. Director Administration\nManager, HR (C&B)');
+  const [ccText, setCcText] = useState<string>('');
   const [customBodyText, setCustomBodyText] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -84,7 +84,13 @@ export default function AppointmentLetterModal({
       setSignatoryName(existingLetter.signatoryName || 'EPHRAIM NII TAN SACKEY');
       setSignatoryTitle(existingLetter.signatoryTitle || 'AG. DIRECTOR HR');
       setSignatoryForTitle(existingLetter.signatoryForTitle || 'FOR: CHIEF EXECUTIVE');
-      setCcText(existingLetter.ccText || 'District Licensing Manager');
+      const rawCc = existingLetter.ccText || '';
+      const sanitizedCc = rawCc
+        .split('\n')
+        .map((s: string) => s.trim())
+        .filter((s: string) => Boolean(s) && s !== 'District Licensing Manager')
+        .join('\n');
+      setCcText(sanitizedCc);
       
       if (type === 'REPOSTING') {
         const isStaleBody = (
@@ -161,7 +167,7 @@ export default function AppointmentLetterModal({
       setSalutation(application?.full_name ? `Dear ${application.full_name},` : 'Dear Sir/Madam,');
       setSignatoryTitle('AG. DIRECTOR HR');
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
-      setCcText('District Licensing Manager');
+      setCcText('');
       setCustomBodyText(
         `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
@@ -191,9 +197,11 @@ export default function AppointmentLetterModal({
     const displaySignatoryTitle = signatoryTitle || 'AG. DIRECTOR HR';
     const displaySignatoryForTitle = signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
 
-    const ccListItems: string[] = typeof ccText === 'string'
-      ? ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
-      : ['Chief Executive', 'Deputy Chief Executives', 'Ag. Director, IT', 'Ag. Director Administration', 'Manager, HR (C&B)'];
+    const ccListItems: string[] = (
+      typeof ccText === 'string'
+        ? ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
+        : []
+    ).filter(item => item !== 'District Licensing Manager');
 
     printWin.document.write(`
       <!DOCTYPE html>

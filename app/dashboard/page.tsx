@@ -265,13 +265,13 @@ export default function Dashboard() {
       const signatoryTitle = letterObj.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
       
-      const ccListItems: string[] = typeof letterObj.ccText === 'string'
-        ? letterObj.ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
-        : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
-        ? letterObj.ccList
-        : [
-            'District Licensing Manager',
-          ];
+      const ccListItems: string[] = (
+        typeof letterObj.ccText === 'string'
+          ? letterObj.ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
+          : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
+          ? letterObj.ccList
+          : []
+      ).filter((item: string) => item !== 'District Licensing Manager');
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
       const pdfContent = `

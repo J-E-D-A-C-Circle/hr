@@ -301,17 +301,18 @@ export default function AdminDashboard() {
       toast.error('No items to export');
       return;
     }
-    const headers = ['ID', 'NSS Number', 'Full Name', 'Email', 'Status', 'Region', 'Posting Station', 'Posting Department', 'Date'];
+    const headers = ['ID', 'NSS Number', 'Full Name', 'Phone Number', 'Email', 'Status', 'Region', 'Posting Station', 'Posting Department', 'Date'];
     const rows = items.map((a) => [
       a.id,
       a.nss_number || '',
-      `"${a.first_name} ${a.middle_name || ''} ${a.last_name}"`,
-      a.email,
-      a.status,
+      `"${[a.first_name, a.middle_name, a.last_name].filter(Boolean).join(' ')}"`,
+      `"${a.phone_number || ''}"`,
+      a.email || '',
+      a.status || '',
       a.region || '',
       `"${a.posting_station || ''}"`,
       `"${a.posting_department || ''}"`,
-      a.created_at,
+      a.created_at || '',
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
