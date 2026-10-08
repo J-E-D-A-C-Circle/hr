@@ -86,7 +86,8 @@ export default function AdminDashboard() {
     review_notes: '',
     posting_station: '',
     posting_department: '',
-    service_period_start: '',
+    service_period_start: '2026-11-02',
+    service_period_end: '2027-10-29',
   });
 
   // Appointment letter generator modal
@@ -164,7 +165,8 @@ export default function AdminDashboard() {
         review_notes: app.review_notes || '',
         posting_station: defaultStation,
         posting_department: defaultDept,
-        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-09-01',
+        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-11-02',
+        service_period_end: app.service_period_end ? app.service_period_end.split('T')[0] : '2027-10-29',
       });
       setActiveModalTab('profile');
       setModalOpen(true);
@@ -197,6 +199,7 @@ export default function AdminDashboard() {
           posting_station: reviewData.posting_station,
           posting_department: reviewData.posting_department,
           service_period_start: reviewData.service_period_start,
+          service_period_end: reviewData.service_period_end,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -754,13 +757,12 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                      <label className="block text-slate-700 font-bold mb-1">Review Notes / Remarks</label>
+                      <label className="block text-slate-700 font-bold mb-1">End Date</label>
                       <input
-                        type="text"
-                        value={reviewData.review_notes}
-                        onChange={(e) => setReviewData({ ...reviewData, review_notes: e.target.value })}
-                        placeholder="Add review remarks or internal notes..."
-                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-[#0d5c2e]"
+                        type="date"
+                        value={reviewData.service_period_end}
+                        onChange={(e) => setReviewData({ ...reviewData, service_period_end: e.target.value })}
+                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 focus:border-[#0d5c2e]"
                       />
                     </div>
                   </div>

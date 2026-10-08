@@ -54,8 +54,8 @@ export function getAutoServiceYear(baseYearOrDate?: string | number | Date | nul
 
 /**
  * Automatically calculates the official NSS end date.
- * The end date is always "30th October" in the year following the commencement start year.
- * e.g. Start date in 2026 -> "Saturday, 30th October, 2027"
+ * The end date is always "31st October" in the year following the commencement start year.
+ * e.g. Start date in 2026 -> "Saturday, 31st October, 2027"
  */
 export function getAutoEndDate(startDateOrYear?: string | number | Date | null): string {
   const currentYear = new Date().getFullYear();
@@ -80,9 +80,9 @@ export function getAutoEndDate(startDateOrYear?: string | number | Date | null):
   }
 
   const nextYear = startYear + 1;
-  const endD = new Date(nextYear, 9, 30); // 30th October
+  const endD = new Date(nextYear, 9, 29); // 29th October
   const weekday = endD.toLocaleDateString('en-US', { weekday: 'long' });
-  return `${weekday}, 30th October, ${nextYear}`;
+  return `${weekday}, 29th October, ${nextYear}`;
 }
 
 

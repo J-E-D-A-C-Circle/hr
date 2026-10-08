@@ -109,7 +109,8 @@ export default function ApplicationDetailPage() {
       setReviewData({
         status: app.status,
         review_notes: app.review_notes || '',
-        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-09-01',
+        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-11-02',
+        service_period_end: app.service_period_end ? app.service_period_end.split('T')[0] : '2027-10-29',
       });
     } catch (error) {
       console.error('Error fetching application:', error);
@@ -131,6 +132,7 @@ export default function ApplicationDetailPage() {
           status: reviewData.status,
           review_notes: reviewData.review_notes,
           service_period_start: reviewData.service_period_start,
+          service_period_end: reviewData.service_period_end,
         },
         {
           headers: {
@@ -486,13 +488,12 @@ export default function ApplicationDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
-                  <textarea
-                    value={reviewData.review_notes}
-                    onChange={(e) => setReviewData({ ...reviewData, review_notes: e.target.value })}
-                    rows={4}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={reviewData.service_period_end}
+                    onChange={(e) => setReviewData({ ...reviewData, service_period_end: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter review notes..."
                   />
                 </div>
                 <button

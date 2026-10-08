@@ -27,7 +27,7 @@ export default function AppointmentLetterModal({
   const [applicantName, setApplicantName] = useState<string>('');
   const [applicantAddress, setApplicantAddress] = useState<string>('');
   const [customSubject, setCustomSubject] = useState<string>('');
-  const [effectiveDate, setEffectiveDate] = useState<string>('Monday, September 1, 2026');
+  const [effectiveDate, setEffectiveDate] = useState<string>('Monday, November 2, 2026');
   const [salaryGrade, setSalaryGrade] = useState<string>('DVLA Grade 7 Step 1');
   const [probationPeriod, setProbationPeriod] = useState<string>('six (6) months');
   const [contractDuration, setContractDuration] = useState<string>('two (2) years');
@@ -65,7 +65,7 @@ export default function AppointmentLetterModal({
     const appStart = application.service_period_start || application.servicePeriodStart;
     const initialEffectiveDate = appStart 
       ? new Date(appStart).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-      : 'Monday, September 1, 2026';
+      : 'Monday, November 2, 2026';
 
     const existingLetter = application.appointmentLetterObject || application.appointmentLetterData;
     if (existingLetter && typeof existingLetter === 'object') {
@@ -150,7 +150,7 @@ export default function AppointmentLetterModal({
     const appStart = application.service_period_start || application.servicePeriodStart;
     const fallbackDate = appStart 
       ? new Date(appStart).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-      : `Monday, September 1, ${new Date().getFullYear()}`;
+      : 'Monday, November 2, 2026';
     const effDate = effDateOverride || effectiveDate || fallbackDate;
     const autoServiceYear = getAutoServiceYear(application?.service_year || effDate);
     const autoEndDate = getAutoEndDate(effDate);
