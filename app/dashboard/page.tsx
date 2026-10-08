@@ -272,7 +272,7 @@ export default function Dashboard() {
           : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
           ? letterObj.ccList
           : []
-      ).filter((item: string) => item !== 'District Licensing Manager');
+      ).filter((item: string) => !item.toLowerCase().includes('district licensing manager'));
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
       const pdfContent = `

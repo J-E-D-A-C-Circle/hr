@@ -115,7 +115,7 @@ export default function OfficialAppointmentLetter({
       : Array.isArray(ccList) && ccList.length > 0
       ? ccList
       : []
-  ).filter(item => item !== 'District Licensing Manager');
+  ).filter(item => !item.toLowerCase().includes('district licensing manager'));
 
   return (
     <div

@@ -88,7 +88,7 @@ export default function AppointmentLetterModal({
       const sanitizedCc = rawCc
         .split('\n')
         .map((s: string) => s.trim())
-        .filter((s: string) => Boolean(s) && s !== 'District Licensing Manager')
+        .filter((s: string) => Boolean(s) && !s.toLowerCase().includes('district licensing manager'))
         .join('\n');
       setCcText(type === 'REPOSTING' ? '' : sanitizedCc);
       
@@ -203,7 +203,7 @@ export default function AppointmentLetterModal({
       typeof ccText === 'string'
         ? ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
         : []
-    ).filter(item => item !== 'District Licensing Manager');
+    ).filter(item => !item.toLowerCase().includes('district licensing manager'));
 
     printWin.document.write(`
       <!DOCTYPE html>
