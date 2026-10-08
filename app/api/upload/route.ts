@@ -24,10 +24,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const allowedTypes = ['passport', 'appointment', 'cv', 'id_card'];
+    const allowedTypes = ['passport', 'appointment', 'cv', 'id_card', 'certificate'];
     if (!allowedTypes.includes(fileType)) {
       return NextResponse.json(
-        { error: 'Invalid file_type. Must be passport, appointment, cv, or id_card' },
+        { error: 'Invalid file_type. Must be passport, appointment, cv, id_card, or certificate' },
         { status: 400 }
       );
     }

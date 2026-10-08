@@ -24,14 +24,17 @@ interface Step4CompleteProps {
   idCardFileName: string;
   appointmentFileName: string;
   cvFileName: string;
+  certificateFileName?: string;
   passportFileRef: React.RefObject<HTMLInputElement | null>;
   idCardFileRef: React.RefObject<HTMLInputElement | null>;
   appointmentFileRef: React.RefObject<HTMLInputElement | null>;
   cvFileRef: React.RefObject<HTMLInputElement | null>;
+  certificateFileRef?: React.RefObject<HTMLInputElement | null>;
   handlePassportSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleIdCardSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleAppointmentSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleCvSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleCertificateSelected?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const ghanianSchools = [
@@ -179,14 +182,17 @@ export function Step4Complete({
   idCardFileName,
   appointmentFileName,
   cvFileName,
+  certificateFileName,
   passportFileRef,
   idCardFileRef,
   appointmentFileRef,
   cvFileRef,
+  certificateFileRef,
   handlePassportSelected,
   handleIdCardSelected,
   handleAppointmentSelected,
-  handleCvSelected
+  handleCvSelected,
+  handleCertificateSelected
 }: Step4CompleteProps) {
   const [schoolInput, setSchoolInput] = useState(formData.school || "");
   const [schoolDropdown, setSchoolDropdown] = useState(false);
@@ -603,7 +609,7 @@ export function Step4Complete({
           {/* CV upload */}
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) / Certificates <span className="text-gray-400 font-normal text-xs">(Optional)</span></Label>
+              <Label className="block text-sm font-semibold text-gray-900">Curriculum Vitae (CV) <span className="text-red-500">*</span></Label>
               {cvFileName && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
                   ✓ Attached
@@ -613,11 +619,33 @@ export function Step4Complete({
             <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
               <button type="button" onClick={() => cvFileRef.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
                 <Upload className="w-4 h-4" />
-                {cvFileName ? 'Change CV / File' : 'Upload CV / File'}
+                {cvFileName ? 'Change CV' : 'Upload CV'}
               </button>
-              <input ref={cvFileRef} id="cv" name="cv" type="file" accept="application/pdf" className="hidden" onChange={handleCvSelected} />
+              <input ref={cvFileRef} id="cv" name="cv" type="file" accept="application/pdf,image/*" className="hidden" onChange={handleCvSelected} />
               <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
                 {cvFileName ? cvFileName : 'No file selected'}
+              </div>
+            </div>
+          </div>
+
+          {/* Certificate upload */}
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="block text-sm font-semibold text-gray-900">Academic Certificate(s) <span className="text-gray-400 font-normal text-xs">(Optional)</span></Label>
+              {certificateFileName && (
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                  ✓ Attached
+                </span>
+              )}
+            </div>
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">
+              <button type="button" onClick={() => certificateFileRef?.current?.click()} className="flex items-center px-3 py-2 bg-[#0d5c2e] text-white font-semibold rounded-lg gap-2 shadow hover:bg-[#073e1e] transition text-xs md:text-sm">
+                <FileText className="w-4 h-4" />
+                {certificateFileName ? 'Change Certificate' : 'Upload Certificate'}
+              </button>
+              <input ref={certificateFileRef} id="certificate" name="certificate" type="file" accept="application/pdf,image/*" className="hidden" onChange={handleCertificateSelected} />
+              <div className="md:ml-2 text-xs text-gray-700 truncate mt-1 md:mt-0 max-w-[160px]">
+                {certificateFileName ? certificateFileName : 'No file selected'}
               </div>
             </div>
           </div>

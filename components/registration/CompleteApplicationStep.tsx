@@ -102,10 +102,11 @@ export function CompleteApplicationStep({ onBack, onSubmit, isSubmitting, submit
         {/* Uploads Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           {[
-            { id: 'passport', label: 'Passport Picture', icon: ImageIcon, accept: 'image/*' },
-            { id: 'id_card', label: 'Ghana Card / ID Copy', icon: ShieldCheck, accept: 'image/*,application/pdf' },
-            { id: 'appointment', label: 'NSS Appointment Letter', icon: FileText, accept: 'application/pdf,image/*' },
-            { id: 'cv', label: 'Curriculum Vitae (CV) / Certificates', icon: Upload, accept: 'application/pdf' },
+            { id: 'passport', label: 'Passport Picture', required: true, icon: ImageIcon, accept: 'image/*' },
+            { id: 'id_card', label: 'Ghana Card / ID Copy', required: true, icon: ShieldCheck, accept: 'image/*,application/pdf' },
+            { id: 'appointment', label: 'NSS Appointment Letter', required: true, icon: FileText, accept: 'application/pdf,image/*' },
+            { id: 'cv', label: 'Curriculum Vitae (CV)', required: true, icon: Upload, accept: 'application/pdf,image/*' },
+            { id: 'certificate', label: 'Academic Certificate(s)', required: false, icon: FileText, accept: 'application/pdf,image/*' },
           ].map((uploadItem) => {
             const fileKey = uploadItem.id as keyof typeof files;
             const fileObj = files[fileKey];
@@ -113,7 +114,14 @@ export function CompleteApplicationStep({ onBack, onSubmit, isSubmitting, submit
             return (
               <div key={uploadItem.id} className="flex flex-col">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="block text-sm font-semibold text-gray-900">{uploadItem.label}</Label>
+                  <Label className="block text-sm font-semibold text-gray-900">
+                    {uploadItem.label}{' '}
+                    {uploadItem.required ? (
+                      <span className="text-red-500">*</span>
+                    ) : (
+                      <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+                    )}
+                  </Label>
                   {fileObj && <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">✓ Attached</span>}
                 </div>
                 <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center px-4 py-3 gap-3 md:gap-4 shadow-sm">

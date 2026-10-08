@@ -512,6 +512,7 @@ export default function RegisterPage() {
       const idCardFile = idCardFileRef.current?.files?.[0];
       const appointmentFile = appointmentFileRef.current?.files?.[0] || appointmentCameraRef.current?.files?.[0];
       const cvFile = cvFileRef.current?.files?.[0];
+      const certificateFile = certificateFileRef.current?.files?.[0];
 
       if (!passportFile && !passportPhotoPath) {
         toast.error('Passport photo is compulsory. Please attach your Passport Photo.');
@@ -525,6 +526,11 @@ export default function RegisterPage() {
       }
       if (!appointmentFile && !appointmentLetterPath) {
         toast.error('NSS Appointment letter is compulsory. Please attach your Appointment Letter.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!cvFile && !cvPath) {
+        toast.error('Curriculum Vitae (CV) is compulsory. Please attach your CV.');
         setIsSubmitting(false);
         return;
       }
@@ -607,11 +613,25 @@ export default function RegisterPage() {
           console.error('CV upload error:', uploadError);
           const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
           if (isSizeError) {
-            toast.error(uploadError.message || 'CV / Certificate exceeds the 10MB limit.');
+            toast.error(uploadError.message || 'CV exceeds the 10MB limit.');
             setIsSubmitting(false);
             return;
           }
           throw new Error(`CV upload failed: ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+
+      if (certificateFile) {
+        if (certificateFile.size > MAX_UPLOAD_SIZE) {
+          toast.error(`"${certificateFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          setIsSubmitting(false);
+          return;
+        }
+        try {
+          const uploadResult = await uploadFile(certificateFile, 'certificate', token);
+          cvPath = cvPath ? `${cvPath},${uploadResult.file_path}` : uploadResult.file_path;
+        } catch (uploadError: any) {
+          console.error('Certificate upload error:', uploadError);
         }
       }
       
@@ -731,12 +751,14 @@ export default function RegisterPage() {
   const [idCardFileName, setIdCardFileName] = useState<string>('');
   const [appointmentFileName, setAppointmentFileName] = useState<string>('');
   const [cvFileName, setCvFileName] = useState<string>('');
+  const [certificateFileName, setCertificateFileName] = useState<string>('');
   const passportFileRef = useRef<HTMLInputElement | null>(null);
   const passportCameraRef = useRef<HTMLInputElement | null>(null);
   const idCardFileRef = useRef<HTMLInputElement | null>(null);
   const appointmentFileRef = useRef<HTMLInputElement | null>(null);
   const appointmentCameraRef = useRef<HTMLInputElement | null>(null);
   const cvFileRef = useRef<HTMLInputElement | null>(null);
+  const certificateFileRef = useRef<HTMLInputElement | null>(null);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -786,6 +808,18 @@ export default function RegisterPage() {
       return;
     }
     setCvFileName(file ? file.name : '');
+  };
+
+  const handleCertificateSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.size > MAX_FILE_SIZE) {
+      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      e.target.value = '';
+      setCertificateFileName('');
+      setSubmitError('');
+      return;
+    }
+    setCertificateFileName(file ? file.name : '');
   };
 
   if (!hydrated) return null;
@@ -986,14 +1020,17 @@ export default function RegisterPage() {
               idCardFileName={idCardFileName}
               appointmentFileName={appointmentFileName}
               cvFileName={cvFileName}
+              certificateFileName={certificateFileName}
               passportFileRef={passportFileRef}
               idCardFileRef={idCardFileRef}
               appointmentFileRef={appointmentFileRef}
               cvFileRef={cvFileRef}
+              certificateFileRef={certificateFileRef}
               handlePassportSelected={handlePassportSelected}
               handleIdCardSelected={handleIdCardSelected}
               handleAppointmentSelected={handleAppointmentSelected}
               handleCvSelected={handleCvSelected}
+              handleCertificateSelected={handleCertificateSelected}
             />
           )}
           </div>

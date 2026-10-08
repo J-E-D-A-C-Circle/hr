@@ -11,7 +11,7 @@ export interface UploadResponse {
 
 export async function uploadFile(
   file: File,
-  fileType: 'passport' | 'appointment' | 'cv' | 'id_card',
+  fileType: 'passport' | 'appointment' | 'cv' | 'id_card' | 'certificate',
   token: string
 ): Promise<UploadResponse> {
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
