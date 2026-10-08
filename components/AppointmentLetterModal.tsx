@@ -23,7 +23,6 @@ export default function AppointmentLetterModal({
   const [letterDate, setLetterDate] = useState<string>('');
   const [salutation, setSalutation] = useState<string>('Dear Sir/Madam,');
   const [customRefNumber, setCustomRefNumber] = useState<string>('');
-  const [yourRef, setYourRef] = useState<string>('');
   const [applicantName, setApplicantName] = useState<string>('');
   const [applicantAddress, setApplicantAddress] = useState<string>('');
   const [customSubject, setCustomSubject] = useState<string>('');
@@ -73,9 +72,8 @@ export default function AppointmentLetterModal({
       setAppointmentType(type);
       setLetterDate(existingLetter.letterDate || todayStr);
       setSalutation(existingLetter.salutation || (type === 'REPOSTING' ? 'Dear Madam,' : 'Dear Sir/Madam,'));
-      const defaultRef = application.nss_number ? `DVLA/HR/NSS/${application.nss_number}` : `DVLA/HR/NSS/${application.id || '0127'}`;
+      const defaultRef = 'DVLA\\HR\\NSS\\26\\0001';
       setCustomRefNumber(existingLetter.customRefNumber || defaultRef);
-      setYourRef(existingLetter.yourRef || '');
       setApplicantName(existingLetter.applicantName || fullName);
       setApplicantAddress(existingLetter.applicantAddress || application.residential_address || '');
       const isStaleSubject = type === 'REPOSTING' && (
@@ -137,9 +135,8 @@ export default function AppointmentLetterModal({
   }, [application, isOpen]);
 
   const generateDefaultRef = (type: string) => {
-    if (!application) return type === 'REPOSTING' ? 'DVLA/ADMIN/NSS/10/25' : 'DVLA/HR/NSS/0127';
-    const refCode = application.nss_number || String(application.id || '10/25');
-    return type === 'REPOSTING' ? `DVLA/ADMIN/NSS/${refCode}` : `DVLA/HR/NSS/${refCode}`;
+    if (!application) return 'DVLA\\HR\\NSS\\26\\0001';
+    return type === 'REPOSTING' ? 'DVLA\\HR\\NSS\\26\\0001' : 'DVLA\\HR\\NSS\\26\\0001';
   };
 
   const applyDefaultTemplate = (type: 'TEMPORARY' | 'REPOSTING', dateStr?: string, effDateOverride?: string) => {
@@ -184,8 +181,7 @@ export default function AppointmentLetterModal({
     const printWin = window.open('', '_blank');
     if (!printWin) return;
     const logoPath = '/oop.png';
-    const displayRef = customRefNumber || `DVLA/HR/08/26/PLACMT/${(application.nss_number || String(application.id || '0127')).slice(-4)}`;
-    const displayYourRef = yourRef || '....................................';
+    const displayRef = customRefNumber || 'DVLA\\HR\\NSS\\26\\0001';
     const displayIssueDate = letterDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
     const displayApplicantName = applicantName || 'APPLICANT NAME';
     const displayApplicantAddress = applicantAddress || 'ACCRA - GHANA';
@@ -297,8 +293,7 @@ export default function AppointmentLetterModal({
 
             <div class="ref-row">
               <div>
-                <div style="margin-bottom: 4px;"><strong>My Ref:</strong> <span class="ref-dotted">${displayRef}</span></div>
-                <div><strong>Your Ref:</strong> <span class="ref-dotted">${displayYourRef}</span></div>
+                <div><strong>My Ref:</strong> <span class="ref-dotted">${displayRef}</span></div>
               </div>
               <div style="text-align: right;">
                 <div><strong>Date:</strong> <span class="ref-dotted" style="text-transform: uppercase; min-width: 150px; text-align: center;">${displayIssueDate}</span></div>
@@ -604,19 +599,7 @@ export default function AppointmentLetterModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-700 mb-1">
-                      Your Reference (Your Ref)
-                    </label>
-                    <input
-                      type="text"
-                      value={yourRef}
-                      onChange={(e) => setYourRef(e.target.value)}
-                      placeholder="e.g. NSS/ADM/2026/042"
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-[#0F5132]"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold uppercase text-gray-700 mb-1">
                       Salutation

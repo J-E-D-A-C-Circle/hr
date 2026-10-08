@@ -85,4 +85,26 @@ export function getAutoEndDate(startDateOrYear?: string | number | Date | null):
   return `${weekday}, 29th October, ${nextYear}`;
 }
 
+export function getDvlaReferenceForSequence(sequenceNumber: number): string {
+  return `DVLA\\HR\\NSS\\26\\${String(sequenceNumber).padStart(4, '0')}`;
+}
+
+export function getNextDvlaReferenceNumber(
+  applications: Array<{ id?: number; status?: string; reviewed_at?: string | null; created_at?: string | null }>,
+  currentApplicationId?: number
+): string {
+  const approvedApplications = applications
+    .filter((app) => app.status === 'approved')
+    .sort((a, b) => {
+      const aDate = new Date(a.reviewed_at || a.created_at || 0).getTime();
+      const bDate = new Date(b.reviewed_at || b.created_at || 0).getTime();
+      return aDate - bDate;
+    });
+
+  const currentPosition = approvedApplications.findIndex((app) => app.id === currentApplicationId);
+  const nextSequence = currentPosition >= 0 ? currentPosition + 1 : approvedApplications.length + 1;
+
+  return getDvlaReferenceForSequence(nextSequence);
+}
+
 

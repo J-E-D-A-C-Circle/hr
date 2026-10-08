@@ -23,7 +23,7 @@ import {
   XCircle,
   FileCheck
 } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getNextDvlaReferenceNumber } from '@/lib/utils';
 import AppointmentLetterModal from '@/components/AppointmentLetterModal';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
@@ -230,6 +230,11 @@ export default function AdminDashboard() {
     setReviewing(true);
     try {
       const token = getValidAuthToken();
+      const nextRefNumber = getNextDvlaReferenceNumber(applications, selectedApplication.id);
+      const appointmentLetterData = {
+        customRefNumber: nextRefNumber,
+      };
+
       await axios.put(
         '/api/applications/review',
         {
@@ -240,6 +245,7 @@ export default function AdminDashboard() {
           posting_department: reviewData.posting_department,
           service_period_start: FIXED_SERVICE_PERIOD_START,
           service_period_end: FIXED_SERVICE_PERIOD_END,
+          appointmentLetterData,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -828,7 +834,7 @@ export default function AdminDashboard() {
                         appointmentType={selectedApplication.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'}
                         effectiveDate={reviewData.service_period_start ? new Date(reviewData.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Monday, September 1, 2026'}
                         issueDate={new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
-                        customRefNumber={`DVLA/HR/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear()).slice(-2)}/PLACMT/${(selectedApplication.nss_number || String(selectedApplication.id || '0127')).slice(-4)}`}
+                        customRefNumber={getNextDvlaReferenceNumber(applications, selectedApplication.id)}
                       />
                     </div>
                   </div>

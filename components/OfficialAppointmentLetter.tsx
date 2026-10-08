@@ -70,9 +70,9 @@ export default function OfficialAppointmentLetter({
     : getAutoEndDate(effectiveStart);
 
   const displayRef = customRefNumber || (
-    referenceNumber 
-      ? (appointmentType === 'REPOSTING' ? `DVLA/ADMIN/NSS/${referenceNumber}` : `DVLA/HR/NSS/${referenceNumber}`)
-      : (appointmentType === 'REPOSTING' ? 'DVLA/ADMIN/NSS/10/25' : 'DVLA/HR/NSS/11/5/25')
+    referenceNumber
+      ? `DVLA\\HR\\NSS\\26\\${String(referenceNumber).padStart(4, '0')}`
+      : 'DVLA\\HR\\NSS\\26\\0001'
   );
   const isStaleSubject = appointmentType === 'REPOSTING' && (
     customSubject === 'POSTING OF NATIONAL SERVICE PERSONNEL.' ||
@@ -191,17 +191,11 @@ export default function OfficialAppointmentLetter({
         className="flex justify-between items-start mb-6 relative z-10 gap-6"
         style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
       >
-        <div className="space-y-2 min-w-[300px]">
+        <div className="min-w-[300px]">
           <div className="flex items-baseline gap-1">
             <span className="font-bold whitespace-nowrap">My Ref:</span>
             <span className="inline-block border-b border-dotted border-gray-900 font-mono font-bold text-gray-900 px-1 min-w-[220px]">
               {displayRef}
-            </span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="font-bold whitespace-nowrap">Your Ref:</span>
-            <span className="inline-block border-b border-dotted border-gray-900 font-mono font-bold text-gray-900 px-1 min-w-[220px]">
-              {yourRef || '\u00A0'}
             </span>
           </div>
         </div>
