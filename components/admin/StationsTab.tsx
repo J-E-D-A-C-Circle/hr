@@ -187,6 +187,55 @@ export default function StationsTab({
     onUpdateStations(updatedList);
   };
 
+  const handleUpdateSelectedStationField = <K extends keyof Station>(field: K, value: Station[K]) => {
+    if (!selectedStationForEdit) return;
+
+    if (field === 'name') {
+      const trimmed = String(value).trim();
+      if (!trimmed) {
+        toast.error('Station name cannot be empty');
+        return;
+      }
+
+      const duplicate = stations.some(
+        (s) => s.id !== selectedStationForEdit.id && s.name.toLowerCase() === trimmed.toLowerCase()
+      );
+
+      if (duplicate) {
+        toast.error('A station with this name already exists');
+        return;
+      }
+    }
+
+    const updatedStation = { ...selectedStationForEdit, [field]: value } as Station;
+    const updatedList = stations.map((s) => (s.id === updatedStation.id ? updatedStation : s));
+
+    setSelectedStationForEdit(updatedStation);
+    onUpdateStations(updatedList);
+  };
+
+  const handleCloseSelectedStationEditor = () => {
+    if (!selectedStationForEdit) return;
+
+    const trimmedName = selectedStationForEdit.name.trim();
+    if (!trimmedName) {
+      toast.error('Station name cannot be empty');
+      return;
+    }
+
+    const duplicate = stations.some(
+      (s) => s.id !== selectedStationForEdit.id && s.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (duplicate) {
+      toast.error('A station with this name already exists');
+      return;
+    }
+
+    toast.success(`Station "${trimmedName}" updated successfully`);
+    setSelectedStationForEdit(null);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Header Banner */}
@@ -445,7 +494,7 @@ export default function StationsTab({
                 </p>
               </div>
               <button
-                onClick={() => setSelectedStationForEdit(null)}
+                onClick={handleCloseSelectedStationEditor}
                 className="p-1 rounded-lg hover:bg-white/10 text-white transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -453,6 +502,31 @@ export default function StationsTab({
             </div>
 
             <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                    Station Name
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedStationForEdit.name}
+                    onChange={(e) => handleUpdateSelectedStationField('name', e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-900 focus:outline-none focus:border-[#0d5c2e]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                    Region
+                  </label>
+                  <ShadcnSelect
+                    options={GHANA_REGIONS.map((r) => ({ value: r, label: r }))}
+                    value={selectedStationForEdit.region}
+                    onChange={(val) => handleUpdateSelectedStationField('region', val)}
+                  />
+                </div>
+              </div>
+
               {/* Capacity Setting */}
               <div>
                 <label className="block text-xs font-extrabold text-slate-700 mb-1">
@@ -533,7 +607,7 @@ export default function StationsTab({
               <div className="pt-3 flex justify-end border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setSelectedStationForEdit(null)}
+                  onClick={handleCloseSelectedStationEditor}
                   className="px-5 py-2 rounded-xl bg-[#0d5c2e] text-white text-xs font-extrabold hover:bg-emerald-800 transition-colors"
                 >
                   Done & Save Changes
