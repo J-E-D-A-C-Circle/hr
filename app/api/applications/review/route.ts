@@ -73,8 +73,8 @@ export async function handleReviewRequest(request: Request) {
     const reviewNotes = data.review_notes || null;
     const postingStation = data.posting_station || null;
     const postingDepartment = data.posting_department || null;
-    const servicePeriodStart = data.service_period_start || data.servicePeriodStart || null;
-    const servicePeriodEnd = data.service_period_end || data.servicePeriodEnd || null;
+    const servicePeriodStart = '2026-11-02';
+    const servicePeriodEnd = '2027-10-29';
 
     const updateFields: any = {
       status: status as any,

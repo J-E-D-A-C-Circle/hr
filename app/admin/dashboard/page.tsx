@@ -41,6 +41,9 @@ import { Application, FullApplication, Station } from '@/lib/types/admin';
 import ShadcnSelect from '@/components/ui/ShadcnSelect';
 import { getStoredStations, saveStoredStations } from '@/lib/stations-data';
 
+const FIXED_SERVICE_PERIOD_START = '2026-11-02';
+const FIXED_SERVICE_PERIOD_END = '2027-10-29';
+
 const STATION_OPTIONS = [
   { value: 'DVLA Head Office - Cantonments', label: 'DVLA Head Office - Cantonments' },
   { value: 'Accra Regional Office - 37', label: 'Accra Regional Office - 37' },
@@ -86,8 +89,8 @@ export default function AdminDashboard() {
     review_notes: '',
     posting_station: '',
     posting_department: '',
-    service_period_start: '2026-11-02',
-    service_period_end: '2027-10-29',
+    service_period_start: FIXED_SERVICE_PERIOD_START,
+    service_period_end: FIXED_SERVICE_PERIOD_END,
   });
 
   // Appointment letter generator modal
@@ -202,8 +205,8 @@ export default function AdminDashboard() {
         review_notes: app.review_notes || '',
         posting_station: defaultStation,
         posting_department: defaultDept,
-        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-11-02',
-        service_period_end: app.service_period_end ? app.service_period_end.split('T')[0] : '2027-10-29',
+        service_period_start: FIXED_SERVICE_PERIOD_START,
+        service_period_end: FIXED_SERVICE_PERIOD_END,
       });
       setActiveModalTab('profile');
       setModalOpen(true);
@@ -235,8 +238,8 @@ export default function AdminDashboard() {
           review_notes: reviewData.review_notes,
           posting_station: reviewData.posting_station,
           posting_department: reviewData.posting_department,
-          service_period_start: reviewData.service_period_start,
-          service_period_end: reviewData.service_period_end,
+          service_period_start: FIXED_SERVICE_PERIOD_START,
+          service_period_end: FIXED_SERVICE_PERIOD_END,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -787,9 +790,10 @@ export default function AdminDashboard() {
                       <label className="block text-slate-700 font-bold mb-1">Effective / Start Date (Assumption of Duty)</label>
                       <input
                         type="date"
-                        value={reviewData.service_period_start}
-                        onChange={(e) => setReviewData({ ...reviewData, service_period_start: e.target.value })}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 focus:border-[#0d5c2e]"
+                        value={FIXED_SERVICE_PERIOD_START}
+                        readOnly
+                        disabled
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 cursor-not-allowed"
                       />
                     </div>
 
@@ -797,9 +801,10 @@ export default function AdminDashboard() {
                       <label className="block text-slate-700 font-bold mb-1">End Date</label>
                       <input
                         type="date"
-                        value={reviewData.service_period_end}
-                        onChange={(e) => setReviewData({ ...reviewData, service_period_end: e.target.value })}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 focus:border-[#0d5c2e]"
+                        value={FIXED_SERVICE_PERIOD_END}
+                        readOnly
+                        disabled
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 cursor-not-allowed"
                       />
                     </div>
                   </div>

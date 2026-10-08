@@ -54,10 +54,14 @@ export default function ApplicationDetailPage() {
   const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const FIXED_SERVICE_PERIOD_START = '2026-11-02';
+  const FIXED_SERVICE_PERIOD_END = '2027-10-29';
+
   const [reviewData, setReviewData] = useState({
     status: '',
     review_notes: '',
-    service_period_start: '',
+    service_period_start: FIXED_SERVICE_PERIOD_START,
+    service_period_end: FIXED_SERVICE_PERIOD_END,
   });
 
   const handleDelete = async () => {
@@ -109,8 +113,8 @@ export default function ApplicationDetailPage() {
       setReviewData({
         status: app.status,
         review_notes: app.review_notes || '',
-        service_period_start: app.service_period_start ? app.service_period_start.split('T')[0] : '2026-11-02',
-        service_period_end: app.service_period_end ? app.service_period_end.split('T')[0] : '2027-10-29',
+        service_period_start: FIXED_SERVICE_PERIOD_START,
+        service_period_end: FIXED_SERVICE_PERIOD_END,
       });
     } catch (error) {
       console.error('Error fetching application:', error);
@@ -131,8 +135,8 @@ export default function ApplicationDetailPage() {
           application_id: params.id,
           status: reviewData.status,
           review_notes: reviewData.review_notes,
-          service_period_start: reviewData.service_period_start,
-          service_period_end: reviewData.service_period_end,
+          service_period_start: FIXED_SERVICE_PERIOD_START,
+          service_period_end: FIXED_SERVICE_PERIOD_END,
         },
         {
           headers: {
@@ -482,18 +486,20 @@ export default function ApplicationDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Effective / Start Date (Assumption of Duty)</label>
                   <input
                     type="date"
-                    value={reviewData.service_period_start}
-                    onChange={(e) => setReviewData({ ...reviewData, service_period_start: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={FIXED_SERVICE_PERIOD_START}
+                    readOnly
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-slate-100 text-slate-700 cursor-not-allowed"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                   <input
                     type="date"
-                    value={reviewData.service_period_end}
-                    onChange={(e) => setReviewData({ ...reviewData, service_period_end: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={FIXED_SERVICE_PERIOD_END}
+                    readOnly
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-slate-100 text-slate-700 cursor-not-allowed"
                   />
                 </div>
                 <button
