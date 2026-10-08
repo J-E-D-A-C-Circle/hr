@@ -94,6 +94,28 @@ export default function AdminDashboard() {
   const [isLetterGeneratorOpen, setIsLetterGeneratorOpen] = useState(false);
   const [letterApplication, setLetterApplication] = useState<any>(null);
 
+  const fetchStations = async () => {
+    try {
+      const token = getValidAuthToken();
+      const response = await axios.get('/api/admin/stations', {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 5000,
+      });
+
+      const serverStations = response.data?.stations || [];
+      if (Array.isArray(serverStations) && serverStations.length > 0) {
+        setStations(serverStations);
+        saveStoredStations(serverStations);
+        return;
+      }
+    } catch (error) {
+      console.warn('Falling back to local station storage:', error);
+    }
+
+    const fallbackStations = getStoredStations();
+    setStations(fallbackStations);
+  };
+
   useEffect(() => {
     const validToken = getValidAuthToken();
     const parsedUser = getStoredUser();
@@ -109,13 +131,28 @@ export default function AdminDashboard() {
       return;
     }
     setUser(parsedUser);
-    setStations(getStoredStations());
+    fetchStations();
     fetchApplications();
   }, [router]);
 
-  const handleUpdateStations = (updatedList: Station[]) => {
+  const handleUpdateStations = async (updatedList: Station[]) => {
     setStations(updatedList);
     saveStoredStations(updatedList);
+
+    try {
+      const token = getValidAuthToken();
+      await axios.put(
+        '/api/admin/stations',
+        { stations: updatedList },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 5000,
+        }
+      );
+    } catch (error) {
+      console.error('Failed to persist stations to server:', error);
+      toast.error('Saved locally, but the server copy could not be updated.');
+    }
   };
 
   const fetchApplications = async () => {
