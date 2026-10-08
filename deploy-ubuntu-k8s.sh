@@ -9,9 +9,9 @@ echo "============================================================"
 echo "🚀 Starting DVLA NSS Portal Kubernetes Deployment"
 echo "============================================================"
 
-# Build Docker image
-echo "🔨 Building Docker image..."
-docker build -t nss-portal-app:latest .
+# Build Docker image without stale cache
+echo "🔨 Building Docker image (fresh build)..."
+docker build --no-cache -t nss-portal-app:latest .
 
 # Dynamically locate K3s or kubectl binary
 K3S_PATH=$(which k3s 2>/dev/null || find /usr -name k3s 2>/dev/null | head -n 1 || echo "")
@@ -19,7 +19,9 @@ KUBECTL_PATH=$(which kubectl 2>/dev/null || find /usr -name kubectl 2>/dev/null 
 
 if [ -n "$K3S_PATH" ]; then
     echo "📦 Detected K3s at $K3S_PATH."
-    echo "📥 Importing Docker image into K3s (k8s.io containerd namespace)..."
+    echo "🧹 Removing stale image from containerd cache..."
+    sudo $K3S_PATH ctr -n k8s.io images rm docker.io/library/nss-portal-app:latest 2>/dev/null || true
+    echo "📥 Importing fresh Docker image into K3s (k8s.io containerd namespace)..."
     if sudo $K3S_PATH image import --help &> /dev/null 2>&1; then
         docker save nss-portal-app:latest | sudo $K3S_PATH image import -
     else
@@ -28,7 +30,7 @@ if [ -n "$K3S_PATH" ]; then
     KUBECTL="sudo $K3S_PATH kubectl"
 elif command -v microk8s &> /dev/null; then
     echo "📦 Detected MicroK8s."
-    microk8s ctr image build -t nss-portal-app:latest .
+    microk8s ctr image build --no-cache -t nss-portal-app:latest .
     KUBECTL="microk8s kubectl"
 elif [ -n "$KUBECTL_PATH" ]; then
     echo "📦 Standard kubectl detected at $KUBECTL_PATH."
@@ -53,8 +55,8 @@ $KUBECTL apply -f k8s/service.yaml
 echo "⏳ Waiting for MySQL database initialization..."
 $KUBECTL rollout status deployment/nss-mysql-app -n nss-portal --timeout=180s
 
-echo "🔄 Triggering web application rollout..."
-$KUBECTL rollout restart deployment/nss-portal-app -n nss-portal
+echo "🔄 Deleting old pod to guarantee fresh container instantiation..."
+$KUBECTL delete pod -l app=nss-portal-app -n nss-portal 2>/dev/null || true
 
 echo "⏳ Waiting for DVLA NSS Portal app rollout..."
 $KUBECTL rollout status deployment/nss-portal-app -n nss-portal --timeout=180s
