@@ -111,11 +111,12 @@ export default function OfficialAppointmentLetter({
   // Parse CC list array or multiline string
   const formattedCcList: string[] = (
     typeof ccList === 'string'
-      ? ccList.split('\n').map(s => s.trim()).filter(Boolean)
+      ? ccList.split('\n').map(s => s.trim()).map(s => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit')).filter(Boolean)
       : Array.isArray(ccList) && ccList.length > 0
-      ? ccList
+      ? ccList.map(s => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
       : []
   ).filter(item => !item.toLowerCase().includes('district licensing manager'));
+  const displayCcList = formattedCcList.length > 0 ? formattedCcList : ['Head of Department/Unit'];
 
   return (
     <div
@@ -333,7 +334,7 @@ export default function OfficialAppointmentLetter({
           </div>
 
           {/* Cc List - omitted for reposting letters */}
-          {appointmentType !== 'REPOSTING' && formattedCcList.length > 0 && (
+          {appointmentType !== 'REPOSTING' && displayCcList.length > 0 && (
             <div
               className="pt-2 text-gray-800 leading-tight"
               style={{ fontSize: '10.5pt', fontFamily: "'Times New Roman', Times, serif" }}
@@ -341,8 +342,8 @@ export default function OfficialAppointmentLetter({
               <div className="flex items-start gap-3">
                 <span className="font-bold">Cc:</span>
                 <ul className="space-y-0.5 text-gray-800">
-                  {formattedCcList.map((item, idx) => (
-                    <li key={idx}>&bull; {item}</li>
+                  {displayCcList.map((item, idx) => (
+                    <li key={idx}>{item}</li>
                   ))}
                 </ul>
               </div>

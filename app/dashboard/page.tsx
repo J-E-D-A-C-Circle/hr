@@ -268,11 +268,16 @@ export default function Dashboard() {
 
       const ccListItems: string[] = (
         typeof letterObj.ccText === 'string'
-          ? letterObj.ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
+          ? letterObj.ccText
+              .split('\n')
+              .map((s: string) => s.trim())
+              .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
+              .filter(Boolean)
           : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
-            ? letterObj.ccList
+            ? letterObj.ccList.map((s: string) => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
             : []
-      ).filter((item: string) => !item.toLowerCase().includes('Head Of Department'));
+      ).filter((item: string) => !item.toLowerCase().includes('district licensing manager'));
+      const displayCcItems = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit'];
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
       const pdfContent = `
@@ -560,11 +565,11 @@ export default function Dashboard() {
                     <div class="signatory-title">${signatoryTitle}</div>
                     <div class="signatory-for">${signatoryForTitle}</div>
                   </div>
-                  ${!isReposting && ccListItems.length > 0 ? `
+                  ${!isReposting && displayCcItems.length > 0 ? `
                   <div class="cc-box">
                     <strong>Cc:</strong>
                     <ul>
-                      ${ccListItems.map(item => `<li>&bull; ${item}</li>`).join('')}
+                      ${displayCcItems.map(item => `<li>${item}</li>`).join('')}
                     </ul>
                   </div>
                   ` : ''}

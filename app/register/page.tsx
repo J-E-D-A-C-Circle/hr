@@ -174,11 +174,9 @@ export default function RegisterPage() {
             if (app.appointment_letter) setAppointmentFileName(app.appointment_letter.split('/').pop() || 'Appointment Letter Attached');
             if (app.certificates) setCvFileName(app.certificates.split('/').pop() || 'CV / File Attached');
 
-            if (extra.currentStep && extra.currentStep > 1) {
-              setCurrentStep(extra.currentStep);
-            } else {
-              setCurrentStep(2);
-            }
+            const localStep = typeof window !== 'undefined' ? parseInt(localStorage.getItem('registerCurrentStep') || '1', 10) : 1;
+            const dbStep = extra.currentStep && extra.currentStep > 1 ? extra.currentStep : 2;
+            setCurrentStep(Math.max(localStep, dbStep));
           } else if (data.application && data.application.status !== 'draft') {
             // Only redirect to dashboard if the application has been finalized/submitted
             router.replace('/dashboard');

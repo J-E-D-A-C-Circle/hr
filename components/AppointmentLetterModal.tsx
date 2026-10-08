@@ -40,6 +40,16 @@ export default function AppointmentLetterModal({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const normalizeCcText = (value?: string) => {
+    const items = (value || '')
+      .split('\n')
+      .map((s: string) => s.trim())
+      .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
+      .filter((s: string) => Boolean(s) && !s.toLowerCase().includes('district licensing manager'));
+
+    return items.length > 0 ? items.join('\n') : 'Head of Department/Unit';
+  };
+
   useEffect(() => {
     if (!application) return;
     const todayStr = new Date().toLocaleDateString('en-US', {
@@ -85,12 +95,7 @@ export default function AppointmentLetterModal({
       setSignatoryTitle(existingLetter.signatoryTitle || 'AG. DIRECTOR HR');
       setSignatoryForTitle(existingLetter.signatoryForTitle || 'FOR: CHIEF EXECUTIVE');
       const rawCc = existingLetter.ccText || '';
-      const sanitizedCc = rawCc
-        .split('\n')
-        .map((s: string) => s.trim())
-        .filter((s: string) => Boolean(s) && !s.toLowerCase().includes('district licensing manager'))
-        .join('\n');
-      setCcText(type === 'REPOSTING' ? '' : sanitizedCc);
+      setCcText(type === 'REPOSTING' ? '' : normalizeCcText(rawCc));
       
       if (type === 'REPOSTING') {
         const isStaleBody = (
@@ -168,7 +173,7 @@ export default function AppointmentLetterModal({
       setSalutation(application?.full_name ? `Dear ${application.full_name},` : 'Dear Sir/Madam,');
       setSignatoryTitle('AG. DIRECTOR HR');
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
-      setCcText('');
+      setCcText('Head of Department/Unit');
       setCustomBodyText(
         `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
@@ -201,9 +206,10 @@ export default function AppointmentLetterModal({
 
     const ccListItems: string[] = (
       typeof ccText === 'string'
-        ? ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
+        ? ccText.split('\n').map((s: string) => s.trim()).map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit')).filter(Boolean)
         : []
     ).filter(item => !item.toLowerCase().includes('district licensing manager'));
+    const displayCcList = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit'];
 
     printWin.document.write(`
       <!DOCTYPE html>
@@ -332,11 +338,11 @@ export default function AppointmentLetterModal({
                   <div class="signatory-title">${displaySignatoryTitle || (appointmentType === 'REPOSTING' ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR')}</div>
                   <div class="signatory-for">${displaySignatoryForTitle}</div>
                 </div>
-                ${appointmentType !== 'REPOSTING' && ccListItems.length > 0 ? `
+                ${appointmentType !== 'REPOSTING' && displayCcList.length > 0 ? `
                 <div class="cc-box">
                   <strong>Cc:</strong>
                   <ul>
-                    ${ccListItems.map(item => `<li>&bull; ${item}</li>`).join('')}
+                    ${displayCcList.map(item => `<li>${item}</li>`).join('')}
                   </ul>
                 </div>
                 ` : ''}
@@ -380,7 +386,7 @@ export default function AppointmentLetterModal({
         signatoryName,
         signatoryTitle,
         signatoryForTitle,
-        ccText: appointmentType === 'REPOSTING' ? '' : ccText,
+        ccText: appointmentType === 'REPOSTING' ? '' : (ccText || 'Head of Department/Unit'),
       };
 
       const token = localStorage.getItem('token');
