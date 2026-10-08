@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
+  },
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
 };
 
 export default nextConfig;

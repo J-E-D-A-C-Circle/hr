@@ -14,9 +14,9 @@ export async function uploadFile(
   fileType: 'passport' | 'appointment' | 'cv' | 'id_card' | 'certificate',
   token: string
 ): Promise<UploadResponse> {
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error('File size exceeds 10MB limit. Please upload a smaller file.');
+    throw new Error('File size exceeds 20MB limit. Please upload a smaller file.');
   }
 
   const formData = new FormData();
@@ -37,6 +37,9 @@ export async function uploadFile(
     
     throw new Error('Invalid response from server');
   } catch (error: any) {
+    if (error.response?.status === 413 || error.message?.includes('413')) {
+      throw new Error('File size is too large (exceeds 20MB). Please compress the file and try again.');
+    }
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     }

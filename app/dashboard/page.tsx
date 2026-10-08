@@ -66,21 +66,21 @@ export default function Dashboard() {
       return;
     }
 
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const MAX_FILE_SIZE = 20 * 1024 * 1024;
     if (passportFile && passportFile.size > MAX_FILE_SIZE) {
-      toast.error(`"${passportFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${passportFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       return;
     }
     if (idCardFile && idCardFile.size > MAX_FILE_SIZE) {
-      toast.error(`"${idCardFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${idCardFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       return;
     }
     if (appointmentFile && appointmentFile.size > MAX_FILE_SIZE) {
-      toast.error(`"${appointmentFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${appointmentFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       return;
     }
     if (cvFile && cvFile.size > MAX_FILE_SIZE) {
-      toast.error(`"${cvFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${cvFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       return;
     }
 
@@ -119,7 +119,7 @@ export default function Dashboard() {
 
       toast.success('Documents updated successfully!');
       setUploadModalOpen(false);
-      
+
       // Refresh application details
       const res = await axios.get('/api/applications/my-application', {
         headers: { Authorization: `Bearer ${token}` }
@@ -171,13 +171,13 @@ export default function Dashboard() {
           timeout: 2000,
         }
       );
-      
+
       const app = response.data.application;
       if (!app || app.status === 'draft') {
         router.replace('/register');
         return;
       }
-      
+
       setApplication(app);
     } catch (error: any) {
       console.error('Error fetching application:', error);
@@ -202,12 +202,12 @@ export default function Dashboard() {
       );
 
       const app = response.data.application;
-      
+
       // Get logo as base64 for embedding
       const logoPath = '/oop.png';
-      
+
       const letterObj = app.appointmentLetterObject || app.appointmentLetterData || {};
-      
+
       const issueDate = letterObj.letterDate || new Date().toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
@@ -225,7 +225,7 @@ export default function Dashboard() {
       const yourRef = letterObj.yourRef || '';
 
       const isStalePostingBody = letterObj.customBodyText && (
-        letterObj.customBodyText.includes('assigned to') || 
+        letterObj.customBodyText.includes('assigned to') ||
         letterObj.customBodyText.includes('reposted to the') ||
         letterObj.appointmentType !== 'REPOSTING' ||
         letterObj.customBodyText.includes('has requested to be released')
@@ -237,7 +237,7 @@ export default function Dashboard() {
       const serviceYear = getAutoServiceYear(app.service_year);
 
       const commencementDate = letterObj.commencementDate || (
-        app.service_period_start 
+        app.service_period_start
           ? new Date(app.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
           : `Monday, 17th November, ${currentYear}`
       );
@@ -247,32 +247,32 @@ export default function Dashboard() {
         effectiveCustomBody = effectiveCustomBody
           .replace(/2025\/2026/g, serviceYear)
           .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${endDate}</strong>`)
-          .replace(/District Licensing Manager/g, 'Head of Department');
+          .replace(/Head Of Department/g, 'Head of Department');
       }
 
       const displaySubject = isReposting
         ? (letterObj.appointmentType === 'REPOSTING' && letterObj.customSubject && letterObj.customSubject !== 'POSTING OF NATIONAL SERVICE PERSONNEL.' && letterObj.customSubject !== 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' && letterObj.customSubject !== 'REQUEST FOR REPOSTING'
-            ? letterObj.customSubject
-            : `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${serviceYear} SERVICE YEAR`)
+          ? letterObj.customSubject
+          : `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${serviceYear} SERVICE YEAR`)
         : (letterObj.customSubject || 'POSTING OF NATIONAL SERVICE PERSONNEL.');
 
       const salutation = isReposting
         ? (letterObj.appointmentType === 'REPOSTING' && letterObj.salutation && letterObj.salutation !== `Dear ${applicantName},`
-            ? letterObj.salutation
-            : 'Dear Madam,')
+          ? letterObj.salutation
+          : 'Dear Madam,')
         : (letterObj.salutation || `Dear ${applicantName},`);
       const stationName = app.posting_station || app.posting_district || app.district || 'Bonwire District Office';
       const signatoryName = letterObj.signatoryName || 'EPHRAIM NII TAN SACKEY';
       const signatoryTitle = letterObj.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
-      
+
       const ccListItems: string[] = (
         typeof letterObj.ccText === 'string'
           ? letterObj.ccText.split('\n').map((s: string) => s.trim()).filter(Boolean)
           : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
-          ? letterObj.ccList
-          : []
-      ).filter((item: string) => !item.toLowerCase().includes('district licensing manager'));
+            ? letterObj.ccList
+            : []
+      ).filter((item: string) => !item.toLowerCase().includes('Head Of Department'));
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
       const pdfContent = `
@@ -611,7 +611,7 @@ export default function Dashboard() {
 
   const getStatusMessage = () => {
     if (!application) return { text: 'Your application is pending', color: 'bg-yellow-50 text-yellow-800', border: 'border-yellow-300' };
-    
+
     if (application.status === 'approved' && !isAssigned) {
       return { text: 'Application Under Review (Pending Placement & Letter Assignment)', color: 'bg-sky-50 text-sky-800', border: 'border-sky-300' };
     }
@@ -656,12 +656,12 @@ export default function Dashboard() {
               <Menu className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-2">
-              <Image 
-                src="/oop.png" 
-                width={32} 
-                height={32} 
-                alt="DVLA Logo" 
-                className="rounded-full bg-white/90 p-0.5 shadow-md ring-1 ring-white/50" 
+              <Image
+                src="/oop.png"
+                width={32}
+                height={32}
+                alt="DVLA Logo"
+                className="rounded-full bg-white/90 p-0.5 shadow-md ring-1 ring-white/50"
               />
               <div>
                 <h2 className="text-white font-bold text-sm leading-tight">DVLA NSS</h2>
@@ -669,11 +669,11 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-white bg-red-500/90 hover:bg-red-600 active:bg-red-700 px-3 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md active:scale-95"
           >
-            <LogOut className="w-4 h-4" /> 
+            <LogOut className="w-4 h-4" />
             <span className="text-xs">Sign Out</span>
           </button>
         </div>
@@ -681,34 +681,33 @@ export default function Dashboard() {
 
       {/* Mobile Drawer Overlay Backdrop */}
       {mobileSidebarOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
       {/* Mobile Sidebar Drawer */}
-      <div 
-        className={`md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 bg-gradient-to-b from-[#0d5c2e] to-[#073e1e] text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
-          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+      <div
+        className={`md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 bg-gradient-to-b from-[#0d5c2e] to-[#073e1e] text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="pt-6 pb-4 px-6 flex items-center justify-between border-b border-white/15">
           <div className="flex items-center gap-3">
-            <Image 
-              src="/oop.png" 
-              width={40} 
-              height={40} 
-              alt="DVLA Logo" 
-              className="rounded-full bg-white/90 p-1 shadow-md ring-2 ring-white/50" 
+            <Image
+              src="/oop.png"
+              width={40}
+              height={40}
+              alt="DVLA Logo"
+              className="rounded-full bg-white/90 p-1 shadow-md ring-2 ring-white/50"
             />
             <div>
               <h2 className="text-white font-bold text-sm leading-tight">DVLA NSS</h2>
               <p className="text-white/80 text-xs mt-0.5">{userDisplayName.split(' ')[0]}</p>
             </div>
           </div>
-          <button 
-            onClick={() => setMobileSidebarOpen(false)} 
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
             className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10"
             aria-label="Close navigation menu"
           >
@@ -721,8 +720,8 @@ export default function Dashboard() {
               key={n.label}
               onClick={() => setMobileSidebarOpen(false)}
               className={`flex items-center font-medium text-base rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 select-none 
-                ${n.active 
-                  ? 'bg-white/25 text-white shadow-md backdrop-blur-sm' 
+                ${n.active
+                  ? 'bg-white/25 text-white shadow-md backdrop-blur-sm'
                   : 'text-white/95 hover:bg-white/15 hover:text-white'}`}
             >
               <span className="mr-3">
@@ -733,26 +732,26 @@ export default function Dashboard() {
           ))}
         </nav>
         <div className="mt-auto mb-6 px-4 pt-4 border-t border-white/20">
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center justify-center gap-3 text-white bg-red-500/90 hover:bg-red-600 px-4 py-3 rounded-lg w-full font-semibold transition-all duration-200 shadow-md active:scale-95"
           >
-            <LogOut className="w-5 h-5" /> 
+            <LogOut className="w-5 h-5" />
             <span>Sign Out</span>
           </button>
         </div>
       </div>
-      
+
       {/* Sidebar */}
       <div className="hidden md:flex flex-col min-h-screen w-64 bg-gradient-to-b from-[#0d5c2e] to-[#073e1e] shadow-xl">
         <div className="pt-8 pb-6 px-6 flex flex-col items-center border-b border-white/10">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Image 
-              src="/oop.png" 
-              width={56} 
-              height={56} 
-              alt="DVLA Logo" 
-              className="rounded-full bg-white/90 p-1.5 shadow-lg ring-2 ring-white/40" 
+            <Image
+              src="/oop.png"
+              width={56}
+              height={56}
+              alt="DVLA Logo"
+              className="rounded-full bg-white/90 p-1.5 shadow-lg ring-2 ring-white/40"
             />
           </div>
           <h2 className="text-white font-bold text-lg tracking-wide text-center">DVLA NSS Portal</h2>
@@ -762,8 +761,8 @@ export default function Dashboard() {
             <div
               key={n.label}
               className={`flex items-center font-medium text-base rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 select-none 
-                ${n.active 
-                  ? 'bg-white/25 text-white shadow-md backdrop-blur-sm' 
+                ${n.active
+                  ? 'bg-white/25 text-white shadow-md backdrop-blur-sm'
                   : 'text-white/95 hover:bg-white/15 hover:text-white'}`}
             >
               <span className="mr-3">
@@ -774,11 +773,11 @@ export default function Dashboard() {
           ))}
         </nav>
         <div className="mt-auto mb-6 px-4 pt-4 border-t border-white/20">
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center justify-center gap-3 text-white bg-red-500/90 hover:bg-red-600 px-4 py-3 rounded-lg w-full font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]"
           >
-            <LogOut className="w-5 h-5" /> 
+            <LogOut className="w-5 h-5" />
             <span>Sign Out</span>
           </button>
         </div>
@@ -803,7 +802,7 @@ export default function Dashboard() {
                 <span className="text-gray-800 font-semibold text-sm">{userDisplayName}</span>
               </div>
             </div>
-            
+
             {/* Animated Status Timeline Stepper */}
             {application && application.status !== 'draft' && (
               <div className="my-6 w-full p-6 rounded-2xl bg-white shadow-xl border border-emerald-100 space-y-6">
@@ -833,20 +832,18 @@ export default function Dashboard() {
                   </div>
 
                   {/* Step 2 */}
-                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    application.status === 'pending' || application.status === 'under_review'
+                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${application.status === 'pending' || application.status === 'under_review'
                       ? 'bg-amber-50 border-amber-200 ring-2 ring-amber-400/50'
                       : application.status === 'approved' || application.status === 'rejected'
-                      ? 'bg-emerald-50 border-emerald-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                      application.status === 'approved' || application.status === 'rejected'
+                        ? 'bg-emerald-50 border-emerald-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${application.status === 'approved' || application.status === 'rejected'
                         ? 'bg-emerald-600 text-white'
                         : application.status === 'pending' || application.status === 'under_review'
-                        ? 'bg-amber-500 text-white animate-pulse'
-                        : 'bg-gray-300 text-gray-600'
-                    }`}>
+                          ? 'bg-amber-500 text-white animate-pulse'
+                          : 'bg-gray-300 text-gray-600'
+                      }`}>
                       {application.status === 'approved' || application.status === 'rejected' ? '✓' : '2'}
                     </div>
                     <div>
@@ -858,24 +855,22 @@ export default function Dashboard() {
                   </div>
 
                   {/* Step 3 */}
-                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    isAssigned
+                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${isAssigned
                       ? 'bg-emerald-50 border-emerald-200 ring-2 ring-emerald-400/50'
                       : application.status === 'approved'
-                      ? 'bg-amber-50 border-amber-200'
-                      : application.status === 'rejected'
-                      ? 'bg-rose-50 border-rose-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                      isAssigned
+                        ? 'bg-amber-50 border-amber-200'
+                        : application.status === 'rejected'
+                          ? 'bg-rose-50 border-rose-200'
+                          : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${isAssigned
                         ? 'bg-emerald-600 text-white'
                         : application.status === 'rejected'
-                        ? 'bg-rose-600 text-white'
-                        : application.status === 'approved'
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-gray-300 text-gray-600'
-                    }`}>
+                          ? 'bg-rose-600 text-white'
+                          : application.status === 'approved'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-gray-300 text-gray-600'
+                      }`}>
                       {isAssigned ? '✓' : application.status === 'rejected' ? '✕' : '3'}
                     </div>
                     <div>
@@ -887,14 +882,12 @@ export default function Dashboard() {
                   </div>
 
                   {/* Step 4 */}
-                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    isAssigned
+                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${isAssigned
                       ? 'bg-emerald-50 border-emerald-200'
                       : 'bg-gray-50 border-gray-200'
-                  }`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                      isAssigned ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
                     }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${isAssigned ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
+                      }`}>
                       {isAssigned ? '✓' : '4'}
                     </div>
                     <div>

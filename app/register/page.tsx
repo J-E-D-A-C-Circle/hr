@@ -535,11 +535,11 @@ export default function RegisterPage() {
         return;
       }
       
-      const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+      const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
 
       if (passportFile) {
         if (passportFile.size > MAX_UPLOAD_SIZE) {
-          toast.error(`"${passportFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          toast.error(`"${passportFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
           setIsSubmitting(false);
           return;
         }
@@ -550,7 +550,7 @@ export default function RegisterPage() {
           console.error('Passport upload error:', uploadError);
           const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
           if (isSizeError) {
-            toast.error(uploadError.message || 'Passport photo exceeds the 10MB limit.');
+            toast.error(uploadError.message || 'Passport photo exceeds the 20MB limit.');
             setIsSubmitting(false);
             return;
           }
@@ -560,7 +560,7 @@ export default function RegisterPage() {
 
       if (idCardFile) {
         if (idCardFile.size > MAX_UPLOAD_SIZE) {
-          toast.error(`"${idCardFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          toast.error(`"${idCardFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
           setIsSubmitting(false);
           return;
         }
@@ -571,7 +571,7 @@ export default function RegisterPage() {
           console.error('ID Card upload error:', uploadError);
           const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
           if (isSizeError) {
-            toast.error(uploadError.message || 'ID Card copy exceeds the 10MB limit.');
+            toast.error(uploadError.message || 'ID Card copy exceeds the 20MB limit.');
             setIsSubmitting(false);
             return;
           }
@@ -581,7 +581,7 @@ export default function RegisterPage() {
       
       if (appointmentFile) {
         if (appointmentFile.size > MAX_UPLOAD_SIZE) {
-          toast.error(`"${appointmentFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          toast.error(`"${appointmentFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
           setIsSubmitting(false);
           return;
         }
@@ -592,7 +592,7 @@ export default function RegisterPage() {
           console.error('Appointment letter upload error:', uploadError);
           const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
           if (isSizeError) {
-            toast.error(uploadError.message || 'Appointment letter exceeds the 10MB limit.');
+            toast.error(uploadError.message || 'Appointment letter exceeds the 20MB limit.');
             setIsSubmitting(false);
             return;
           }
@@ -602,7 +602,7 @@ export default function RegisterPage() {
       
       if (cvFile) {
         if (cvFile.size > MAX_UPLOAD_SIZE) {
-          toast.error(`"${cvFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          toast.error(`"${cvFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
           setIsSubmitting(false);
           return;
         }
@@ -613,7 +613,7 @@ export default function RegisterPage() {
           console.error('CV upload error:', uploadError);
           const isSizeError = uploadError.message?.toLowerCase().includes('10mb') || uploadError.message?.toLowerCase().includes('size exceeds');
           if (isSizeError) {
-            toast.error(uploadError.message || 'CV exceeds the 10MB limit.');
+            toast.error(uploadError.message || 'CV exceeds the 20MB limit.');
             setIsSubmitting(false);
             return;
           }
@@ -623,7 +623,7 @@ export default function RegisterPage() {
 
       if (certificateFile) {
         if (certificateFile.size > MAX_UPLOAD_SIZE) {
-          toast.error(`"${certificateFile.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+          toast.error(`"${certificateFile.name}" exceeds the 20MB limit. Please upload a smaller file.`);
           setIsSubmitting(false);
           return;
         }
@@ -706,7 +706,7 @@ export default function RegisterPage() {
         console.error('Non-JSON response:', text);
         console.error('Response status:', response.status);
         console.error('Response headers:', [...response.headers.entries()]);
-        throw new Error(`Server error (${response.status}): ${text.substring(0, 200)}`);
+        throw new Error(`We encountered a temporary issue while submitting. Please try again later. (Code: ${response.status})`);
       }
       
       try {
@@ -714,12 +714,12 @@ export default function RegisterPage() {
       } catch (jsonError) {
         const text = await response.text();
         console.error('JSON parse error. Response text:', text);
-        throw new Error('Server returned invalid JSON. Check console for details.');
+        throw new Error('We encountered an unexpected response from the server. Please try again later.');
       }
       
       if (!response.ok) {
         console.error('API Error:', data);
-        throw new Error(data.error || data.message || `Application submission failed (${response.status})`);
+        throw new Error(data.error || data.message || 'Application submission failed. Please ensure all details are correct and try again.');
       }
       
       console.log('Application submitted successfully:', data);
@@ -734,7 +734,7 @@ export default function RegisterPage() {
     } catch (error: any) {
       const isSizeError = error?.message?.toLowerCase().includes('10mb') || error?.message?.toLowerCase().includes('size exceeds');
       if (isSizeError) {
-        toast.error(error.message || 'File size exceeds the 10MB limit. Please upload a smaller file.');
+        toast.error(error.message || 'File size exceeds the 20MB limit. Please upload a smaller file.');
       } else {
         setSubmitError(error.message || 'Failed to submit application. Please try again.');
         toast.error(error.message || 'Failed to submit application. Please try again.');
@@ -760,12 +760,12 @@ export default function RegisterPage() {
   const cvFileRef = useRef<HTMLInputElement | null>(null);
   const certificateFileRef = useRef<HTMLInputElement | null>(null);
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
   const handlePassportSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.size > MAX_FILE_SIZE) {
-      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${file.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       e.target.value = '';
       setPassportFileName('');
       setSubmitError('');
@@ -777,7 +777,7 @@ export default function RegisterPage() {
   const handleIdCardSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.size > MAX_FILE_SIZE) {
-      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${file.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       e.target.value = '';
       setIdCardFileName('');
       setSubmitError('');
@@ -789,7 +789,7 @@ export default function RegisterPage() {
   const handleAppointmentSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.size > MAX_FILE_SIZE) {
-      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${file.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       e.target.value = '';
       setAppointmentFileName('');
       setSubmitError('');
@@ -801,7 +801,7 @@ export default function RegisterPage() {
   const handleCvSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.size > MAX_FILE_SIZE) {
-      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${file.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       e.target.value = '';
       setCvFileName('');
       setSubmitError('');
@@ -813,7 +813,7 @@ export default function RegisterPage() {
   const handleCertificateSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.size > MAX_FILE_SIZE) {
-      toast.error(`"${file.name}" exceeds the 10MB limit. Please upload a smaller file.`);
+      toast.error(`"${file.name}" exceeds the 20MB limit. Please upload a smaller file.`);
       e.target.value = '';
       setCertificateFileName('');
       setSubmitError('');
