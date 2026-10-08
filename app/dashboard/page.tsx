@@ -246,7 +246,8 @@ export default function Dashboard() {
       if (effectiveCustomBody && !isReposting) {
         effectiveCustomBody = effectiveCustomBody
           .replace(/2025\/2026/g, serviceYear)
-          .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${endDate}</strong>`);
+          .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${endDate}</strong>`)
+          .replace(/District Licensing Manager/g, 'Head of Department');
       }
 
       const displaySubject = isReposting
@@ -542,7 +543,7 @@ export default function Dashboard() {
                 `) : effectiveCustomBody ? `<div style="white-space: pre-line;">${effectiveCustomBody}</div>` : `
                   <p>This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${serviceYear}</strong> service year.</p>
                   <p>Your National Service commences on <strong>${commencementDate}</strong> and ends on <strong>${endDate}</strong>.</p>
-                  <p>You are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
+                  <p>You are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
                 `}
               </div>
 

@@ -104,7 +104,8 @@ export default function OfficialAppointmentLetter({
   if (effectiveBodyText && appointmentType !== 'REPOSTING') {
     effectiveBodyText = effectiveBodyText
       .replace(/2025\/2026/g, effectiveServiceYear)
-      .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${effectiveEndDate}</strong>`);
+      .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${effectiveEndDate}</strong>`)
+      .replace(/District Licensing Manager/g, 'Head of Department');
   }
 
   // Parse CC list array or multiline string
@@ -266,7 +267,7 @@ export default function OfficialAppointmentLetter({
               I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName || 'Operations'} Department</strong> at <strong>{postingStationName}</strong> on a Contract basis ({contractDuration}), effective <strong>{effectiveDate}</strong>, in accordance with <strong>{salaryGrade}</strong>.
             </p>
             <p>
-              You are requested to report to the District Licensing Manager for orientation and assignment. Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
+              You are requested to report to the Head of Department for orientation and assignment. Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
             </p>
           </>
         ) : appointmentType === 'PERMANENT' ? (
@@ -275,7 +276,7 @@ export default function OfficialAppointmentLetter({
               I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName || 'Operations'} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>, subject to a probation period of <strong>{probationPeriod}</strong>.
             </p>
             <p>
-              You are required to report to the District Licensing Manager for orientation and assignment. Kindly sign and return the duplicate copy of this letter signifying your formal acceptance.
+              You are required to report to the Head of Department for orientation and assignment. Kindly sign and return the duplicate copy of this letter signifying your formal acceptance.
             </p>
           </>
         ) : appointmentType === 'REPOSTING' ? (
@@ -299,7 +300,7 @@ export default function OfficialAppointmentLetter({
               Your National Service commences on <strong>{effectiveStart}</strong> and ends on <strong>{effectiveEndDate}</strong>.
             </p>
             <p>
-              You are required to report to the District Licensing Manager for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.
+              You are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.
             </p>
           </>
         )}
