@@ -202,22 +202,25 @@ async function readStationsFromDb() {
   await ensureStationsTables();
 
   const stations = await query<any[]>(`SELECT id, station_code, name, region, capacity FROM stations ORDER BY name ASC`);
+  if (!stations || stations.length === 0) return [];
 
-  const results: any[] = [];
-
-  for (const station of stations) {
-    const departments = await query<any[]>(`SELECT name FROM departments WHERE station_id = ? ORDER BY name ASC`, [station.id]);
-    results.push({
-      id: String(station.id),
-      station_code: station.station_code,
-      name: station.name,
-      region: station.region,
-      capacity: Number(station.capacity),
-      departments: departments.map((d) => d.name),
-    });
+  const allDepts = await query<any[]>(`SELECT station_id, name FROM departments ORDER BY name ASC`);
+  const deptMap: Record<number, string[]> = {};
+  if (Array.isArray(allDepts)) {
+    for (const d of allDepts) {
+      if (!deptMap[d.station_id]) deptMap[d.station_id] = [];
+      deptMap[d.station_id].push(d.name);
+    }
   }
 
-  return normalizeStations(results);
+  return stations.map((st) => ({
+    id: String(st.id),
+    station_code: st.station_code,
+    name: st.name,
+    region: st.region,
+    capacity: Number(st.capacity),
+    departments: deptMap[st.id] || [],
+  }));
 }
 
 export async function GET(request: Request) {
@@ -249,6 +252,8 @@ export async function PUT(request: Request) {
 
     await ensureStationsTables();
 
+    const departmentRowsToInsert: [number, string][] = [];
+
     for (const station of incomingStations) {
       const stationName = String(station.name || '').trim();
       const region = String(station.region || 'Greater Accra').trim();
@@ -260,17 +265,18 @@ export async function PUT(request: Request) {
       let stationId: number | null = null;
       const rawId = station.id ? String(station.id) : '';
 
-      if (rawId && !rawId.startsWith('st-')) {
+      if (rawId && !rawId.startsWith('st-') && !isNaN(Number(rawId))) {
         const stationRow = await query<{ id: number }[]>(`SELECT id FROM stations WHERE id = ?`, [Number(rawId)]);
         stationId = stationRow?.[0]?.id ?? null;
       }
 
       if (stationId === null) {
-        const inserted = await query<any>(
+        const code = (rawId && rawId.startsWith('st-')) ? rawId : `st-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        await query(
           `INSERT INTO stations (station_code, name, region, capacity)
            VALUES (?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE name = VALUES(name), region = VALUES(region), capacity = VALUES(capacity)`,
-          [rawId || `st-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, stationName, region, capacity]
+          [code, stationName, region, capacity]
         );
 
         const base = await query<{ id: number }[]>(`SELECT id FROM stations WHERE name = ? ORDER BY id DESC LIMIT 1`, [stationName]);
@@ -286,16 +292,22 @@ export async function PUT(request: Request) {
 
       await query(`DELETE FROM departments WHERE station_id = ?`, [stationId]);
 
-      for (const department of departments) {
-        const departmentName = String(department).trim();
-        if (!departmentName) continue;
-
-        await query(
-          `INSERT INTO departments (station_id, name) VALUES (?, ?)
-           ON DUPLICATE KEY UPDATE name = VALUES(name)`,
-          [stationId, departmentName]
-        );
+      for (const dept of departments) {
+        const dName = String(dept).trim();
+        if (dName) {
+          departmentRowsToInsert.push([stationId, dName]);
+        }
       }
+    }
+
+    if (departmentRowsToInsert.length > 0) {
+      const placeholders = departmentRowsToInsert.map(() => '(?, ?)').join(', ');
+      const flatParams = departmentRowsToInsert.flat();
+      await query(
+        `INSERT INTO departments (station_id, name) VALUES ${placeholders}
+         ON DUPLICATE KEY UPDATE name = VALUES(name)`,
+        flatParams
+      );
     }
 
     const stations = await readStationsFromDb();
@@ -305,3 +317,4 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: error.message || 'Failed to save stations' }, { status: 500 });
   }
 }
+

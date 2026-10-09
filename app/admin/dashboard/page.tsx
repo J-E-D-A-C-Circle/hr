@@ -150,7 +150,7 @@ export default function AdminDashboard() {
         { stations: updatedList },
         {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 5000,
+          timeout: 15000,
         }
       );
     } catch (error) {
