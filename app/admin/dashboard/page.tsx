@@ -37,6 +37,7 @@ import PersonnelTab from '@/components/admin/PersonnelTab';
 import StationsTab from '@/components/admin/StationsTab';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import AuditTab from '@/components/admin/AuditTab';
+import SupportTab from '@/components/admin/SupportTab';
 import { Application, FullApplication, Station } from '@/lib/types/admin';
 import ShadcnSelect from '@/components/ui/ShadcnSelect';
 import { getStoredStations, saveStoredStations } from '@/lib/stations-data';
@@ -405,6 +406,7 @@ export default function AdminDashboard() {
     stations: { title: 'Station & Placement Hub', subtitle: 'DVLA station headcounts and capacity metrics' },
     analytics: { title: 'Analytics & Intelligence', subtitle: 'Demographic reports and status breakdown charts' },
     audit: { title: 'Audit & Activity Logs', subtitle: 'Timestamped administrative history trail' },
+    support: { title: 'Support & Inquiries Desk', subtitle: 'Review and manage user-submitted support tickets' },
   };
 
   return (
@@ -481,6 +483,8 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'audit' && <AuditTab />}
+
+          {activeTab === 'support' && <SupportTab />}
         </main>
       </div>
 

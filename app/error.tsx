@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AlertOctagon, RotateCcw, Home } from 'lucide-react';
+import { AlertOctagon, RotateCcw, Home, HelpCircle } from 'lucide-react';
+import ContactSupportModal from '@/components/ContactSupportModal';
 
 export default function Error({
   error,
@@ -11,6 +12,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -37,22 +40,32 @@ export default function Error({
           We encountered an unexpected error while processing your request in the DVLA NSS Portal. Our technical team has been notified.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button 
-            onClick={() => reset()}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold transition-all active:scale-95 shadow-md hover:shadow-lg"
+        <div className="flex flex-col gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button 
+              onClick={() => reset()}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold transition-all active:scale-95 shadow-md hover:shadow-lg text-xs"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Try Again
+            </button>
+            
+            <Link 
+              href="/"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-semibold transition-all active:scale-95 shadow-sm hover:shadow text-xs"
+            >
+              <Home className="w-4 h-4" />
+              Go Home
+            </Link>
+          </div>
+
+          <button
+            onClick={() => setIsSupportOpen(true)}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-50 hover:bg-emerald-100 text-[#0d5c2e] border border-emerald-200 rounded-xl font-bold transition-all text-xs"
           >
-            <RotateCcw className="w-4 h-4" />
-            Try Again
+            <HelpCircle className="w-4 h-4" />
+            Contact Technical Support
           </button>
-          
-          <Link 
-            href="/"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-semibold transition-all active:scale-95 shadow-sm hover:shadow"
-          >
-            <Home className="w-4 h-4" />
-            Go Home
-          </Link>
         </div>
       </div>
       
@@ -60,6 +73,11 @@ export default function Error({
       <div className="mt-12 text-center text-slate-400 text-xs font-medium relative z-10">
         &copy; {new Date().getFullYear()} Driver and Vehicle Licensing Authority
       </div>
+
+      <ContactSupportModal
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
+      />
     </div>
   );
 }

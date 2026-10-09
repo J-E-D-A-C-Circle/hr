@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  LifeBuoy,
   X
 } from 'lucide-react';
 
@@ -23,7 +24,8 @@ export type AdminTabId =
   | 'personnel' 
   | 'stations' 
   | 'analytics' 
-  | 'audit';
+  | 'audit'
+  | 'support';
 
 interface AdminSidebarProps {
   activeTab: AdminTabId;
@@ -32,6 +34,7 @@ interface AdminSidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   pendingCount: number;
   totalPersonnelCount: number;
+  openSupportCount?: number;
   user: any;
   onLogout: () => void;
   mobileOpen?: boolean;
@@ -45,6 +48,7 @@ export default function AdminSidebar({
   setCollapsed,
   pendingCount,
   totalPersonnelCount,
+  openSupportCount = 0,
   user,
   onLogout,
   mobileOpen = false,
@@ -88,6 +92,13 @@ export default function AdminSidebar({
       label: 'Audit & Activity Logs',
       icon: History,
       badge: null,
+    },
+    {
+      id: 'support' as AdminTabId,
+      label: 'Support Tickets',
+      icon: LifeBuoy,
+      badge: openSupportCount > 0 ? openSupportCount : null,
+      badgeColor: 'bg-rose-500 text-white border-rose-400',
     },
   ];
 
