@@ -72,12 +72,15 @@ function formatGhanaCard(input: string): string {
   return `GHA-${part1}`;
 }
 
+const REGISTER_STORAGE_VERSION = 'nss-register-v2';
+
 export default function RegisterPage() {
   const router = useRouter();
 
   // Hydrated flag - only render after client hydration
   const [hydrated, setHydrated] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -116,6 +119,7 @@ export default function RegisterPage() {
     const checkAuthAndDraft = async () => {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
+      const storedUser = getStoredUser();
       
       if (token && userStr) {
         try {
@@ -127,6 +131,10 @@ export default function RegisterPage() {
           
           if (user.email) {
             setFormData(prev => ({ ...prev, email: prev.email || user.email }));
+            setIsLoggedIn(true);
+          } else if (storedUser?.email) {
+            setFormData(prev => ({ ...prev, email: prev.email || storedUser.email }));
+            setIsLoggedIn(true);
           }
           
           // Check if they have a draft
@@ -198,10 +206,19 @@ export default function RegisterPage() {
   // Only run on client: load from localStorage if present
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const savedVersion = localStorage.getItem('registerStorageVersion');
+
+      if (savedVersion !== REGISTER_STORAGE_VERSION) {
+        localStorage.removeItem('registerCurrentStep');
+        localStorage.removeItem('registerFormData');
+        localStorage.setItem('registerStorageVersion', REGISTER_STORAGE_VERSION);
+      }
+
       const savedStep = localStorage.getItem('registerCurrentStep');
       setCurrentStep(savedStep ? parseInt(savedStep, 10) : 1);
       const savedFormData = localStorage.getItem('registerFormData');
-      setFormData(savedFormData ? JSON.parse(savedFormData) : {
+      const storedUser = getStoredUser();
+      const restoredForm = savedFormData ? JSON.parse(savedFormData) : {
         email: '',
         password: '',
         confirmPassword: '',
@@ -213,7 +230,14 @@ export default function RegisterPage() {
         ghanaCard: '',
         school: '',
         branch: '', // Load branch
-      });
+      };
+
+      if (storedUser?.email && !restoredForm.email) {
+        restoredForm.email = storedUser.email;
+        setIsLoggedIn(true);
+      }
+
+      setFormData(restoredForm);
       setHydrated(true);
     }
   }, []);
@@ -221,6 +245,7 @@ export default function RegisterPage() {
   // Save current step to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      localStorage.setItem('registerStorageVersion', REGISTER_STORAGE_VERSION);
       localStorage.setItem('registerCurrentStep', currentStep.toString());
     }
   }, [currentStep]);
@@ -228,6 +253,7 @@ export default function RegisterPage() {
   // Save form data to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      localStorage.setItem('registerStorageVersion', REGISTER_STORAGE_VERSION);
       localStorage.setItem('registerFormData', JSON.stringify(formData));
     }
   }, [formData]);
@@ -302,7 +328,10 @@ export default function RegisterPage() {
     setSubmitError('');
     
     if (currentStep === 1) {
-      if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      const sanitizedEmail = formData.email.trim();
+      setFormData(prev => ({ ...prev, email: sanitizedEmail }));
+
+      if (!sanitizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
         toast.error('Please enter a valid email address');
         return;
       }
@@ -726,6 +755,7 @@ export default function RegisterPage() {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('registerCurrentStep');
         localStorage.removeItem('registerFormData');
+        localStorage.setItem('registerStorageVersion', REGISTER_STORAGE_VERSION);
       }
       // Redirect directly to dashboard (replace to prevent back navigation)
       router.replace('/dashboard');
@@ -976,7 +1006,7 @@ export default function RegisterPage() {
               showConfirmPassword={showConfirmPassword}
               setShowConfirmPassword={setShowConfirmPassword}
               passwordStrength={passwordStrength}
-              isLoggedIn={typeof window !== 'undefined' && !!localStorage.getItem('token')}
+              isLoggedIn={isLoggedIn}
             />
           )}
 
