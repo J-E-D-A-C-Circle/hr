@@ -107,4 +107,51 @@ export function getNextDvlaReferenceNumber(
   return getDvlaReferenceForSequence(nextSequence);
 }
 
+/**
+ * Resolves the official CC line based on the posting station.
+ * If station is "DVLA Head Office - Cantonments" or contains "Head Office" / "Cantonments", returns "Head of Department/Unit/Office".
+ * For any other station, returns "Station Manager".
+ */
+export function getDefaultCcForStation(stationName?: string): string {
+  if (!stationName) return 'Station Manager';
+  const name = String(stationName).toLowerCase().trim();
+  if (name.includes('head office') || name.includes('cantonments') || name === 'headoffice') {
+    return 'Head of Department/Unit/Office';
+  }
+  return 'Station Manager';
+}
+
+/**
+ * Normalizes CC list items to ensure Head Office gets "Head of Department/Unit/Office"
+ * and regional/district stations get "Station Manager".
+ */
+export function getCcListForStation(stationName?: string, userCcText?: string | string[]): string[] {
+  const defaultCc = getDefaultCcForStation(stationName);
+
+  if (!userCcText) return [defaultCc];
+
+  const items = typeof userCcText === 'string'
+    ? userCcText.split('\n').map((s) => s.trim()).filter(Boolean)
+    : Array.isArray(userCcText)
+    ? userCcText.map((s) => String(s).trim()).filter(Boolean)
+    : [];
+
+  if (items.length === 0) return [defaultCc];
+
+  const isHeadOffice = defaultCc === 'Head of Department/Unit/Office';
+
+  return items.map((s) => {
+    const lower = s.toLowerCase();
+    if (
+      lower.includes('district licensing manager') ||
+      (lower === 'head of department/unit/office' && !isHeadOffice) ||
+      (lower === 'station manager' && isHeadOffice)
+    ) {
+      return defaultCc;
+    }
+    return s;
+  });
+}
+
+
 

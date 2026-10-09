@@ -4,7 +4,7 @@ import axios from 'axios';
 import { X, FileText, Sparkles, Check, RefreshCw, Eye, Edit3, Printer } from 'lucide-react';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
-import { getAutoServiceYear, getAutoEndDate } from '@/lib/utils';
+import { getAutoServiceYear, getAutoEndDate, getDefaultCcForStation, getCcListForStation } from '@/lib/utils';
 
 interface AppointmentLetterModalProps {
   isOpen: boolean;
@@ -167,7 +167,7 @@ export default function AppointmentLetterModal({
       setSalutation(application?.full_name ? `Dear ${application.full_name},` : 'Dear Sir/Madam,');
       setSignatoryTitle('AG. DIRECTOR HR');
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
-      setCcText('Head of Department/Unit/Office');
+      setCcText(getDefaultCcForStation(stationName));
       setCustomBodyText(
         `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
@@ -197,12 +197,8 @@ export default function AppointmentLetterModal({
     const displaySignatoryTitle = signatoryTitle || 'AG. DIRECTOR HR';
     const displaySignatoryForTitle = signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
 
-    const ccListItems: string[] = (
-      typeof ccText === 'string'
-        ? ccText.split('\n').map((s: string) => s.trim()).map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office')).filter(Boolean)
-        : []
-    ).filter(item => !item.toLowerCase().includes('district licensing manager'));
-    const displayCcList = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit/Office'];
+    const currentStation = application?.posting_station || application?.station?.name || application?.posting_district || 'Head Office';
+    const displayCcList = getCcListForStation(currentStation, ccText);
 
     printWin.document.write(`
       <!DOCTYPE html>
@@ -377,7 +373,7 @@ export default function AppointmentLetterModal({
         signatoryName,
         signatoryTitle,
         signatoryForTitle,
-        ccText: appointmentType === 'REPOSTING' ? '' : (ccText || 'Head of Department/Unit/Office'),
+        ccText: appointmentType === 'REPOSTING' ? '' : (ccText || getDefaultCcForStation(targetStation)),
       };
 
       const token = localStorage.getItem('token');

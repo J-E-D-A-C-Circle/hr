@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
-import { getAutoServiceYear, getAutoEndDate } from '@/lib/utils';
+import { getAutoServiceYear, getAutoEndDate, getCcListForStation } from '@/lib/utils';
 
 export interface OfficialAppointmentLetterProps {
   referenceNumber: string;
@@ -106,15 +106,8 @@ export default function OfficialAppointmentLetter({
       .replace(/District Licensing Manager/g, 'Head of Department');
   }
 
-  // Parse CC list array or multiline string
-  const formattedCcList: string[] = (
-    typeof ccList === 'string'
-      ? ccList.split('\n').map(s => s.trim()).map(s => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office')).filter(Boolean)
-      : Array.isArray(ccList) && ccList.length > 0
-      ? ccList.map(s => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
-      : []
-  ).filter(item => !item.toLowerCase().includes('district licensing manager'));
-  const displayCcList = formattedCcList.length > 0 ? formattedCcList : ['Head of Department/Unit/Office'];
+  // Parse CC list array or multiline string dynamically based on postingStationName
+  const displayCcList = getCcListForStation(postingStationName, ccList);
 
   return (
     <div

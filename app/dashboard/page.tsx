@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DownloadCloud, LogOut, FileText, Home, Menu, X, Upload, ShieldCheck, ImageIcon, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { formatDate, getAutoServiceYear, getAutoEndDate } from '@/lib/utils';
+import { formatDate, getAutoServiceYear, getAutoEndDate, getCcListForStation } from '@/lib/utils';
 import { uploadFile } from '@/lib/file-upload';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
@@ -263,18 +263,7 @@ export default function Dashboard() {
       const signatoryTitle = letterObj.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
 
-      const ccListItems: string[] = (
-        typeof letterObj.ccText === 'string'
-          ? letterObj.ccText
-              .split('\n')
-              .map((s: string) => s.trim())
-              .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
-              .filter(Boolean)
-          : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
-            ? letterObj.ccList.map((s: string) => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
-            : []
-      ).filter((item: string) => !item.toLowerCase().includes('district licensing manager'));
-      const displayCcItems = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit/Office'];
+      const displayCcItems = getCcListForStation(stationName, letterObj.ccText || letterObj.ccList);
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
       const pdfContent = `
