@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: nss-portal
-          image: nss-portal-app:latest
+          image: nss-portal-app:2026-10-09-1
           imagePullPolicy: Never
           ports:
             - containerPort: 3000
