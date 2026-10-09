@@ -43,6 +43,7 @@ import { getStoredStations, saveStoredStations } from '@/lib/stations-data';
 
 const FIXED_SERVICE_PERIOD_START = '2026-11-02';
 const FIXED_SERVICE_PERIOD_END = '2027-10-29';
+const FIXED_EFFECTIVE_DATE_TEXT = 'Monday, November 2, 2026';
 
 const STATION_OPTIONS = [
   { value: 'DVLA Head Office - Cantonments', label: 'DVLA Head Office - Cantonments' },
@@ -834,7 +835,7 @@ export default function AdminDashboard() {
                         departmentName={reviewData.posting_department}
                         postingStationName={reviewData.posting_station || 'Head Office'}
                         appointmentType={selectedApplication.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'}
-                        effectiveDate={reviewData.service_period_start ? new Date(reviewData.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Monday, September 1, 2026'}
+                        effectiveDate={FIXED_EFFECTIVE_DATE_TEXT}
                         issueDate={new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
                         customRefNumber={getNextDvlaReferenceNumber(applications, selectedApplication.id)}
                       />

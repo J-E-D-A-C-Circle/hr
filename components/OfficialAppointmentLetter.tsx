@@ -109,12 +109,12 @@ export default function OfficialAppointmentLetter({
   // Parse CC list array or multiline string
   const formattedCcList: string[] = (
     typeof ccList === 'string'
-      ? ccList.split('\n').map(s => s.trim()).map(s => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit')).filter(Boolean)
+      ? ccList.split('\n').map(s => s.trim()).map(s => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office')).filter(Boolean)
       : Array.isArray(ccList) && ccList.length > 0
-      ? ccList.map(s => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
+      ? ccList.map(s => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
       : []
   ).filter(item => !item.toLowerCase().includes('district licensing manager'));
-  const displayCcList = formattedCcList.length > 0 ? formattedCcList : ['Head of Department/Unit'];
+  const displayCcList = formattedCcList.length > 0 ? formattedCcList : ['Head of Department/Unit/Office'];
 
   return (
     <div

@@ -268,13 +268,13 @@ export default function Dashboard() {
           ? letterObj.ccText
               .split('\n')
               .map((s: string) => s.trim())
-              .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
+              .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
               .filter(Boolean)
           : Array.isArray(letterObj.ccList) && letterObj.ccList.length > 0
-            ? letterObj.ccList.map((s: string) => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
+            ? letterObj.ccList.map((s: string) => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
             : []
       ).filter((item: string) => !item.toLowerCase().includes('district licensing manager'));
-      const displayCcItems = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit'];
+      const displayCcItems = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit/Office'];
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
       const pdfContent = `

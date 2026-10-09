@@ -46,6 +46,22 @@ export default function ShadcnSelect({
       })
     : options;
 
+  const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!enableSearch) return;
+
+    if (event.key === 'Backspace') {
+      setOpen(true);
+      setSearchQuery((prev) => prev.slice(0, -1));
+      return;
+    }
+
+    if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      setOpen(true);
+      setSearchQuery((prev) => `${prev}${event.key}`);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -69,6 +85,7 @@ export default function ShadcnSelect({
         type="button"
         disabled={disabled}
         onClick={() => setOpen(!open)}
+        onKeyDown={handleTriggerKeyDown}
         className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-semibold rounded-xl bg-white border transition-all text-slate-900 shadow-xs focus:outline-none ${
           open
             ? 'border-[#0d5c2e] ring-2 ring-[#0d5c2e]/20'

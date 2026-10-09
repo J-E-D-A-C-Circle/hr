@@ -112,6 +112,8 @@ export default function PersonnelTab({
               value={selectedStation}
               onChange={setSelectedStation}
               placeholder="Filter by Station..."
+              enableSearch
+              searchPlaceholder="Type station name..."
             />
           </div>
 

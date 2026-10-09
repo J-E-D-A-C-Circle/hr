@@ -38,15 +38,16 @@ export default function AppointmentLetterModal({
   const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const FIXED_EFFECTIVE_DATE_TEXT = 'Monday, November 2, 2026';
 
   const normalizeCcText = (value?: string) => {
     const items = (value || '')
       .split('\n')
       .map((s: string) => s.trim())
-      .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit'))
+      .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
       .filter((s: string) => Boolean(s) && !s.toLowerCase().includes('district licensing manager'));
 
-    return items.length > 0 ? items.join('\n') : 'Head of Department/Unit';
+    return items.length > 0 ? items.join('\n') : 'Head of Department/Unit/Office';
   };
 
   useEffect(() => {
@@ -62,9 +63,7 @@ export default function AppointmentLetterModal({
     setApplicantAddress(application.residential_address || 'ACCRA - GHANA');
 
     const appStart = application.service_period_start || application.servicePeriodStart;
-    const initialEffectiveDate = appStart 
-      ? new Date(appStart).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-      : 'Monday, November 2, 2026';
+    const initialEffectiveDate = FIXED_EFFECTIVE_DATE_TEXT;
 
     const existingLetter = application.appointmentLetterObject || application.appointmentLetterData;
     if (existingLetter && typeof existingLetter === 'object') {
@@ -145,9 +144,7 @@ export default function AppointmentLetterModal({
     const ref = generateDefaultRef(type);
     setCustomRefNumber(ref);
     const appStart = application.service_period_start || application.servicePeriodStart;
-    const fallbackDate = appStart 
-      ? new Date(appStart).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-      : 'Monday, November 2, 2026';
+    const fallbackDate = FIXED_EFFECTIVE_DATE_TEXT;
     const effDate = effDateOverride || effectiveDate || fallbackDate;
     const autoServiceYear = getAutoServiceYear(application?.service_year || effDate);
     const autoEndDate = getAutoEndDate(effDate);
@@ -170,7 +167,7 @@ export default function AppointmentLetterModal({
       setSalutation(application?.full_name ? `Dear ${application.full_name},` : 'Dear Sir/Madam,');
       setSignatoryTitle('AG. DIRECTOR HR');
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
-      setCcText('Head of Department/Unit');
+      setCcText('Head of Department/Unit/Office');
       setCustomBodyText(
         `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
@@ -202,10 +199,10 @@ export default function AppointmentLetterModal({
 
     const ccListItems: string[] = (
       typeof ccText === 'string'
-        ? ccText.split('\n').map((s: string) => s.trim()).map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit')).filter(Boolean)
+        ? ccText.split('\n').map((s: string) => s.trim()).map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office')).filter(Boolean)
         : []
     ).filter(item => !item.toLowerCase().includes('district licensing manager'));
-    const displayCcList = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit'];
+    const displayCcList = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit/Office'];
 
     printWin.document.write(`
       <!DOCTYPE html>
@@ -380,7 +377,7 @@ export default function AppointmentLetterModal({
         signatoryName,
         signatoryTitle,
         signatoryForTitle,
-        ccText: appointmentType === 'REPOSTING' ? '' : (ccText || 'Head of Department/Unit'),
+        ccText: appointmentType === 'REPOSTING' ? '' : (ccText || 'Head of Department/Unit/Office'),
       };
 
       const token = localStorage.getItem('token');
@@ -618,32 +615,11 @@ export default function AppointmentLetterModal({
                   </label>
                   <input
                     type="text"
-                    value={effectiveDate}
-                    onChange={(e) => {
-                      const newStart = e.target.value;
-                      setEffectiveDate(newStart);
-                      const newEndDate = getAutoEndDate(newStart);
-                      const newYear = getAutoServiceYear(newStart);
-                      setCustomBodyText((prev) => {
-                        if (!prev || appointmentType === 'REPOSTING') return prev;
-                        let updated = prev;
-                        if (updated.includes('commences on')) {
-                          updated = updated.replace(
-                            /(commences on\s+<strong>)[^<]*?(<\/strong>\s+and ends on\s+<strong>)[^<]*?(<\/strong>)/i,
-                            `$1${newStart}$2${newEndDate}$3`
-                          );
-                        }
-                        if (updated.includes('service year')) {
-                          updated = updated.replace(
-                            /(for the\s+<strong>)[^<]*?(<\/strong>\s+service year)/i,
-                            `$1${newYear}$2`
-                          );
-                        }
-                        return updated;
-                      });
-                    }}
-                    placeholder="e.g. Monday, September 1, 2026"
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-[#0F5132]"
+                    value={FIXED_EFFECTIVE_DATE_TEXT}
+                    readOnly
+                    disabled
+                    placeholder="e.g. Monday, November 2, 2026"
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 cursor-not-allowed"
                   />
                 </div>
 
