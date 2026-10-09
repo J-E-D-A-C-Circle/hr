@@ -83,10 +83,10 @@ export default function StationsTab({
     }
   });
 
-  const filteredStations = stations.filter(
+  const filteredStations = (stations || []).filter(
     (st) =>
-      st.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      st.region.toLowerCase().includes(searchQuery.toLowerCase())
+      (st?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (st?.region || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Add department to new station form
@@ -113,7 +113,7 @@ export default function StationsTab({
       return;
     }
 
-    if (stations.some((s) => s.name.toLowerCase() === newStationName.trim().toLowerCase())) {
+    if ((stations || []).some((s) => (s?.name || '').toLowerCase() === newStationName.trim().toLowerCase())) {
       toast.error('A station with this name already exists');
       return;
     }
@@ -126,7 +126,7 @@ export default function StationsTab({
       departments: newStationDepartments.length > 0 ? newStationDepartments : ['General Administration']
     };
 
-    const updated = [...stations, createdStation];
+    const updated = [...(stations || []), createdStation];
     onUpdateStations(updated);
     toast.success(`Station "${createdStation.name}" created successfully!`);
 
@@ -147,14 +147,15 @@ export default function StationsTab({
     const trimmed = editDeptInput.trim();
     if (!trimmed) return;
 
-    if (selectedStationForEdit.departments.includes(trimmed)) {
+    const currentDepts = selectedStationForEdit.departments || [];
+    if (currentDepts.includes(trimmed)) {
       toast.error('Department already exists in this station');
       return;
     }
 
-    const updatedDepts = [...selectedStationForEdit.departments, trimmed];
+    const updatedDepts = [...currentDepts, trimmed];
     const updatedStation = { ...selectedStationForEdit, departments: updatedDepts };
-    const updatedList = stations.map((s) => (s.id === updatedStation.id ? updatedStation : s));
+    const updatedList = (stations || []).map((s) => (s.id === updatedStation.id ? updatedStation : s));
 
     setSelectedStationForEdit(updatedStation);
     onUpdateStations(updatedList);
@@ -164,14 +165,15 @@ export default function StationsTab({
 
   const handleRemoveDeptFromSelectedStation = (deptName: string) => {
     if (!selectedStationForEdit) return;
-    if (selectedStationForEdit.departments.length <= 1) {
+    const currentDepts = selectedStationForEdit.departments || [];
+    if (currentDepts.length <= 1) {
       toast.error('A station must have at least one department');
       return;
     }
 
-    const updatedDepts = selectedStationForEdit.departments.filter((d) => d !== deptName);
+    const updatedDepts = currentDepts.filter((d) => d !== deptName);
     const updatedStation = { ...selectedStationForEdit, departments: updatedDepts };
-    const updatedList = stations.map((s) => (s.id === updatedStation.id ? updatedStation : s));
+    const updatedList = (stations || []).map((s) => (s.id === updatedStation.id ? updatedStation : s));
 
     setSelectedStationForEdit(updatedStation);
     onUpdateStations(updatedList);
@@ -181,7 +183,7 @@ export default function StationsTab({
   const handleUpdateStationCapacity = (newCap: number) => {
     if (!selectedStationForEdit) return;
     const updatedStation = { ...selectedStationForEdit, capacity: Math.max(1, newCap) };
-    const updatedList = stations.map((s) => (s.id === updatedStation.id ? updatedStation : s));
+    const updatedList = (stations || []).map((s) => (s.id === updatedStation.id ? updatedStation : s));
 
     setSelectedStationForEdit(updatedStation);
     onUpdateStations(updatedList);
@@ -197,8 +199,8 @@ export default function StationsTab({
         return;
       }
 
-      const duplicate = stations.some(
-        (s) => s.id !== selectedStationForEdit.id && s.name.toLowerCase() === trimmed.toLowerCase()
+      const duplicate = (stations || []).some(
+        (s) => s.id !== selectedStationForEdit.id && (s?.name || '').toLowerCase() === trimmed.toLowerCase()
       );
 
       if (duplicate) {
@@ -208,7 +210,7 @@ export default function StationsTab({
     }
 
     const updatedStation = { ...selectedStationForEdit, [field]: value } as Station;
-    const updatedList = stations.map((s) => (s.id === updatedStation.id ? updatedStation : s));
+    const updatedList = (stations || []).map((s) => (s.id === updatedStation.id ? updatedStation : s));
 
     setSelectedStationForEdit(updatedStation);
     onUpdateStations(updatedList);
@@ -217,14 +219,14 @@ export default function StationsTab({
   const handleCloseSelectedStationEditor = () => {
     if (!selectedStationForEdit) return;
 
-    const trimmedName = selectedStationForEdit.name.trim();
+    const trimmedName = (selectedStationForEdit.name || '').trim();
     if (!trimmedName) {
       toast.error('Station name cannot be empty');
       return;
     }
 
-    const duplicate = stations.some(
-      (s) => s.id !== selectedStationForEdit.id && s.name.toLowerCase() === trimmedName.toLowerCase()
+    const duplicate = (stations || []).some(
+      (s) => s.id !== selectedStationForEdit.id && (s?.name || '').toLowerCase() === trimmedName.toLowerCase()
     );
 
     if (duplicate) {
