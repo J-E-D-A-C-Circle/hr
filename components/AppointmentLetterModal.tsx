@@ -370,7 +370,6 @@ export default function AppointmentLetterModal({
         letterDate,
         salutation,
         customRefNumber,
-        yourRef,
         applicantName,
         applicantAddress,
         customSubject,
@@ -387,7 +386,7 @@ export default function AppointmentLetterModal({
       const token = localStorage.getItem('token');
       const targetStatus = appointmentType === 'REPOSTING' ? 'rejected' : 'approved';
       const targetStation = application.posting_station || application.station?.name || application.posting_district || 'DVLA Head Office - Cantonments';
-      const targetDept = application.posting_department || application.department?.name || 'Operations';
+      const targetDept = application.posting_department || application.department?.name ;
       const targetStart = application.service_period_start || application.servicePeriodStart || '2026-09-01';
 
       await axios.post(
@@ -421,8 +420,7 @@ export default function AppointmentLetterModal({
     || application.course_program 
     || 'NSS Personnel';
   const deptName = application.department?.name 
-    || application.posting_department 
-    || 'Operations';
+    || application.posting_department ;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
@@ -757,7 +755,6 @@ export default function AppointmentLetterModal({
                     issueDate={letterDate}
                     salutation={salutation}
                     customRefNumber={customRefNumber}
-                    yourRef={yourRef}
                     customSubject={customSubject}
                     customBodyText={customBodyText}
                     salaryGrade={salaryGrade}

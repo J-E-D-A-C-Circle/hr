@@ -218,12 +218,9 @@ export default function Dashboard() {
       const applicantName = letterObj.applicantName || dynamicFullName || user?.full_name || 'NSS Personnel';
       const applicantAddress = letterObj.applicantAddress || app.residential_address || '';
       const isReposting = letterType === 'reposting' || app.status === 'rejected';
-      const refSuffix = app.nss_number || String(app.id || '0127');
       const displayRef = letterObj.customRefNumber || (
-        isReposting ? `DVLA/ADMIN/NSS/${refSuffix}` : `DVLA/HR/NSS/${refSuffix}`
+        isReposting ? 'DVLA\\HR\\NSS\\26\\0001' : 'DVLA\\HR\\NSS\\26\\0001'
       );
-      const yourRef = letterObj.yourRef || '';
-
       const isStalePostingBody = letterObj.customBodyText && (
         letterObj.customBodyText.includes('assigned to') ||
         letterObj.customBodyText.includes('reposted to the') ||
@@ -512,7 +509,6 @@ export default function Dashboard() {
               <div class="ref-row">
                 <div>
                   <div style="margin-bottom: 4px;"><strong>My Ref:</strong> <span class="ref-dotted">${displayRef}</span></div>
-                  <div><strong>Your Ref:</strong> <span class="ref-dotted">${yourRef || '&nbsp;'}</span></div>
                 </div>
                 <div style="text-align: right;">
                   <div><strong>Date:</strong> <span class="ref-dotted" style="text-transform: uppercase; min-width: 150px; text-align: center;">${issueDate || '&nbsp;'}</span></div>

@@ -19,7 +19,6 @@ export interface OfficialAppointmentLetterProps {
   issueDate?: string;
   salutation?: string;
   customRefNumber?: string;
-  yourRef?: string;
   customSubject?: string;
   customBodyText?: string;
   salaryGrade?: string;
@@ -48,7 +47,6 @@ export default function OfficialAppointmentLetter({
   issueDate,
   salutation,
   customRefNumber,
-  yourRef,
   customSubject,
   customBodyText,
   salaryGrade = 'DVLA Salary Scale',
@@ -259,7 +257,7 @@ export default function OfficialAppointmentLetter({
         ) : appointmentType === 'CONTRACT' ? (
           <>
             <p>
-              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName || 'Operations'} Department</strong> at <strong>{postingStationName}</strong> on a Contract basis ({contractDuration}), effective <strong>{effectiveDate}</strong>, in accordance with <strong>{salaryGrade}</strong>.
+              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName } Department</strong> at <strong>{postingStationName}</strong> on a Contract basis ({contractDuration}), effective <strong>{effectiveDate}</strong>, in accordance with <strong>{salaryGrade}</strong>.
             </p>
             <p>
               You are requested to report to the Head of Department for orientation and assignment. Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
@@ -268,7 +266,7 @@ export default function OfficialAppointmentLetter({
         ) : appointmentType === 'PERMANENT' ? (
           <>
             <p>
-              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName || 'Operations'} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>, subject to a probation period of <strong>{probationPeriod}</strong>.
+              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>, subject to a probation period of <strong>{probationPeriod}</strong>.
             </p>
             <p>
               You are required to report to the Head of Department for orientation and assignment. Kindly sign and return the duplicate copy of this letter signifying your formal acceptance.

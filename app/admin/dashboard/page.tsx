@@ -774,6 +774,8 @@ export default function AdminDashboard() {
                           });
                         }}
                         placeholder="Select Station..."
+                        enableSearch
+                        searchPlaceholder="Type station name..."
                       />
                     </div>
 
@@ -829,7 +831,7 @@ export default function AdminDashboard() {
                         applicantName={`${selectedApplication.first_name} ${selectedApplication.middle_name ? selectedApplication.middle_name + ' ' : ''}${selectedApplication.last_name}`}
                         applicantAddress={selectedApplication.residential_address || 'ACCRA - GHANA'}
                         positionTitle={selectedApplication.course_program || 'NSS Personnel'}
-                        departmentName={reviewData.posting_department || 'Operations'}
+                        departmentName={reviewData.posting_department}
                         postingStationName={reviewData.posting_station || 'Head Office'}
                         appointmentType={selectedApplication.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'}
                         effectiveDate={reviewData.service_period_start ? new Date(reviewData.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Monday, September 1, 2026'}
