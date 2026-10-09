@@ -39,12 +39,20 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
       const response = await axios.post(
         '/api/auth/login',
-        formData,
+        { email, password },
         {
           headers: { 'Content-Type': 'application/json' },
         }
@@ -134,7 +142,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {error && (
               <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />

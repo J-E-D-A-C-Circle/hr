@@ -114,7 +114,10 @@ export default function OfficialAppointmentLetter({
       ? ccList.map(s => String(s).replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
       : []
   ).filter(item => !item.toLowerCase().includes('district licensing manager'));
-  const displayCcList = formattedCcList.length > 0 ? formattedCcList : ['Head of Department/Unit/Office'];
+  const isHeadOfficeStation = /^DVLA Head Office - Cantonments$/i.test(String(postingStationName || ''));
+  const displayCcList = formattedCcList.length > 0
+    ? formattedCcList
+    : [isHeadOfficeStation ? 'Head of Department/Unit/Office' : 'Station Manager'];
 
   return (
     <div

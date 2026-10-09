@@ -33,7 +33,7 @@ export function Step1Account({
   const router = useRouter();
 
   return (
-    <form onSubmit={handleContinue} className="space-y-6">
+    <form onSubmit={handleContinue} noValidate className="space-y-6">
       <div>
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Create an account.</h2>
         <p className="text-base md:text-lg text-gray-600">Provide your account information to continue.</p>

@@ -39,15 +39,29 @@ export default function AppointmentLetterModal({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const FIXED_EFFECTIVE_DATE_TEXT = 'Monday, November 2, 2026';
+  const FIXED_SERVICE_PERIOD_START = '2026-11-02';
+  const FIXED_SERVICE_PERIOD_END = '2027-10-29';
 
-  const normalizeCcText = (value?: string) => {
+  const getDefaultCcTextForStation = (stationName?: string) => {
+    const normalized = String(stationName || '').trim();
+    if (!normalized || normalized === 'DVLA Head Office - Cantonments') {
+      return 'Head of Department/Unit/Office';
+    }
+    return 'Station Manager';
+  };
+
+  const normalizeCcText = (value?: string, stationName?: string) => {
     const items = (value || '')
       .split('\n')
       .map((s: string) => s.trim())
       .map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office'))
       .filter((s: string) => Boolean(s) && !s.toLowerCase().includes('district licensing manager'));
 
-    return items.length > 0 ? items.join('\n') : 'Head of Department/Unit/Office';
+    if (items.length > 0) {
+      return items.join('\n');
+    }
+
+    return getDefaultCcTextForStation(stationName);
   };
 
   useEffect(() => {
@@ -66,70 +80,41 @@ export default function AppointmentLetterModal({
     const initialEffectiveDate = FIXED_EFFECTIVE_DATE_TEXT;
 
     const existingLetter = application.appointmentLetterObject || application.appointmentLetterData;
-    if (existingLetter && typeof existingLetter === 'object') {
-      const type = (existingLetter.appointmentType as any) || (application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY');
-      setAppointmentType(type);
-      setLetterDate(existingLetter.letterDate || todayStr);
-      setSalutation(existingLetter.salutation || (type === 'REPOSTING' ? 'Dear Madam,' : 'Dear Sir/Madam,'));
-      const defaultRef = 'DVLA\\HR\\NSS\\26\\0001';
-      setCustomRefNumber(existingLetter.customRefNumber || defaultRef);
-      setApplicantName(existingLetter.applicantName || fullName);
-      setApplicantAddress(existingLetter.applicantAddress || application.residential_address || '');
-      const isStaleSubject = type === 'REPOSTING' && (
-        !existingLetter.customSubject ||
-        existingLetter.customSubject === 'POSTING OF NATIONAL SERVICE PERSONNEL.' ||
-        existingLetter.customSubject === 'REPOSTING OF NATIONAL SERVICE PERSONNEL.' ||
-        existingLetter.customSubject === 'REQUEST FOR REPOSTING' ||
-        existingLetter.customSubject?.includes('2025/2026')
+    const type = (existingLetter && typeof existingLetter === 'object' && (existingLetter.appointmentType as any)) || (application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY');
+
+    setAppointmentType(type);
+    setLetterDate((existingLetter && typeof existingLetter === 'object' && existingLetter.letterDate) || todayStr);
+    setSalutation((existingLetter && typeof existingLetter === 'object' && existingLetter.salutation) || (type === 'REPOSTING' ? 'Dear Madam,' : 'Dear Sir/Madam,'));
+    setCustomRefNumber((existingLetter && typeof existingLetter === 'object' && existingLetter.customRefNumber) || 'DVLA\\HR\\NSS\\26\\0001');
+    setApplicantName((existingLetter && typeof existingLetter === 'object' && existingLetter.applicantName) || fullName);
+    setApplicantAddress((existingLetter && typeof existingLetter === 'object' && existingLetter.applicantAddress) || application.residential_address || '');
+
+    const autoServiceYear = getAutoServiceYear(application.service_year);
+    setCustomSubject(type === 'REPOSTING'
+      ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR`
+      : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
+
+    setEffectiveDate(FIXED_EFFECTIVE_DATE_TEXT);
+    setSalaryGrade((existingLetter && typeof existingLetter === 'object' && existingLetter.salaryGrade) || 'DVLA Salary Scale');
+    setProbationPeriod((existingLetter && typeof existingLetter === 'object' && existingLetter.probationPeriod) || 'six (6) months');
+    setContractDuration((existingLetter && typeof existingLetter === 'object' && existingLetter.contractDuration) || 'two (2) years');
+    setSignatoryName((existingLetter && typeof existingLetter === 'object' && existingLetter.signatoryName) || 'EPHRAIM NII TAN SACKEY');
+    setSignatoryTitle((existingLetter && typeof existingLetter === 'object' && existingLetter.signatoryTitle) || 'AG. DIRECTOR HR');
+    setSignatoryForTitle((existingLetter && typeof existingLetter === 'object' && existingLetter.signatoryForTitle) || 'FOR: CHIEF EXECUTIVE');
+    const stationNameForCc = application.station?.name || application.posting_station || application.posting_district || 'DVLA Head Office - Cantonments';
+    setCcText(type === 'REPOSTING' ? '' : normalizeCcText((existingLetter && typeof existingLetter === 'object' && existingLetter.ccText) || '', stationNameForCc));
+
+    if (type === 'REPOSTING') {
+      setCustomBodyText(
+        `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`
       );
-      const autoServiceYear = getAutoServiceYear(application.service_year);
-      setCustomSubject(isStaleSubject ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR` : (existingLetter.customSubject || ''));
-      setEffectiveDate(existingLetter.effectiveDate || initialEffectiveDate);
-      setSalaryGrade(existingLetter.salaryGrade || 'DVLA Salary Scale');
-      setProbationPeriod(existingLetter.probationPeriod || 'six (6) months');
-      setContractDuration(existingLetter.contractDuration || 'two (2) years');
-      setSignatoryName(existingLetter.signatoryName || 'EPHRAIM NII TAN SACKEY');
-      setSignatoryTitle(existingLetter.signatoryTitle || 'AG. DIRECTOR HR');
-      setSignatoryForTitle(existingLetter.signatoryForTitle || 'FOR: CHIEF EXECUTIVE');
-      const rawCc = existingLetter.ccText || '';
-      setCcText(type === 'REPOSTING' ? '' : normalizeCcText(rawCc));
-      
-      if (type === 'REPOSTING') {
-        const isStaleBody = (
-          !existingLetter.customBodyText ||
-          existingLetter.customBodyText.includes('assigned to') ||
-          existingLetter.customBodyText.includes('reposted to the') ||
-          existingLetter.customBodyText.includes('has requested to be released')
-        );
-        if (isStaleBody) {
-          setCustomBodyText(
-            `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`
-          );
-        } else {
-          setCustomBodyText(existingLetter.customBodyText || '');
-        }
-      } else {
-        const startDateStr = existingLetter.effectiveDate || initialEffectiveDate;
-        const autoYear = getAutoServiceYear(application.service_year || startDateStr);
-        const autoEnd = getAutoEndDate(startDateStr);
-        let body = existingLetter.customBodyText || '';
-        if (body) {
-          body = body
-            .replace(/2025\/2026/g, autoYear)
-            .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${autoEnd}</strong>`)
-            .replace(/District Licensing Manager/g, 'Head of Department');
-        } else {
-          const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
-          body = `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoYear}</strong> service year.\n\nYour National Service commences on <strong>${startDateStr}</strong> and ends on <strong>${autoEnd}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`;
-        }
-        setCustomBodyText(body);
-      }
     } else {
-      setLetterDate(todayStr);
-      setEffectiveDate(initialEffectiveDate);
-      const initialType = application.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY';
-      setAppointmentType(initialType);
-      applyDefaultTemplate(initialType, todayStr, initialEffectiveDate);
+      const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
+      const startDateStr = FIXED_EFFECTIVE_DATE_TEXT;
+      const autoEnd = getAutoEndDate(startDateStr);
+      setCustomBodyText(
+        `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${startDateStr}</strong> and ends on <strong>${autoEnd}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
+      );
     }
   }, [application, isOpen]);
 
@@ -143,11 +128,12 @@ export default function AppointmentLetterModal({
     const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
     const ref = generateDefaultRef(type);
     setCustomRefNumber(ref);
-    const appStart = application.service_period_start || application.servicePeriodStart;
     const fallbackDate = FIXED_EFFECTIVE_DATE_TEXT;
-    const effDate = effDateOverride || effectiveDate || fallbackDate;
+    const effDate = effDateOverride || FIXED_EFFECTIVE_DATE_TEXT || fallbackDate;
     const autoServiceYear = getAutoServiceYear(application?.service_year || effDate);
     const autoEndDate = getAutoEndDate(effDate);
+
+    setEffectiveDate(FIXED_EFFECTIVE_DATE_TEXT);
 
     if (type === 'REPOSTING') {
       setCustomSubject(`RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR`);
@@ -167,9 +153,10 @@ export default function AppointmentLetterModal({
       setSalutation(application?.full_name ? `Dear ${application.full_name},` : 'Dear Sir/Madam,');
       setSignatoryTitle('AG. DIRECTOR HR');
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
-      setCcText('Head of Department/Unit/Office');
+      const targetStationName = application?.station?.name || application?.posting_station || application?.posting_district || 'DVLA Head Office - Cantonments';
+      setCcText(getDefaultCcTextForStation(targetStationName));
       setCustomBodyText(
-        `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
+        `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${FIXED_EFFECTIVE_DATE_TEXT}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
     }
   };
@@ -202,7 +189,7 @@ export default function AppointmentLetterModal({
         ? ccText.split('\n').map((s: string) => s.trim()).map((s: string) => s.replace(/District Licensing Manager/gi, 'Head of Department/Unit/Office')).filter(Boolean)
         : []
     ).filter(item => !item.toLowerCase().includes('district licensing manager'));
-    const displayCcList = ccListItems.length > 0 ? ccListItems : ['Head of Department/Unit/Office'];
+    const displayCcList = ccListItems.length > 0 ? ccListItems : [getDefaultCcTextForStation(application?.station?.name || application?.posting_station || application?.posting_district || 'DVLA Head Office - Cantonments')];
 
     printWin.document.write(`
       <!DOCTYPE html>
@@ -362,6 +349,7 @@ export default function AppointmentLetterModal({
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
+      const targetStation = application.posting_station || application.station?.name || application.posting_district || 'DVLA Head Office - Cantonments';
       const letterPayload = {
         appointmentType,
         letterDate,
@@ -377,14 +365,15 @@ export default function AppointmentLetterModal({
         signatoryName,
         signatoryTitle,
         signatoryForTitle,
-        ccText: appointmentType === 'REPOSTING' ? '' : (ccText || 'Head of Department/Unit/Office'),
+        effectiveDate: FIXED_EFFECTIVE_DATE_TEXT,
+        ccText: appointmentType === 'REPOSTING' ? '' : getDefaultCcTextForStation(targetStation),
       };
 
       const token = localStorage.getItem('token');
       const targetStatus = appointmentType === 'REPOSTING' ? 'rejected' : 'approved';
-      const targetStation = application.posting_station || application.station?.name || application.posting_district || 'DVLA Head Office - Cantonments';
       const targetDept = application.posting_department || application.department?.name ;
-      const targetStart = application.service_period_start || application.servicePeriodStart || '2026-09-01';
+      const targetStart = FIXED_SERVICE_PERIOD_START;
+      const targetEnd = FIXED_SERVICE_PERIOD_END;
 
       await axios.post(
         '/api/applications/review',
@@ -394,6 +383,7 @@ export default function AppointmentLetterModal({
           posting_station: targetStation,
           posting_department: targetDept,
           service_period_start: targetStart,
+          service_period_end: targetEnd,
           appointmentLetterData: letterPayload,
         },
         {
