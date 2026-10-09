@@ -9,9 +9,22 @@ echo "============================================================"
 echo "🚀 Starting DVLA NSS Portal Kubernetes Deployment"
 echo "============================================================"
 
+# Report Git details if running in a Git repository
+if git rev-parse --is-inside-work-tree &>/dev/null; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    CURRENT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    echo "🌿 Server Git Branch: $CURRENT_BRANCH ($CURRENT_COMMIT)"
+    echo "⚠️ Make sure you have checked out and pulled your target branch (e.g. nssportal2)!"
+    echo "------------------------------------------------------------"
+fi
+
+# Generate a unique build tag for this deployment
+BUILD_TAG="build-$(date +%Y%m%d%H%M%S)"
+echo "🏷️ Deployment Image Tag: nss-portal-app:$BUILD_TAG"
+
 # Build Docker image without stale cache
 echo "🔨 Building Docker image (fresh build)..."
-docker build --no-cache -t nss-portal-app:latest .
+docker build --no-cache -t nss-portal-app:$BUILD_TAG -t nss-portal-app:latest .
 
 # Dynamically locate K3s or kubectl binary
 K3S_PATH=$(which k3s 2>/dev/null || find /usr -name k3s 2>/dev/null | head -n 1 || echo "")
@@ -19,18 +32,16 @@ KUBECTL_PATH=$(which kubectl 2>/dev/null || find /usr -name kubectl 2>/dev/null 
 
 if [ -n "$K3S_PATH" ]; then
     echo "📦 Detected K3s at $K3S_PATH."
-    echo "🧹 Removing stale image from containerd cache..."
-    sudo $K3S_PATH ctr -n k8s.io images rm docker.io/library/nss-portal-app:latest 2>/dev/null || true
     echo "📥 Importing fresh Docker image into K3s (k8s.io containerd namespace)..."
     if sudo $K3S_PATH image import --help &> /dev/null 2>&1; then
-        docker save nss-portal-app:latest | sudo $K3S_PATH image import -
+        docker save nss-portal-app:$BUILD_TAG | sudo $K3S_PATH image import -
     else
-        docker save nss-portal-app:latest | sudo $K3S_PATH ctr -n k8s.io images import -
+        docker save nss-portal-app:$BUILD_TAG | sudo $K3S_PATH ctr -n k8s.io images import -
     fi
     KUBECTL="sudo $K3S_PATH kubectl"
 elif command -v microk8s &> /dev/null; then
     echo "📦 Detected MicroK8s."
-    microk8s ctr image build --no-cache -t nss-portal-app:latest .
+    microk8s ctr image build --no-cache -t nss-portal-app:$BUILD_TAG .
     KUBECTL="microk8s kubectl"
 elif [ -n "$KUBECTL_PATH" ]; then
     echo "📦 Standard kubectl detected at $KUBECTL_PATH."
@@ -55,8 +66,9 @@ $KUBECTL apply -f k8s/service.yaml
 echo "⏳ Waiting for MySQL database initialization..."
 $KUBECTL rollout status deployment/nss-mysql-app -n nss-portal --timeout=180s
 
-echo "🔄 Deleting old pod to guarantee fresh container instantiation..."
-$KUBECTL delete pod -l app=nss-portal-app -n nss-portal 2>/dev/null || true
+echo "🔄 Pointing deployment to new image tag ($BUILD_TAG) and forcing fresh pod rollout..."
+$KUBECTL set image deployment/nss-portal-app nss-portal=nss-portal-app:$BUILD_TAG -n nss-portal 2>/dev/null || true
+$KUBECTL rollout restart deployment/nss-portal-app -n nss-portal 2>/dev/null || true
 
 echo "⏳ Waiting for DVLA NSS Portal app rollout..."
 $KUBECTL rollout status deployment/nss-portal-app -n nss-portal --timeout=180s
@@ -69,3 +81,4 @@ echo "  - Web Portal: http://<YOUR_UBUNTU_SERVER_IP>:5000"
 echo "  - phpMyAdmin: http://<YOUR_UBUNTU_SERVER_IP>:30881"
 echo "  - MySQL NodePort: <YOUR_UBUNTU_SERVER_IP>:30306"
 echo "============================================================"
+
