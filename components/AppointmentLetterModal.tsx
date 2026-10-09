@@ -358,6 +358,12 @@ export default function AppointmentLetterModal({
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
+      const token = localStorage.getItem('token');
+      const targetStatus = appointmentType === 'REPOSTING' ? 'rejected' : 'approved';
+      const targetStation = application.posting_station || application.station?.name || application.posting_district || 'DVLA Head Office - Cantonments';
+      const targetDept = application.posting_department || application.department?.name;
+      const targetStart = application.service_period_start || application.servicePeriodStart || '2026-09-01';
+
       const letterPayload = {
         appointmentType,
         letterDate,
@@ -375,12 +381,6 @@ export default function AppointmentLetterModal({
         signatoryForTitle,
         ccText: appointmentType === 'REPOSTING' ? '' : (ccText || getDefaultCcForStation(targetStation)),
       };
-
-      const token = localStorage.getItem('token');
-      const targetStatus = appointmentType === 'REPOSTING' ? 'rejected' : 'approved';
-      const targetStation = application.posting_station || application.station?.name || application.posting_district || 'DVLA Head Office - Cantonments';
-      const targetDept = application.posting_department || application.department?.name ;
-      const targetStart = application.service_period_start || application.servicePeriodStart || '2026-09-01';
 
       await axios.post(
         '/api/applications/review',
