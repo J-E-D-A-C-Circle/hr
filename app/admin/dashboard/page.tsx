@@ -281,7 +281,11 @@ export default function AdminDashboard() {
         }
       );
 
-      toast.success(`Application ${finalStatus.toUpperCase()} successfully!`);
+      if (selectedApplication.status === 'approved' && finalStatus === 'approved') {
+        toast.success('Station & department assignment updated successfully!');
+      } else {
+        toast.success(`Application ${finalStatus.toUpperCase()} successfully!`);
+      }
       const updatedApp = {
         ...selectedApplication,
         status: finalStatus,
@@ -436,6 +440,13 @@ export default function AdminDashboard() {
     support: { title: 'Support & Inquiries Desk', subtitle: 'Review and manage user-submitted support tickets' },
   };
 
+  const hasAssignmentChanged = Boolean(
+    selectedApplication && (
+      (reviewData.posting_station || '') !== (selectedApplication.posting_station || '') ||
+      (reviewData.posting_department || '') !== (selectedApplication.posting_department || '')
+    )
+  );
+
   return (
     <div className="flex h-screen w-full bg-slate-50 text-slate-900 font-sans overflow-hidden">
       {/* Collapsible Modern Sidebar */}
@@ -547,7 +558,12 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    setLetterApplication(selectedApplication);
+                    setLetterApplication({
+                      ...selectedApplication,
+                      posting_station: reviewData.posting_station,
+                      posting_department: reviewData.posting_department,
+                      service_period_start: reviewData.service_period_start,
+                    });
                     setIsLetterGeneratorOpen(true);
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 text-xs font-black shadow-xs cursor-pointer"
@@ -847,6 +863,25 @@ export default function AdminDashboard() {
                         className="w-full px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 cursor-not-allowed"
                       />
                     </div>
+
+                    {hasAssignmentChanged && (
+                      <div className="md:col-span-2 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>
+                            Station or department modified. Click <strong>"Save Assignment Changes"</strong> to save to the database.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveReview('approved')}
+                          disabled={reviewing}
+                          className="shrink-0 px-3 py-1.5 rounded-lg bg-[#0d5c2e] hover:bg-emerald-800 text-white text-xs font-extrabold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Save Changes
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Live Synced Official Appointment Letter Document View */}
@@ -904,13 +939,22 @@ export default function AdminDashboard() {
                     <button
                       onClick={() => handleSaveReview('rejected')}
                       disabled={reviewing}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-xs transition-all active:scale-95 disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
                       <X className="w-4 h-4" /> Change to Rejected
                     </button>
-                    <span className="px-3.5 py-2.5 rounded-xl bg-emerald-100 text-[#0d5c2e] border border-emerald-300 text-xs font-extrabold flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-[#0d5c2e]" /> Posted & Approved
-                    </span>
+                    <button
+                      onClick={() => handleSaveReview('approved')}
+                      disabled={reviewing}
+                      className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-xs font-extrabold shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer ${
+                        hasAssignmentChanged
+                          ? 'bg-[#0d5c2e] hover:bg-emerald-800 ring-2 ring-emerald-400'
+                          : 'bg-[#0d5c2e] hover:bg-emerald-800'
+                      }`}
+                    >
+                      <Check className="w-4 h-4" />
+                      {hasAssignmentChanged ? 'Save Assignment Changes' : 'Save Changes'}
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
