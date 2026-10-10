@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "National Service Scheme Personnel Application & Posting Portal",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
