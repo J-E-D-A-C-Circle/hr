@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Send, HelpCircle, CheckCircle2, MessageSquare, User, Mail, Phone, FileText } from 'lucide-react';
+import { X, Send, HelpCircle, CheckCircle2, MessageSquare, User, Phone } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -35,7 +35,14 @@ export default function ContactSupportModal({
     }
 
     if (!contact.trim()) {
-      toast.error('Please enter your email address or phone number');
+      toast.error('Please enter your phone number');
+      return;
+    }
+
+    // Same rule as registration: 10–15 digits (spaces, dashes and a leading + are ignored)
+    const phone = contact.replace(/[\s\-()]/g, '').replace(/^\+/, '');
+    if (!/^[0-9]{10,15}$/.test(phone)) {
+      toast.error('Please enter a valid phone number (digits only, e.g. 0241234567)');
       return;
     }
 
@@ -49,7 +56,7 @@ export default function ContactSupportModal({
     try {
       await axios.post('/api/support', {
         name: name.trim(),
-        contact: contact.trim(),
+        contact: phone,
         message: message.trim()
       });
 
@@ -127,14 +134,17 @@ export default function ContactSupportModal({
 
             <div>
               <label className="block text-xs font-extrabold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#0d5c2e]" /> Email Address or Phone Number *
+                <Phone className="w-3.5 h-3.5 text-[#0d5c2e]" /> Phone Number *
               </label>
               <input
-                type="text"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 required
+                maxLength={20}
                 value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="e.g. john@example.com or 0241234567"
+                onChange={(e) => setContact(e.target.value.replace(/[^0-9+\s\-()]/g, ''))}
+                placeholder="e.g. 0241234567"
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#0d5c2e] focus:bg-white font-medium"
               />
             </div>

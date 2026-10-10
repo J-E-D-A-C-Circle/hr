@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { DownloadCloud, LogOut, FileText, Home, Menu, X, Upload, ShieldCheck, ImageIcon, CheckCircle2 } from 'lucide-react';
+import { DownloadCloud, LogOut, FileText, Home, Menu, X, Upload, ShieldCheck, ImageIcon, CheckCircle2, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { formatDate, getAutoServiceYear, getAutoEndDate, getCcListForStation } from '@/lib/utils';
@@ -40,6 +40,18 @@ export default function Dashboard() {
   const [appointmentFile, setAppointmentFile] = useState<File | null>(null);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await fetchApplication();
+      toast.success('Status refreshed');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleSaveDocuments = async () => {
     if (!application) return;
@@ -784,12 +796,23 @@ export default function Dashboard() {
                 </div>
                 <div className="text-base md:text-xl text-gray-600">Your National Service application portal.</div>
               </div>
-              {/* User mini-profile desktop */}
-              <div className="hidden md:flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md">
-                <div className="rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white font-bold w-10 h-10 flex items-center justify-center shadow-sm">
-                  {userDisplayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white shadow-md border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
+                  title="Refresh my application status"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#0d5c2e]' : 'text-gray-600'}`} />
+                  <span>Refresh</span>
+                </button>
+                {/* User mini-profile desktop */}
+                <div className="hidden md:flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md">
+                  <div className="rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white font-bold w-10 h-10 flex items-center justify-center shadow-sm">
+                    {userDisplayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <span className="text-gray-800 font-semibold text-sm">{userDisplayName}</span>
                 </div>
-                <span className="text-gray-800 font-semibold text-sm">{userDisplayName}</span>
               </div>
             </div>
 

@@ -17,7 +17,7 @@ interface AuditLog {
   created_at: string;
 }
 
-export default function AuditTab() {
+export default function AuditTab({ refreshKey = 0 }: { refreshKey?: number }) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +41,7 @@ export default function AuditTab() {
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [refreshKey]);
 
   const filteredLogs = logs.filter((log) => {
     if (!searchQuery) return true;

@@ -30,7 +30,7 @@ export interface SupportTicket {
   created_at: string;
 }
 
-export default function SupportTab() {
+export default function SupportTab({ refreshKey = 0 }: { refreshKey?: number }) {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,7 +55,7 @@ export default function SupportTab() {
 
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [refreshKey]);
 
   const handleUpdateStatus = async (id: number, newStatus: 'open' | 'in_progress' | 'resolved') => {
     try {
@@ -241,7 +241,7 @@ export default function SupportTab() {
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
                   <th className="py-3 px-4">Ticket ID</th>
                   <th className="py-3 px-4">User Details</th>
-                  <th className="py-3 px-4">Contact (Email / Phone)</th>
+                  <th className="py-3 px-4">Phone Number</th>
                   <th className="py-3 px-4">Issue Description</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Submitted At</th>
@@ -354,7 +354,7 @@ export default function SupportTab() {
                   <span className="text-xs font-black text-slate-900">{selectedTicket.name}</span>
                 </div>
                 <div>
-                  <span className="text-[11px] font-extrabold text-slate-500 uppercase block">Contact Info</span>
+                  <span className="text-[11px] font-extrabold text-slate-500 uppercase block">Phone Number</span>
                   <span className="text-xs font-bold text-slate-900">{selectedTicket.contact}</span>
                 </div>
                 <div>

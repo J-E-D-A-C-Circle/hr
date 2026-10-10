@@ -76,6 +76,9 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  // Bumped on every manual refresh so self-fetching tabs (Audit, Support) reload too
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [stations, setStations] = useState<Station[]>([]);
 
@@ -184,6 +187,19 @@ export default function AdminDashboard() {
     } finally {
       clearTimeout(safetyTimer);
       setLoading(false);
+    }
+  };
+
+  // Refresh everything on the dashboard, whichever tab is active
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchApplications(), fetchStations()]);
+      setRefreshKey((k) => k + 1);
+      toast.success('Data refreshed');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -432,8 +448,8 @@ export default function AdminDashboard() {
           activeTabSubtitle={tabTitles[activeTab].subtitle}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          onRefresh={fetchApplications}
-          loading={loading}
+          onRefresh={handleRefresh}
+          loading={loading || refreshing}
           totalApplications={applications.length}
           onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
           mobileSidebarOpen={mobileSidebarOpen}
@@ -482,9 +498,9 @@ export default function AdminDashboard() {
             <AnalyticsTab applications={applications} onExportCSV={handleExportCSV} />
           )}
 
-          {activeTab === 'audit' && <AuditTab />}
+          {activeTab === 'audit' && <AuditTab refreshKey={refreshKey} />}
 
-          {activeTab === 'support' && <SupportTab />}
+          {activeTab === 'support' && <SupportTab refreshKey={refreshKey} />}
         </main>
       </div>
 

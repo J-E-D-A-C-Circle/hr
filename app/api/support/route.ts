@@ -20,7 +20,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const name = String(body.name || '').trim();
-    const contact = String(body.contact || body.email || body.phone_number || '').trim();
+    const rawPhone = String(body.contact || body.phone_number || '').trim();
+    const contact = rawPhone.replace(/[\s\-()]/g, '').replace(/^\+/, '');
     const message = String(body.message || body.issue_description || '').trim();
 
     if (!name) {
@@ -28,7 +29,11 @@ export async function POST(request: Request) {
     }
 
     if (!contact) {
-      return NextResponse.json({ error: 'Please provide an email or phone number.' }, { status: 400 });
+      return NextResponse.json({ error: 'Please provide your phone number.' }, { status: 400 });
+    }
+
+    if (!/^[0-9]{10,15}$/.test(contact)) {
+      return NextResponse.json({ error: 'Please provide a valid phone number (digits only).' }, { status: 400 });
     }
 
     if (!message) {
