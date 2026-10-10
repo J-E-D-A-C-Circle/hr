@@ -6,6 +6,7 @@ FROM node:22-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json* bun.lock* ./
 RUN npm install --legacy-peer-deps
+RUN npm install @next/swc-linux-x64-gnu@16.0.1 --no-save
 
 # Step 2: Builder Stage
 FROM node:22-slim AS builder
