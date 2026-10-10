@@ -156,7 +156,7 @@ export default function AdminDashboard() {
 
     try {
       const token = getValidAuthToken();
-      await axios.put(
+      const res = await axios.put(
         '/api/admin/stations',
         { stations: updatedList },
         {
@@ -164,6 +164,10 @@ export default function AdminDashboard() {
           timeout: 15000,
         }
       );
+      if (res.data?.stations && Array.isArray(res.data.stations) && res.data.stations.length > 0) {
+        setStations(res.data.stations);
+        saveStoredStations(res.data.stations);
+      }
     } catch (error) {
       console.error('Failed to persist stations to server:', error);
       toast.error('Saved locally, but the server copy could not be updated.');
