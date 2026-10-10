@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# --- CACHE BUSTING HACK ---
+# Create the old missing chunks that GoDaddy is still requesting.
+# When the browser receives this JS, it will force a redirect to ?refresh=time and bypass the GoDaddy cache!
+mkdir -p /app/.next/static/chunks
+echo "if(!window.location.search.includes('refresh=')){window.location.href=window.location.pathname+'?refresh='+(new Date().getTime());}" > /app/.next/static/chunks/f62f2c15e90f2213.js
+echo "/* dummy */" > /app/.next/static/chunks/1181ba36ce37d612.css
+# ---------------------------
+
 echo "🚀 Starting DVLA NSS Portal Application..."
 
 DB_HOST=${DB_HOST:-db}
