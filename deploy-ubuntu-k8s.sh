@@ -12,9 +12,12 @@ echo "============================================================"
 # Report Git details if running in a Git repository
 if git rev-parse --is-inside-work-tree &>/dev/null; then
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    echo "🔄 Fetching latest changes for branch: $CURRENT_BRANCH..."
+    git fetch origin $CURRENT_BRANCH || echo "⚠️ Failed to fetch from origin"
+    git reset --hard origin/$CURRENT_BRANCH || echo "⚠️ Failed to reset to origin/$CURRENT_BRANCH"
+    
     CURRENT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
     echo "🌿 Server Git Branch: $CURRENT_BRANCH ($CURRENT_COMMIT)"
-    echo "⚠️ Make sure you have checked out and pulled your target branch (e.g. nssportal2)!"
     echo "------------------------------------------------------------"
 fi
 
