@@ -147,10 +147,10 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Ensure dashboard always carries ?refresh=1 to bypass CDN cache
+    // Ensure dashboard always carries ?refresh=timestamp to bypass CDN cache
     if (typeof window !== 'undefined' && !window.location.search.includes('refresh=')) {
       const sep = window.location.search ? '&' : '?';
-      window.location.replace(window.location.pathname + window.location.search + sep + 'refresh=1' + window.location.hash);
+      window.location.replace(window.location.pathname + window.location.search + sep + 'refresh=' + Date.now() + window.location.hash);
       return;
     }
 
