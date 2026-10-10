@@ -54,10 +54,11 @@ export default function LoginPage() {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        const refreshParam = '?refresh=' + Date.now();
         if (response.data.user.role === 'admin') {
-          router.push('/admin/dashboard');
+          window.location.href = '/admin/dashboard' + refreshParam;
         } else {
-          router.push('/dashboard');
+          window.location.href = '/dashboard' + refreshParam;
         }
       }
     } catch (err: any) {
