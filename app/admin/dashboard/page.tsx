@@ -125,6 +125,13 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    // Ensure admin dashboard always carries ?refresh=1 to bypass CDN cache
+    if (typeof window !== 'undefined' && !window.location.search.includes('refresh=')) {
+      const sep = window.location.search ? '&' : '?';
+      window.location.replace(window.location.pathname + window.location.search + sep + 'refresh=1' + window.location.hash);
+      return;
+    }
+
     const validToken = getValidAuthToken();
     const parsedUser = getStoredUser();
 

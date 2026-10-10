@@ -16,6 +16,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  if (typeof window !== 'undefined' && !window.location.search.includes('refresh=')) {
+                    var sep = window.location.search ? '&' : '?';
+                    window.location.replace(window.location.pathname + window.location.search + sep + 'refresh=1' + window.location.hash);
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased bg-[#f8fafc] text-slate-900 min-h-screen font-sans">
         <Toaster
           position="top-right"

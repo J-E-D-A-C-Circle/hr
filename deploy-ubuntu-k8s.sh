@@ -25,10 +25,12 @@ fi
 BUILD_TAG="build-$(date +%Y%m%d%H%M%S)"
 echo "🏷️ Deployment Image Tag: nss-portal-app:$BUILD_TAG"
 
-# Prune stale Docker build cache to free up disk space
+# Prune stale Docker build cache, old unused images, and dead pods to keep disk lean
 echo "🧹 Pruning stale Docker build cache & dangling images..."
 docker builder prune -f 2>/dev/null || true
 docker image prune -f 2>/dev/null || true
+# Remove older untagged or previous build images
+docker images --filter "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
 
 # Build Docker image without stale cache
 echo "🔨 Building Docker image (fresh build)..."
@@ -62,6 +64,8 @@ else
 fi
 
 echo "📄 Applying Kubernetes manifests using $KUBECTL..."
+$KUBECTL delete pods -n nss-portal --field-selector status.phase=Failed 2>/dev/null || true
+$KUBECTL delete pods -n nss-portal --field-selector status.phase=Succeeded 2>/dev/null || true
 $KUBECTL apply -f k8s/namespace.yaml
 $KUBECTL apply -f k8s/configmap.yaml
 $KUBECTL apply -f k8s/secret.yaml
