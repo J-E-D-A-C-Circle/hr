@@ -112,15 +112,20 @@ export default function AppointmentLetterModal({
         const startDateStr = existingLetter.effectiveDate || initialEffectiveDate;
         const autoYear = getAutoServiceYear(application.service_year || startDateStr);
         const autoEnd = getAutoEndDate(startDateStr);
+        const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
+        const reportingOfficer = getDefaultCcForStation(stationName);
         let body = existingLetter.customBodyText || '';
         if (body) {
           body = body
             .replace(/2025\/2026/g, autoYear)
             .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${autoEnd}</strong>`)
-            .replace(/District Licensing Manager/g, 'Head of Department');
+            .replace(
+              /report to\s+(?:the\s+)?(?:Head of Department(?:\/Unit\/Office)?|Station Manager|District Licensing Manager|Head of Department\/Station Manager)/gi,
+              `report to the ${reportingOfficer}`
+            )
+            .replace(/District Licensing Manager/g, reportingOfficer);
         } else {
-          const stationName = application.station?.name || application.posting_station || application.posting_district || 'Head Office';
-          body = `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoYear}</strong> service year.\n\nYour National Service commences on <strong>${startDateStr}</strong> and ends on <strong>${autoEnd}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`;
+          body = `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoYear}</strong> service year.\n\nYour National Service commences on <strong>${startDateStr}</strong> and ends on <strong>${autoEnd}</strong>.\n\nYou are required to report to the ${reportingOfficer} for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`;
         }
         setCustomBodyText(body);
       }
@@ -167,9 +172,10 @@ export default function AppointmentLetterModal({
       setSalutation(application?.full_name ? `Dear ${application.full_name},` : 'Dear Sir/Madam,');
       setSignatoryTitle('AG. DIRECTOR HR');
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
-      setCcText(getDefaultCcForStation(stationName));
+      const reportingOfficer = getDefaultCcForStation(stationName);
+      setCcText(reportingOfficer);
       setCustomBodyText(
-        `This is to inform you that you have been assigned to the <strong>${stationName}</strong>${deptName ? ` (<strong>${deptName}</strong>)` : ''} for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
+        `This is to inform you that you have been assigned to the <strong>${stationName}</strong>${deptName ? ` (<strong>${deptName}</strong>)` : ''} for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the ${reportingOfficer} for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
     }
   };
@@ -187,17 +193,23 @@ export default function AppointmentLetterModal({
     const displaySubjectText = customSubject || (appointmentType === 'REPOSTING' ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR` : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
     const displaySalutation = salutation || (appointmentType === 'REPOSTING' ? 'Dear Madam,' : displayApplicantName ? `Dear ${displayApplicantName},` : 'Dear Sir/Madam,');
     let displayBodyText = customBodyText || (appointmentType === 'REPOSTING' ? `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.` : '');
+    const currentStation = application?.posting_station || application?.station?.name || application?.posting_district || 'Head Office';
+    const reportingOfficer = getDefaultCcForStation(currentStation);
+
     if (appointmentType !== 'REPOSTING' && displayBodyText) {
       displayBodyText = displayBodyText
         .replace(/2025\/2026/g, autoServiceYear)
         .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${autoEndDate}</strong>`)
-        .replace(/District Licensing Manager/g, 'Head of Department');
+        .replace(
+          /report to\s+(?:the\s+)?(?:Head of Department(?:\/Unit\/Office)?|Station Manager|District Licensing Manager|Head of Department\/Station Manager)/gi,
+          `report to the ${reportingOfficer}`
+        )
+        .replace(/District Licensing Manager/g, reportingOfficer);
     }
     const displaySignatoryName = signatoryName || 'EPHRAIM NII TAN SACKEY';
     const displaySignatoryTitle = signatoryTitle || 'AG. DIRECTOR HR';
     const displaySignatoryForTitle = signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
 
-    const currentStation = application?.posting_station || application?.station?.name || application?.posting_district || 'Head Office';
     const displayCcList = getCcListForStation(currentStation, ccText);
 
     const formatBodyHtml = (content: string) => {

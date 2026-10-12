@@ -31,8 +31,8 @@ import {
 import toast from 'react-hot-toast';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
 import ModalPortal from '@/components/ui/ModalPortal';
-import IntakeStatusToggle from '@/components/IntakeStatusToggle';
-import { getAutoServiceYear, getDefaultCcForStation, getCcListForStation } from '@/lib/utils';
+import { SIGNATURE_BASE64 } from '@/lib/signature';
+import { getAutoServiceYear, getAutoEndDate, getDefaultCcForStation, getCcListForStation } from '@/lib/utils';
 import { Station } from '@/lib/types/admin';
 
 interface StationWithCount extends Station {
@@ -461,215 +461,207 @@ function StationManagerContent() {
     setIsDetailModalOpen(true);
   };
 
-  // Print official appointment letter
+  // Print official appointment letter matching Admin Review Decision exactly
   const handlePrintLetter = (person: StationPersonnel) => {
-    const printWin = window.open('', '_blank', 'width=850,height=1050');
+    const printWin = window.open('', '_blank');
     if (!printWin) {
       toast.error('Pop-up blocked. Please allow pop-ups to print the appointment letter.');
       return;
     }
 
     const savedLetter = person.appointmentLetterData || {};
-    const refNum = savedLetter.customRefNumber || `DVLA/HQ/NSS/2026/${String(person.id).padStart(3, '0')}`;
-    const issueDate = savedLetter.letterDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
-    const applicantName = (savedLetter.applicantName || person.full_name).toUpperCase();
-    const applicantAddress = (savedLetter.applicantAddress || person.residential_address || 'ACCRA - GHANA').toUpperCase();
-    const salutation = savedLetter.salutation || 'Dear Sir/Madam,';
+    const isReposting = savedLetter.appointmentType === 'REPOSTING' || person.status === 'rejected';
+    const station = person.posting_station || selectedStationName || 'Head Office';
+    const reportingOfficer = getDefaultCcForStation(station);
     const dept = person.posting_department || savedLetter.departmentName || '';
-    const station = person.posting_station || selectedStationName || 'DVLA Head Office - Cantonments';
     const serviceYear = getAutoServiceYear(person.service_year);
-    const endDate = 'OCTOBER 29, 2027';
+    const effStart = savedLetter.commencementDate || savedLetter.effectiveDate || FIXED_EFFECTIVE_DATE_TEXT;
+    const endDate = savedLetter.endDate || getAutoEndDate(effStart);
+    const displayRef = savedLetter.customRefNumber || (
+      person.nss_number
+        ? `DVLA\\HR\\NSS\\26\\${String(person.nss_number).slice(-4).padStart(4, '0')}`
+        : `DVLA\\HR\\NSS\\26\\${String(person.id).padStart(4, '0')}`
+    );
+    const displayIssueDate = savedLetter.letterDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+    const displayApplicantName = savedLetter.applicantName || person.full_name || 'APPLICANT NAME';
+    const displayApplicantAddress = savedLetter.applicantAddress || person.residential_address || 'ACCRA - GHANA';
+    const displaySalutation = savedLetter.salutation || (isReposting ? 'Dear Madam,' : `Dear ${displayApplicantName},`);
+    const displaySubjectText = savedLetter.customSubject || (
+      isReposting
+        ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${serviceYear} SERVICE YEAR`
+        : 'POSTING OF NATIONAL SERVICE PERSONNEL.'
+    );
 
-    const subject = (savedLetter.customSubject || `APPOINTMENT AS NATIONAL SERVICE PERSONNEL: ${serviceYear} SERVICE YEAR`).toUpperCase();
+    let displayBodyText = savedLetter.customBodyText;
+    if (!displayBodyText) {
+      if (isReposting) {
+        displayBodyText = `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.`;
+      } else {
+        displayBodyText = `This is to inform you that you have been assigned to the <strong>${station}</strong>${dept ? ` (<strong>${dept}</strong>)` : ''} for the <strong>${serviceYear}</strong> service year.\n\nYour National Service commences on <strong>${effStart}</strong> and ends on <strong>${endDate}</strong>.\n\nYou are required to report to the ${reportingOfficer} for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`;
+      }
+    } else if (!isReposting) {
+      displayBodyText = displayBodyText
+        .replace(/2025\/2026/g, serviceYear)
+        .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${endDate}</strong>`)
+        .replace(
+          /report to\s+(?:the\s+)?(?:Head of Department(?:\/Unit\/Office)?|Station Manager|District Licensing Manager|Head of Department\/Station Manager)/gi,
+          `report to the ${reportingOfficer}`
+        )
+        .replace(/District Licensing Manager/g, reportingOfficer);
+    }
 
-    const defaultCc = getDefaultCcForStation(station);
-    const ccList = getCcListForStation(station, savedLetter.ccList || [defaultCc]);
+    const displaySignatoryName = savedLetter.signatoryName || 'EPHRAIM NII TAN SACKEY';
+    const displaySignatoryTitle = savedLetter.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
+    const displaySignatoryForTitle = savedLetter.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
+    const displayCcList = getCcListForStation(station, savedLetter.ccText || savedLetter.ccList || reportingOfficer);
+
+    const formatBodyHtml = (content: string) => {
+      if (!content) return '';
+      if (content.includes('<p>')) return content;
+      return content
+        .split(/\n\n+/)
+        .map((p: string) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+        .join('');
+    };
+
+    const logoPath = '/oop.png';
 
     printWin.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Appointment Letter - ${applicantName}</title>
+        <title>DVLA Official Appointment Letter - ${displayApplicantName}</title>
         <style>
-          @page {
-            size: A4 portrait;
-            margin: 12mm 15mm;
+          @media print {
+            @page { margin: 8mm 12mm; size: A4 portrait; }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              background-color: #FFFFFF !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .letter-container {
+              position: relative !important;
+              width: 100% !important;
+              max-width: 190mm !important;
+              max-height: 275mm !important;
+              box-sizing: border-box !important;
+              padding: 4mm 8mm !important;
+              margin: 0 auto !important;
+              border: none !important;
+              box-shadow: none !important;
+              background-color: #FFFFFF !important;
+              overflow: hidden !important;
+              page-break-inside: avoid !important;
+              page-break-after: avoid !important;
+            }
           }
-          * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.42;
-            color: #000;
-            background: #fff;
-            margin: 0;
-            padding: 0;
-          }
-          .letter-container {
-            width: 100%;
-            max-width: 190mm;
-            margin: 0 auto;
-            position: relative;
-          }
-          .header-row {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 8px;
-          }
-          .header-left {
-            font-size: 9pt;
-            line-height: 1.35;
-          }
-          .header-logo {
-            text-align: center;
-          }
-          .header-logo img {
-            width: 80px;
-            height: auto;
-          }
-          .header-right {
-            text-align: right;
-            font-size: 9pt;
-            line-height: 1.35;
-          }
-          .divider {
-            border-bottom: 2.5px solid #008053;
-            margin: 6px 0 14px 0;
-          }
-          .ref-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10.5pt;
-            margin-bottom: 12px;
-          }
-          .ref-dotted {
-            border-bottom: 1px dotted #333;
-            padding: 0 4px;
-            font-weight: bold;
-          }
-          .addressee {
-            margin-bottom: 16px;
-            font-size: 11pt;
-            font-weight: bold;
-            line-height: 1.35;
-          }
-          .salutation {
-            font-size: 11pt;
-            font-weight: bold;
-            margin-bottom: 20px;
-          }
-          .subject-title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 11.5pt;
-            text-decoration: underline;
-            margin-bottom: 14px;
-            text-transform: uppercase;
-            line-height: 1.35;
-          }
-          .body-text p {
-            margin-top: 0;
-            margin-bottom: 8px;
-            text-align: justify;
-            font-size: 11pt;
-            line-height: 1.42;
-          }
-          .footer-block {
-            margin-top: 18px;
-          }
-          .signatory-block {
-            font-size: 11pt;
-            line-height: 1.35;
-          }
-          .signatory-name {
-            font-weight: bold;
-            text-decoration: underline;
-          }
-          .signatory-title {
-            font-weight: bold;
-            font-size: 10pt;
-          }
-          .signatory-for {
-            font-weight: bold;
-            font-size: 9.5pt;
-            color: #374151;
-          }
-          .cc-section {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px dashed #cbd5e1;
-            font-size: 9.5pt;
-            line-height: 1.4;
-          }
+          * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Times New Roman', Times, serif !important; }
+          body { font-family: 'Times New Roman', Times, serif !important; font-size: 12pt !important; line-height: 1.45; color: #111827; background: #FFFFFF; padding: 8mm; }
+          .letter-container { position: relative; max-width: 780px; margin: 0 auto; background-color: #FFFFFF; padding: 20px 30px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+          .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; height: 340px; opacity: 0.06; pointer-events: none; z-index: 1; }
+          .content-z { position: relative; z-index: 10; }
+          .header-title { text-align: center; font-size: 15pt !important; font-weight: 900; color: #008053; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; font-family: 'Times New Roman', Times, serif !important; }
+          .header-grid { display: flex; justify-content: space-between; align-items: center; font-size: 12pt !important; color: #1f2937; margin-top: 8px; font-family: 'Times New Roman', Times, serif !important; }
+          .header-left { text-align: left; font-size: 12pt !important; line-height: 1.35; }
+          .header-center { text-align: center; }
+          .header-right { text-align: right; font-size: 12pt !important; line-height: 1.35; }
+          .header-logo { width: 76px; height: 76px; object-fit: contain; }
+          .divider { border-top: 2px solid #008053; margin: 10px 0 16px 0; }
+          .ref-row { display: flex; justify-content: space-between; font-size: 12pt !important; margin-bottom: 16px; font-family: 'Times New Roman', Times, serif !important; }
+          .ref-dotted { display: inline-block; border-bottom: 1px dotted #111827; font-family: monospace; font-weight: bold; padding: 0 4px; min-width: 200px; }
+          .addressee { font-size: 12pt !important; font-weight: bold; text-transform: uppercase; margin-bottom: 12px; font-family: 'Times New Roman', Times, serif !important; }
+          .salutation { font-size: 12pt !important; margin-bottom: 20px !important; font-family: 'Times New Roman', Times, serif !important; }
+          .subject-title { font-size: 12pt !important; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 1px; display: inline-block; margin-top: 4px !important; margin-bottom: 16px !important; font-family: 'Times New Roman', Times, serif !important; }
+          .body-text { font-size: 12pt !important; line-height: 1.42 !important; text-align: justify; margin-bottom: 14px; font-family: 'Times New Roman', Times, serif !important; }
+          .body-text p { margin-bottom: 8px !important; line-height: 1.42 !important; }
+          .footer-block { margin-top: 14px; padding-top: 8px; }
+          .signatory-block { font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .signature-img { height: 48px; max-height: 48px; width: auto; object-fit: contain; margin: 4px 0; }
+          .signatory-name { font-weight: 900; text-transform: uppercase; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .signatory-title { font-weight: bold; color: #1f2937; font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .signatory-for { font-size: 11pt; font-weight: bold; color: #4b5563; text-transform: uppercase; }
+          .cc-box { margin-top: 10px; font-size: 11pt !important; font-family: 'Times New Roman', Times, serif !important; }
+          .cc-box ul { list-style: none; padding-left: 0; margin-top: 2px; font-size: 11pt !important; }
+          .cc-box li { font-size: 11pt !important; }
         </style>
       </head>
       <body>
         <div class="letter-container">
-          <div class="header-row">
-            <div class="header-left">
-              <div style="font-weight: bold; color: #008053;">Driver & Vehicle Licensing Authority</div>
-              <div>Tel: 0302-764993/4</div>
-              <div>E-mail: info@dvla.gov.gh</div>
-            </div>
-            <div class="header-logo">
-              <img src="/oop.png" alt="DVLA Logo" />
-            </div>
-            <div class="header-right">
-              <div style="font-weight: bold; color: #008053;">Head Office Address:</div>
-              <div>1, Jawaharlal Nehru Road</div>
-              <div>P. O. Box 9379, KIA-Accra</div>
-            </div>
-          </div>
-          <div class="divider"></div>
-
-          <div class="ref-row">
-            <div>
-              <div><strong>My Ref:</strong> <span class="ref-dotted">${refNum}</span></div>
-            </div>
-            <div style="text-align: right;">
-              <div><strong>Date:</strong> <span class="ref-dotted" style="text-transform: uppercase; min-width: 140px; text-align: center;">${issueDate}</span></div>
-            </div>
-          </div>
-
-          <div class="addressee">
-            <div>${applicantName}</div>
-            <div style="color: #374151; font-weight: normal;">${applicantAddress}</div>
-          </div>
-
-          <div class="salutation">${salutation}</div>
-
-          <div>
-            <h2 class="subject-title">${subject}</h2>
-          </div>
-
-          <div class="body-text">
-            <p>This is to inform you that you have been assigned to the <strong>${station}</strong>${dept ? ` (<strong>${dept}</strong>)` : ''} for the <strong>${serviceYear}</strong> service year.</p>
-            <p>Your National Service commences on <strong>${FIXED_EFFECTIVE_DATE_TEXT}</strong> and ends on <strong>${endDate}</strong>.</p>
-            <p>You are required to report to the ${defaultCc} for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
-          </div>
-
-          <div class="footer-block">
-            <div class="signatory-block">
-              <div>Thank you.</div>
-              <div style="margin-top: 4px;">Yours faithfully,</div>
-              <div style="margin: 4px 0;">
-                <div style="font-weight: bold; font-style: italic; color: #008053; margin: 8px 0;">[Authorized Signatory]</div>
+          <img src="${logoPath}" alt="Watermark" class="watermark" />
+          <div class="content-z">
+            <div class="header-title">DRIVER AND VEHICLE LICENSING AUTHORITY</div>
+            <div class="header-grid">
+              <div class="header-left">
+                <div><strong>Tel:</strong> 0302 764 529</div>
+                <div><strong>Website:</strong> http://www.dvla.gov.gh</div>
+                <div><strong>Email:</strong> info@dvla.gov.gh</div>
               </div>
+              <div class="header-center">
+                <img src="${logoPath}" alt="DVLA Logo" class="header-logo" />
+              </div>
+              <div class="header-right">
+                <div style="font-weight: bold; color: #008053;">Head Office Address:</div>
+                <div>1, Jawaharlal Nehru Road</div>
+                <div>P. O. Box 9379, KIA-Accra</div>
+              </div>
+            </div>
+            <div class="divider"></div>
+
+            <div class="ref-row">
               <div>
-                <div class="signatory-name">${savedLetter.signatoryName || 'EPHRAIM NII TAN SACKEY'}</div>
-                <div class="signatory-title">${savedLetter.signatoryTitle || 'AG. DIRECTOR HR'}</div>
-                <div class="signatory-for">FOR: CHIEF EXECUTIVE</div>
+                <div><strong>My Ref:</strong> <span class="ref-dotted">${displayRef}</span></div>
+              </div>
+              <div style="text-align: right;">
+                <div><strong>Date:</strong> <span class="ref-dotted" style="text-transform: uppercase; min-width: 150px; text-align: center;">${displayIssueDate}</span></div>
               </div>
             </div>
 
-            <div class="cc-section">
-              <div style="font-weight: bold; margin-bottom: 2px;">CC:</div>
-              ${ccList.map((item) => `<div>&bull; ${item}</div>`).join('')}
+            <div class="addressee">
+              ${isReposting ? `
+                <div>THE EXECUTIVE DIRECTOR</div>
+                <div>NATIONAL SERVICE SECRETARIAT</div>
+                <div>ACCRA</div>
+              ` : `
+                <div>${displayApplicantName}</div>
+                <div style="color: #374151; font-weight: normal; white-space: pre-line;">${displayApplicantAddress}</div>
+              `}
+            </div>
+
+            <div class="salutation">${displaySalutation}</div>
+
+            <div>
+              <h2 class="subject-title">${displaySubjectText}</h2>
+            </div>
+
+            <div class="body-text">
+              ${formatBodyHtml(displayBodyText)}
+            </div>
+
+            <div class="footer-block">
+              <div class="signatory-block">
+                <div>Thank you.</div>
+                <div style="margin-top: 4px;">Yours faithfully,</div>
+                <div style="margin: 4px 0;">
+                  <img src="${SIGNATURE_BASE64}" alt="Signature" class="signature-img" />
+                </div>
+                <div>
+                  <div class="signatory-name">${displaySignatoryName}</div>
+                  <div class="signatory-title">${displaySignatoryTitle}</div>
+                  <div class="signatory-for">${displaySignatoryForTitle}</div>
+                </div>
+                ${!isReposting && displayCcList.length > 0 ? `
+                <div class="cc-box">
+                  <strong>Cc:</strong>
+                  <ul>
+                    ${displayCcList.map(item => `<li>${item}</li>`).join('')}
+                  </ul>
+                </div>
+                ` : ''}
+              </div>
             </div>
           </div>
         </div>
@@ -714,7 +706,6 @@ function StationManagerContent() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <IntakeStatusToggle />
             <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 hidden md:flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-slate-500" />
               Cycle: <strong className="text-[#008053]">2026/2027</strong>
@@ -1307,19 +1298,26 @@ function StationManagerContent() {
 
                   <div className="bg-amber-100/40 p-2 sm:p-4 rounded-2xl border border-amber-300/70 shadow-inner overflow-x-auto">
                     <OfficialAppointmentLetter
-                      referenceNumber={selectedPersonnel.nss_number || String(selectedPersonnel.id || '0001')}
-                      applicantName={selectedPersonnel.full_name}
-                      applicantAddress={selectedPersonnel.residential_address || 'ACCRA - GHANA'}
+                      referenceNumber={selectedPersonnel.appointmentLetterData?.customRefNumber || selectedPersonnel.nss_number || String(selectedPersonnel.id || '0001')}
+                      applicantName={selectedPersonnel.appointmentLetterData?.applicantName || selectedPersonnel.full_name}
+                      applicantAddress={selectedPersonnel.appointmentLetterData?.applicantAddress || selectedPersonnel.residential_address || 'ACCRA - GHANA'}
                       positionTitle={selectedPersonnel.course_program || 'NSS Personnel'}
-                      departmentName={selectedPersonnel.posting_department}
+                      departmentName={selectedPersonnel.appointmentLetterData?.departmentName || selectedPersonnel.posting_department}
                       postingStationName={selectedPersonnel.posting_station || selectedStationName || 'Head Office'}
-                      appointmentType="TEMPORARY"
-                      effectiveDate={FIXED_EFFECTIVE_DATE_TEXT}
+                      appointmentType={selectedPersonnel.appointmentLetterData?.appointmentType || (selectedPersonnel.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY')}
+                      effectiveDate={selectedPersonnel.appointmentLetterData?.effectiveDate || FIXED_EFFECTIVE_DATE_TEXT}
+                      commencementDate={selectedPersonnel.appointmentLetterData?.commencementDate || selectedPersonnel.service_period_start || FIXED_EFFECTIVE_DATE_TEXT}
+                      endDate={selectedPersonnel.appointmentLetterData?.endDate}
+                      serviceYear={selectedPersonnel.service_year}
                       issueDate={selectedPersonnel.appointmentLetterData?.letterDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
                       customRefNumber={selectedPersonnel.appointmentLetterData?.customRefNumber}
                       salutation={selectedPersonnel.appointmentLetterData?.salutation}
                       customSubject={selectedPersonnel.appointmentLetterData?.customSubject}
                       customBodyText={selectedPersonnel.appointmentLetterData?.customBodyText}
+                      signatoryName={selectedPersonnel.appointmentLetterData?.signatoryName}
+                      signatoryTitle={selectedPersonnel.appointmentLetterData?.signatoryTitle}
+                      signatoryForTitle={selectedPersonnel.appointmentLetterData?.signatoryForTitle}
+                      ccList={selectedPersonnel.appointmentLetterData?.ccList || selectedPersonnel.appointmentLetterData?.ccText}
                     />
                   </div>
                 </div>

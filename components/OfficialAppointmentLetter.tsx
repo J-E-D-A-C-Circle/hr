@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
-import { getAutoServiceYear, getAutoEndDate, getCcListForStation } from '@/lib/utils';
+import { getAutoServiceYear, getAutoEndDate, getCcListForStation, getDefaultCcForStation } from '@/lib/utils';
 
 export interface OfficialAppointmentLetterProps {
   referenceNumber: string;
@@ -60,8 +60,8 @@ export default function OfficialAppointmentLetter({
 }: OfficialAppointmentLetterProps) {
   const currentYear = new Date().getFullYear();
   const effectiveStart = commencementDate || effectiveDate || `Monday, 17th November, ${currentYear}`;
-  const effectiveServiceYear = (serviceYear && serviceYear !== '2025/2026') 
-    ? serviceYear 
+  const effectiveServiceYear = (serviceYear && serviceYear !== '2025/2026')
+    ? serviceYear
     : getAutoServiceYear(effectiveStart);
   const effectiveEndDate = (endDate && !endDate.includes('2025') && !endDate.includes('30th October, 2026'))
     ? endDate
@@ -80,11 +80,11 @@ export default function OfficialAppointmentLetter({
   );
   const displaySubject = (isStaleSubject || !customSubject)
     ? (
-        appointmentType === 'CONTRACT' ? 'OFFER OF CONTRACT APPOINTMENT' :
+      appointmentType === 'CONTRACT' ? 'OFFER OF CONTRACT APPOINTMENT' :
         appointmentType === 'PERMANENT' ? 'OFFER OF PERMANENT APPOINTMENT' :
-        appointmentType === 'REPOSTING' ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${effectiveServiceYear} SERVICE YEAR` :
-        'POSTING OF NATIONAL SERVICE PERSONNEL.'
-      )
+          appointmentType === 'REPOSTING' ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${effectiveServiceYear} SERVICE YEAR` :
+            'POSTING OF NATIONAL SERVICE PERSONNEL.'
+    )
     : customSubject;
 
   const displaySalutation = salutation || (appointmentType === 'REPOSTING' ? 'Dear Madam,' : applicantName ? `Dear ${applicantName},` : 'Dear Sir/Madam,');
@@ -94,16 +94,22 @@ export default function OfficialAppointmentLetter({
   );
 
   const isStalePostingBody = customBodyText && appointmentType === 'REPOSTING' && (
-    customBodyText.includes('assigned to') || 
+    customBodyText.includes('assigned to') ||
     customBodyText.includes('reposted to the') ||
     customBodyText.includes('has requested to be released')
   );
+  const reportingOfficer = getDefaultCcForStation(postingStationName);
+
   let effectiveBodyText = isStalePostingBody ? undefined : customBodyText;
   if (effectiveBodyText && appointmentType !== 'REPOSTING') {
     effectiveBodyText = effectiveBodyText
       .replace(/2025\/2026/g, effectiveServiceYear)
       .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${effectiveEndDate}</strong>`)
-      .replace(/District Licensing Manager/g, 'Head of Department');
+      .replace(
+        /report to\s+(?:the\s+)?(?:Head of Department(?:\/Unit\/Office)?|Station Manager|District Licensing Manager|Head of Department\/Station Manager)/gi,
+        `report to the ${reportingOfficer}`
+      )
+      .replace(/District Licensing Manager/g, reportingOfficer);
   }
 
   // Parse CC list array or multiline string dynamically based on postingStationName
@@ -111,9 +117,8 @@ export default function OfficialAppointmentLetter({
 
   return (
     <div
-      className={`relative w-full max-w-4xl mx-auto text-gray-900 shadow-xl rounded-lg p-6 md:p-10 border border-gray-200 overflow-hidden ${
-        isPrintView ? 'p-0 shadow-none border-none' : ''
-      }`}
+      className={`relative w-full max-w-4xl mx-auto text-gray-900 shadow-xl rounded-lg p-6 md:p-10 border border-gray-200 overflow-hidden ${isPrintView ? 'p-0 shadow-none border-none' : ''
+        }`}
       style={{
         backgroundColor: '#FFFFFF',
         fontFamily: "'Times New Roman', Times, serif",
@@ -254,10 +259,10 @@ export default function OfficialAppointmentLetter({
         ) : appointmentType === 'CONTRACT' ? (
           <>
             <p>
-              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName } Department</strong> at <strong>{postingStationName}</strong> on a Contract basis ({contractDuration}), effective <strong>{effectiveDate}</strong>, in accordance with <strong>{salaryGrade}</strong>.
+              I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> on a Contract basis ({contractDuration}), effective <strong>{effectiveDate}</strong>, in accordance with <strong>{salaryGrade}</strong>.
             </p>
             <p>
-              You are requested to report to the Head of Department for orientation and assignment. Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
+              You are requested to report to the {reportingOfficer} for orientation and assignment. Please confirm your acceptance of this offer in writing within fourteen (14) days from the date of this letter.
             </p>
           </>
         ) : appointmentType === 'PERMANENT' ? (
@@ -266,7 +271,7 @@ export default function OfficialAppointmentLetter({
               I am pleased to inform you that Management has approved your appointment as <strong>{positionTitle}</strong> in the <strong>{departmentName} Department</strong> at <strong>{postingStationName}</strong> as a Permanent Staff member of the Driver and Vehicle Licensing Authority (DVLA), effective <strong>{effectiveDate}</strong>, subject to a probation period of <strong>{probationPeriod}</strong>.
             </p>
             <p>
-              You are required to report to the Head of Department for orientation and assignment. Kindly sign and return the duplicate copy of this letter signifying your formal acceptance.
+              You are required to report to the {reportingOfficer} for orientation and assignment. Kindly sign and return the duplicate copy of this letter signifying your formal acceptance.
             </p>
           </>
         ) : appointmentType === 'REPOSTING' ? (
@@ -290,7 +295,7 @@ export default function OfficialAppointmentLetter({
               Your National Service commences on <strong>{effectiveStart}</strong> and ends on <strong>{effectiveEndDate}</strong>.
             </p>
             <p>
-              You are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.
+              You are required to report to the {reportingOfficer} for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.
             </p>
           </>
         )}

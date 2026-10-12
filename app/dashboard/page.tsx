@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DownloadCloud, LogOut, FileText, Home, Menu, X, Upload, ShieldCheck, ImageIcon, CheckCircle2, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { formatDate, getAutoServiceYear, getAutoEndDate, getCcListForStation } from '@/lib/utils';
+import { formatDate, getAutoServiceYear, getAutoEndDate, getCcListForStation, getDefaultCcForStation } from '@/lib/utils';
 import { uploadFile } from '@/lib/file-upload';
 import { getValidAuthToken, getStoredUser, clearAuthSession } from '@/lib/auth-client';
 import { SIGNATURE_BASE64 } from '@/lib/signature';
@@ -225,7 +225,23 @@ export default function Dashboard() {
       // Get logo as base64 for embedding
       const logoPath = '/oop.png';
 
-      const letterObj = app.appointmentLetterObject || app.appointmentLetterData || {};
+      let parsedExtra: any = {};
+      if (app.additional_info) {
+        try {
+          parsedExtra = typeof app.additional_info === 'string'
+            ? JSON.parse(app.additional_info)
+            : app.additional_info;
+        } catch (e) {
+          parsedExtra = {};
+        }
+      }
+
+      const letterObj =
+        app.appointmentLetterObject ||
+        app.appointmentLetterData ||
+        parsedExtra.appointmentLetterData ||
+        parsedExtra ||
+        {};
 
       const issueDate = letterObj.letterDate || new Date().toLocaleDateString('en-US', {
         month: 'long',
@@ -261,12 +277,20 @@ export default function Dashboard() {
       );
       const endDate = letterObj.endDate || getAutoEndDate(commencementDate || app.service_period_start || currentYear);
 
+      const departmentName = app.posting_department || letterObj.departmentName || '';
+      const stationName = app.posting_station || app.station?.name || app.posting_district || app.district || 'Head Office';
+      const reportingOfficer = getDefaultCcForStation(stationName);
+
       if (effectiveCustomBody && !isReposting) {
         effectiveCustomBody = effectiveCustomBody
           .replace(/2025\/2026/g, serviceYear)
           .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${endDate}</strong>`)
-          .replace(/District Licensing Manager/g, 'Head of Department')
-          .replace(/Head Of Department/g, 'Head of Department');
+          .replace(
+            /report to\s+(?:the\s+)?(?:Head of Department(?:\/Unit\/Office)?|Station Manager|District Licensing Manager|Head of Department\/Station Manager)/gi,
+            `report to the ${reportingOfficer}`
+          )
+          .replace(/District Licensing Manager/g, reportingOfficer)
+          .replace(/Head Of Department/g, reportingOfficer);
       }
 
       const displaySubject = isReposting
@@ -280,8 +304,6 @@ export default function Dashboard() {
           ? letterObj.salutation
           : 'Dear Madam,')
         : (letterObj.salutation || (applicantName ? `Dear ${applicantName},` : 'Dear Sir/Madam,'));
-      const departmentName = app.posting_department || letterObj.departmentName || '';
-      const stationName = app.posting_station || app.station?.name || app.posting_district || app.district || 'Head Office';
       const signatoryName = letterObj.signatoryName || 'EPHRAIM NII TAN SACKEY';
       const signatoryTitle = letterObj.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
@@ -566,7 +588,7 @@ export default function Dashboard() {
                 `) : effectiveCustomBody ? formatBodyHtml(effectiveCustomBody) : `
                   <p>This is to inform you that you have been assigned to the <strong>${stationName}</strong>${departmentName ? ` (<strong>${departmentName}</strong>)` : ''} for the <strong>${serviceYear}</strong> service year.</p>
                   <p>Your National Service commences on <strong>${commencementDate}</strong> and ends on <strong>${endDate}</strong>.</p>
-                  <p>You are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
+                  <p>You are required to report to the ${reportingOfficer} for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
                 `}
               </div>
 

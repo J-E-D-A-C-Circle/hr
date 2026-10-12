@@ -24,6 +24,16 @@ export async function GET(request: Request) {
       // I should map the Drizzle object to snake_case for backward compatibility,
       // or map it properly.
       const app = apps[0];
+      let appointmentLetterData = null;
+      if (app.additionalInfo) {
+        try {
+          const parsed = typeof app.additionalInfo === 'string' ? JSON.parse(app.additionalInfo) : app.additionalInfo;
+          appointmentLetterData = parsed?.appointmentLetterData || parsed;
+        } catch (e) {
+          appointmentLetterData = null;
+        }
+      }
+
       const snakeCaseApp = {
         id: app.id,
         user_id: app.userId,
@@ -54,6 +64,8 @@ export async function GET(request: Request) {
         appointment_letter: app.appointmentLetter,
         certificates: app.certificates,
         additional_info: app.additionalInfo,
+        appointmentLetterData,
+        appointment_letter_data: appointmentLetterData,
         status: app.status,
         reviewed_by: app.reviewedBy,
         review_notes: app.reviewNotes,

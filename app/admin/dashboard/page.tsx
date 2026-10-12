@@ -927,6 +927,10 @@ export default function AdminDashboard() {
                               salutation={savedLetter?.salutation}
                               customSubject={savedLetter?.customSubject}
                               customBodyText={savedLetter?.customBodyText}
+                              signatoryName={savedLetter?.signatoryName}
+                              signatoryTitle={savedLetter?.signatoryTitle}
+                              signatoryForTitle={savedLetter?.signatoryForTitle}
+                              ccList={savedLetter?.ccList || savedLetter?.ccText}
                             />
                           );
                         })()}
