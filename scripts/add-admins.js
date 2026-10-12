@@ -37,35 +37,36 @@ function getDbConfigs() {
   }
 
   const configs = [
-    // 1. Host docker mapped port 3307
+    // 1. MAMP PRO Windows default port 3307 (root/root)
     {
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: 3307,
-      user: process.env.DB_USER || 'hr_user',
-      password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : 'hr_password',
-      database: process.env.DB_NAME || 'dvla_nss_portal',
+      host: envFile.DB_HOST || process.env.DB_HOST || '127.0.0.1',
+      port: Number(envFile.DB_PORT || process.env.DB_PORT || 3307),
+      user: envFile.DB_USER || process.env.DB_USER || 'root',
+      password: envFile.DB_PASSWORD !== undefined ? envFile.DB_PASSWORD : (process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : 'root'),
+      database: envFile.DB_NAME || process.env.DB_NAME || 'dvla_nss_portal',
     },
-    // 2. Standard MySQL port 3306
+    // 2. Fallback root/root port 3307
     {
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: 3306,
-      user: process.env.DB_USER || 'hr_user',
-      password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : 'hr_password',
-      database: process.env.DB_NAME || 'dvla_nss_portal',
-    },
-    // 3. Fallback root user
-    {
-      host: process.env.DB_HOST || '127.0.0.1',
+      host: '127.0.0.1',
       port: 3307,
       user: 'root',
-      password: 'hr_root_password',
+      password: 'root',
       database: 'dvla_nss_portal',
     },
+    // 3. Fallback standard port 3306
     {
-      host: process.env.DB_HOST || '127.0.0.1',
+      host: '127.0.0.1',
       port: 3306,
       user: 'root',
       password: 'root',
+      database: 'dvla_nss_portal',
+    },
+    // 4. Docker hr_user
+    {
+      host: '127.0.0.1',
+      port: 3307,
+      user: 'hr_user',
+      password: 'hr_password',
       database: 'dvla_nss_portal',
     },
   ];

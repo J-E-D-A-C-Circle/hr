@@ -169,7 +169,7 @@ export default function AppointmentLetterModal({
       setSignatoryForTitle('FOR: CHIEF EXECUTIVE');
       setCcText(getDefaultCcForStation(stationName));
       setCustomBodyText(
-        `This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
+        `This is to inform you that you have been assigned to the <strong>${stationName}</strong>${deptName ? ` (<strong>${deptName}</strong>)` : ''} for the <strong>${autoServiceYear}</strong> service year.\n\nYour National Service commences on <strong>${effDate}</strong> and ends on <strong>${autoEndDate}</strong>.\n\nYou are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.`
       );
     }
   };
@@ -185,7 +185,7 @@ export default function AppointmentLetterModal({
     const autoServiceYear = getAutoServiceYear(application?.service_year || effectiveDate);
     const autoEndDate = getAutoEndDate(effectiveDate);
     const displaySubjectText = customSubject || (appointmentType === 'REPOSTING' ? `RELEASE OF NATIONAL SERVICE PERSONNEL FOR THE ${autoServiceYear} SERVICE YEAR` : 'POSTING OF NATIONAL SERVICE PERSONNEL.');
-    const displaySalutation = salutation || (appointmentType === 'REPOSTING' ? 'Dear Madam,' : 'Dear Sir/Madam,');
+    const displaySalutation = salutation || (appointmentType === 'REPOSTING' ? 'Dear Madam,' : displayApplicantName ? `Dear ${displayApplicantName},` : 'Dear Sir/Madam,');
     let displayBodyText = customBodyText || (appointmentType === 'REPOSTING' ? `We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.\n\nBy this letter we write to confirm the release of the National Service Person.\n\nCounting on your usual cooperation.` : '');
     if (appointmentType !== 'REPOSTING' && displayBodyText) {
       displayBodyText = displayBodyText
@@ -199,6 +199,15 @@ export default function AppointmentLetterModal({
 
     const currentStation = application?.posting_station || application?.station?.name || application?.posting_district || 'Head Office';
     const displayCcList = getCcListForStation(currentStation, ccText);
+
+    const formatBodyHtml = (content: string) => {
+      if (!content) return '';
+      if (content.includes('<p>')) return content;
+      return content
+        .split(/\n\n+/)
+        .map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+        .join('');
+    };
 
     printWin.document.write(`
       <!DOCTYPE html>
@@ -248,9 +257,10 @@ export default function AppointmentLetterModal({
           .ref-row { display: flex; justify-content: space-between; font-size: 12pt !important; margin-bottom: 16px; font-family: 'Times New Roman', Times, serif !important; }
           .ref-dotted { display: inline-block; border-bottom: 1px dotted #111827; font-family: monospace; font-weight: bold; padding: 0 4px; min-width: 200px; }
           .addressee { font-size: 12pt !important; font-weight: bold; text-transform: uppercase; margin-bottom: 12px; font-family: 'Times New Roman', Times, serif !important; }
-          .salutation { font-size: 12pt !important; margin-bottom: 10px; font-family: 'Times New Roman', Times, serif !important; }
-          .subject-title { font-size: 12pt !important; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 1px; display: inline-block; margin-bottom: 12px; font-family: 'Times New Roman', Times, serif !important; }
-          .body-text { font-size: 12pt !important; line-height: 1.5; text-align: justify; margin-bottom: 16px; white-space: pre-line; font-family: 'Times New Roman', Times, serif !important; }
+          .salutation { font-size: 12pt !important; margin-bottom: 20px !important; font-family: 'Times New Roman', Times, serif !important; }
+          .subject-title { font-size: 12pt !important; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #111827; padding-bottom: 1px; display: inline-block; margin-top: 4px !important; margin-bottom: 16px !important; font-family: 'Times New Roman', Times, serif !important; }
+          .body-text { font-size: 12pt !important; line-height: 1.42 !important; text-align: justify; margin-bottom: 14px; font-family: 'Times New Roman', Times, serif !important; }
+          .body-text p { margin-bottom: 8px !important; line-height: 1.42 !important; }
           .footer-block { margin-top: 14px; padding-top: 8px; }
           .signatory-block { font-size: 12pt !important; font-family: 'Times New Roman', Times, serif !important; }
           .signature-img { height: 48px; max-height: 48px; width: auto; object-fit: contain; margin: 4px 0; }
@@ -311,7 +321,7 @@ export default function AppointmentLetterModal({
             </div>
 
             <div class="body-text">
-              ${displayBodyText}
+              ${formatBodyHtml(displayBodyText)}
             </div>
 
             <div class="footer-block">

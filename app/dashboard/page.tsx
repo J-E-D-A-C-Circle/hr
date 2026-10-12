@@ -235,10 +235,12 @@ export default function Dashboard() {
 
       const dynamicFullName = `${app.first_name || ''} ${app.middle_name ? app.middle_name + ' ' : ''}${app.last_name || ''}`.trim();
       const applicantName = letterObj.applicantName || dynamicFullName || user?.full_name || 'NSS Personnel';
-      const applicantAddress = letterObj.applicantAddress || app.residential_address || '';
+      const applicantAddress = letterObj.applicantAddress || app.residential_address || 'ACCRA - GHANA';
       const isReposting = letterType === 'reposting' || app.status === 'rejected';
       const displayRef = letterObj.customRefNumber || (
-        isReposting ? 'DVLA\\HR\\NSS\\26\\0001' : 'DVLA\\HR\\NSS\\26\\0001'
+        app.nss_number
+          ? `DVLA\\HR\\NSS\\26\\${String(app.nss_number).slice(-4).padStart(4, '0')}`
+          : `DVLA\\HR\\NSS\\26\\${String(app.id || '1').padStart(4, '0')}`
       );
       const isStalePostingBody = letterObj.customBodyText && (
         letterObj.customBodyText.includes('assigned to') ||
@@ -254,15 +256,16 @@ export default function Dashboard() {
 
       const commencementDate = letterObj.commencementDate || (
         app.service_period_start
-          ? new Date(app.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-          : `Monday, 17th November, ${currentYear}`
+          ? (String(app.service_period_start).startsWith('2026-11-02') ? 'Monday, November 2, 2026' : new Date(app.service_period_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))
+          : `Monday, November 2, ${currentYear}`
       );
-      const endDate = getAutoEndDate(commencementDate || app.service_period_start || currentYear);
+      const endDate = letterObj.endDate || getAutoEndDate(commencementDate || app.service_period_start || currentYear);
 
       if (effectiveCustomBody && !isReposting) {
         effectiveCustomBody = effectiveCustomBody
           .replace(/2025\/2026/g, serviceYear)
           .replace(/(ends on\s+(?:<strong>)?)[^<.]*?30th October,\s*2026(?:<\/strong>)?/gi, `$1${endDate}</strong>`)
+          .replace(/District Licensing Manager/g, 'Head of Department')
           .replace(/Head Of Department/g, 'Head of Department');
       }
 
@@ -276,13 +279,23 @@ export default function Dashboard() {
         ? (letterObj.appointmentType === 'REPOSTING' && letterObj.salutation && letterObj.salutation !== `Dear ${applicantName},`
           ? letterObj.salutation
           : 'Dear Madam,')
-        : (letterObj.salutation || `Dear ${applicantName},`);
-      const stationName = app.posting_station || app.posting_district || app.district || 'Bonwire District Office';
+        : (letterObj.salutation || (applicantName ? `Dear ${applicantName},` : 'Dear Sir/Madam,'));
+      const departmentName = app.posting_department || letterObj.departmentName || '';
+      const stationName = app.posting_station || app.station?.name || app.posting_district || app.district || 'Head Office';
       const signatoryName = letterObj.signatoryName || 'EPHRAIM NII TAN SACKEY';
       const signatoryTitle = letterObj.signatoryTitle || (isReposting ? 'AG. DIRECTOR HUMAN RESOURCE' : 'AG. DIRECTOR HR');
       const signatoryForTitle = letterObj.signatoryForTitle || 'FOR: CHIEF EXECUTIVE';
 
       const displayCcItems = getCcListForStation(stationName, letterObj.ccText || letterObj.ccList);
+
+      const formatBodyHtml = (content: string) => {
+        if (!content) return '';
+        if (content.includes('<p>')) return content;
+        return content
+          .split(/\n\n+/)
+          .map((p: string) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+          .join('');
+      };
 
       // Create PDF content matching OfficialAppointmentLetter.tsx exactly
       const pdfContent = `
@@ -415,7 +428,7 @@ export default function Dashboard() {
             }
             .salutation {
               font-size: 12pt !important;
-              margin-bottom: 10px;
+              margin-bottom: 20px !important;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .subject-title {
@@ -425,19 +438,20 @@ export default function Dashboard() {
               border-bottom: 1px solid #111827;
               padding-bottom: 1px;
               display: inline-block;
-              margin-bottom: 12px;
+              margin-top: 4px !important;
+              margin-bottom: 16px !important;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .body-text {
               font-size: 12pt !important;
-              line-height: 1.5;
+              line-height: 1.42 !important;
               text-align: justify;
-              margin-bottom: 16px;
-              white-space: pre-line;
+              margin-bottom: 14px;
               font-family: 'Times New Roman', Times, serif !important;
             }
             .body-text p {
-              margin-bottom: 10px;
+              margin-bottom: 8px !important;
+              line-height: 1.42 !important;
             }
             .footer-block {
               margin-top: 14px;
@@ -545,12 +559,12 @@ export default function Dashboard() {
 
               <!-- BODY PARAGRAPHS -->
               <div class="body-text">
-                ${isReposting ? (effectiveCustomBody ? `<div style="white-space: pre-line;">${effectiveCustomBody}</div>` : `
+                ${isReposting ? (effectiveCustomBody ? formatBodyHtml(effectiveCustomBody) : `
                   <p>We write to inform your esteemed office that the bearer of this letter has been released to the National Service Secretariat for reposting.</p>
                   <p>By this letter we write to confirm the release of the National Service Person.</p>
                   <p>Counting on your usual cooperation.</p>
-                `) : effectiveCustomBody ? `<div style="white-space: pre-line;">${effectiveCustomBody}</div>` : `
-                  <p>This is to inform you that you have been assigned to the <strong>${stationName}</strong> for the <strong>${serviceYear}</strong> service year.</p>
+                `) : effectiveCustomBody ? formatBodyHtml(effectiveCustomBody) : `
+                  <p>This is to inform you that you have been assigned to the <strong>${stationName}</strong>${departmentName ? ` (<strong>${departmentName}</strong>)` : ''} for the <strong>${serviceYear}</strong> service year.</p>
                   <p>Your National Service commences on <strong>${commencementDate}</strong> and ends on <strong>${endDate}</strong>.</p>
                   <p>You are required to report to the Head of Department for orientation and assignment. You are expected to exhibit good conduct and abide by all rules and regulations of the Authority throughout your service period.</p>
                 `}

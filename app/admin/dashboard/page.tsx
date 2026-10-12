@@ -893,18 +893,34 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                     <div className="bg-amber-100/50 p-4 rounded-2xl border border-amber-300/80 shadow-inner">
-                      <OfficialAppointmentLetter
-                        referenceNumber={selectedApplication.nss_number || String(selectedApplication.id || '0000')}
-                        applicantName={`${selectedApplication.first_name} ${selectedApplication.middle_name ? selectedApplication.middle_name + ' ' : ''}${selectedApplication.last_name}`}
-                        applicantAddress={selectedApplication.residential_address || 'ACCRA - GHANA'}
-                        positionTitle={selectedApplication.course_program || 'NSS Personnel'}
-                        departmentName={reviewData.posting_department}
-                        postingStationName={reviewData.posting_station || 'Head Office'}
-                        appointmentType={selectedApplication.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'}
-                        effectiveDate={FIXED_EFFECTIVE_DATE_TEXT}
-                        issueDate={new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
-                        customRefNumber={getNextDvlaReferenceNumber(applications, selectedApplication.id)}
-                      />
+                      {(() => {
+                        let savedLetter: any = null;
+                        if (selectedApplication.additional_info) {
+                          try {
+                            const parsed = typeof selectedApplication.additional_info === 'string'
+                              ? JSON.parse(selectedApplication.additional_info)
+                              : selectedApplication.additional_info;
+                            savedLetter = parsed?.appointmentLetterData || parsed;
+                          } catch (e) {}
+                        }
+                        return (
+                          <OfficialAppointmentLetter
+                            referenceNumber={selectedApplication.nss_number || String(selectedApplication.id || '0000')}
+                            applicantName={`${selectedApplication.first_name} ${selectedApplication.middle_name ? selectedApplication.middle_name + ' ' : ''}${selectedApplication.last_name}`}
+                            applicantAddress={selectedApplication.residential_address || 'ACCRA - GHANA'}
+                            positionTitle={selectedApplication.course_program || 'NSS Personnel'}
+                            departmentName={reviewData.posting_department}
+                            postingStationName={reviewData.posting_station || 'Head Office'}
+                            appointmentType={selectedApplication.status === 'rejected' ? 'REPOSTING' : 'TEMPORARY'}
+                            effectiveDate={FIXED_EFFECTIVE_DATE_TEXT}
+                            issueDate={new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                            customRefNumber={savedLetter?.customRefNumber || getNextDvlaReferenceNumber(applications, selectedApplication.id)}
+                            salutation={savedLetter?.salutation}
+                            customSubject={savedLetter?.customSubject}
+                            customBodyText={savedLetter?.customBodyText}
+                          />
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

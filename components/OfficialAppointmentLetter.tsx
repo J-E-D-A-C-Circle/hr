@@ -221,14 +221,14 @@ export default function OfficialAppointmentLetter({
 
       {/* SALUTATION */}
       <div
-        className="mb-4 text-gray-900 relative z-10"
+        className="mb-5 text-gray-900 relative z-10"
         style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
       >
         {displaySalutation}
       </div>
 
       {/* SUBJECT TITLE */}
-      <div className="mb-4 relative z-10">
+      <div className="mt-1 mb-4 relative z-10">
         <h2
           className="inline-block font-black uppercase text-gray-950 border-b border-gray-950 pb-0.5 tracking-wider"
           style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
@@ -239,14 +239,18 @@ export default function OfficialAppointmentLetter({
 
       {/* BODY PARAGRAPHS */}
       <div
-        className="space-y-3 text-gray-900 leading-relaxed relative z-10 text-justify"
-        style={{ fontSize: '12pt', fontFamily: "'Times New Roman', Times, serif" }}
+        className="space-y-2 text-gray-900 relative z-10 text-justify"
+        style={{ fontSize: '12pt', lineHeight: 1.42, fontFamily: "'Times New Roman', Times, serif" }}
       >
         {effectiveBodyText ? (
-          <div
-            className="whitespace-pre-line space-y-3"
-            dangerouslySetInnerHTML={{ __html: effectiveBodyText }}
-          />
+          <div className="space-y-2">
+            {effectiveBodyText.split(/\n\n+/).map((para, idx) => (
+              <p
+                key={idx}
+                dangerouslySetInnerHTML={{ __html: para.replace(/\n/g, '<br/>') }}
+              />
+            ))}
+          </div>
         ) : appointmentType === 'CONTRACT' ? (
           <>
             <p>
@@ -294,12 +298,12 @@ export default function OfficialAppointmentLetter({
 
       {/* SIGNATORY & FOOTER */}
       <div
-        className="mt-6 pt-3 relative z-10"
+        className="mt-5 pt-2 relative z-10"
         style={{ fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif" }}
       >
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div>
-            <div className="text-gray-900 mb-1">Thank you.</div>
+            <div className="text-gray-900 mb-0.5">Thank you.</div>
             <div className="text-gray-900">Yours faithfully,</div>
 
             {/* Official Scanned Signature Image */}

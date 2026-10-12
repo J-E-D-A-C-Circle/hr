@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/mysql2';
 import * as schema from '@/db/schema';
 
 const rawPort = process.env.DB_PORT ? Number(process.env.DB_PORT) : null;
-const dbPort = rawPort || 3306;
+const dbPort = rawPort || 3307;
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',

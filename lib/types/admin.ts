@@ -36,6 +36,7 @@ export interface FullApplication extends Application {
   certificates?: string;
   review_notes?: string;
   reviewer_name?: string;
+  additional_info?: string | null;
 }
 
 export interface Station {

@@ -1,5 +1,13 @@
 import { Station } from './types/admin';
 
+export const SUGGESTED_DEPARTMENTS: string[] = [
+  'Vehicle Inspection & Registration',
+  'DTTL',
+  'Administration',
+  'Finance',
+  'IT'
+];
+
 export const INITIAL_STATIONS: Station[] = [
   {
     id: 'st-headoffice',
