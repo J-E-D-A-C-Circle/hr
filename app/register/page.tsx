@@ -14,9 +14,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getValidAuthToken, getStoredUser } from '@/lib/auth-client';
-import { ArrowLeft, Check, Upload, FileText, Image as ImageIcon, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import axios from 'axios';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Lock,
+  AlertCircle,
+  LogIn,
+  Building2,
+  HelpCircle,
+  ShieldAlert,
+  Sparkles,
+} from 'lucide-react';
 import { uploadFile } from '@/lib/file-upload';
 import toast from 'react-hot-toast';
+import ContactSupportModal from '@/components/ContactSupportModal';
 import { Step1Account } from '@/components/registration/Step1Account';
 import { Step2Profile } from '@/components/registration/Step2Profile';
 import { Step3Verify } from '@/components/registration/Step3Verify';
@@ -86,6 +105,27 @@ export default function RegisterPage() {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [existingAccountNotice, setExistingAccountNotice] = useState<{ email: string; isDraft: boolean } | null>(null);
+  const [applicationsClosed, setApplicationsClosed] = useState<boolean>(false);
+  const [isSupportOpen, setIsSupportOpen] = useState<boolean>(false);
+
+  // Check portal intake status from database
+  useEffect(() => {
+    let isMounted = true;
+    const checkSettings = async () => {
+      try {
+        const res = await axios.get('/api/portal-settings');
+        if (isMounted && res.data && typeof res.data.applicationsClosed === 'boolean') {
+          setApplicationsClosed(res.data.applicationsClosed);
+        }
+      } catch (err) {
+        console.error('Error fetching portal settings:', err);
+      }
+    };
+    checkSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -851,6 +891,169 @@ export default function RegisterPage() {
   };
 
   if (!hydrated) return null;
+
+  if (applicationsClosed) {
+    return (
+      <div className="relative min-h-screen w-full flex flex-col justify-between bg-slate-950 text-slate-900 font-sans overflow-x-hidden">
+        {/* Background photo & overlay */}
+        <div
+          className="absolute inset-0 bg-no-repeat bg-cover bg-center"
+          style={{ backgroundImage: "url('/abs.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#073e1e]/95 via-[#0a4d26]/90 to-[#073e1e]/95 backdrop-blur-[2px]" />
+
+        {/* Top Header */}
+        <header className="relative z-20 px-4 sm:px-8 py-4 border-b border-white/10 bg-black/20 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/login')}>
+              <div className="w-10 h-10 p-1 bg-white rounded-xl shadow-md flex items-center justify-center shrink-0">
+                <Image
+                  src="/oop.png"
+                  alt="DVLA Logo"
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-contain"
+                  priority
+                />
+              </div>
+              <div>
+                <span className="font-black text-base text-white tracking-tight block">DVLA NSS PORTAL</span>
+                <span className="text-[11px] text-emerald-200/90 font-medium hidden sm:block">
+                  Driver and Vehicle Licensing Authority • Ghana
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => setIsSupportOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold text-emerald-100 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition shadow-sm cursor-pointer"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Support Desk</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition shadow-md cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Hero Notice Card */}
+        <main className="relative z-20 flex-1 flex items-center justify-center p-4 sm:p-6 my-8">
+          <div className="w-full max-w-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-2xl rounded-3xl p-6 sm:p-10 md:p-12 text-center space-y-7">
+            {/* Lock / Alert Icon Badge with animated glow */}
+            <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
+              <span className="absolute inset-0 rounded-full bg-rose-500/20 animate-ping" />
+              <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-rose-50 to-rose-100 border-2 border-rose-200 text-rose-600 flex items-center justify-center shadow-lg">
+                <Lock className="w-10 h-10" />
+              </div>
+            </div>
+
+            {/* Official Status Badge */}
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-100 border border-rose-300 text-rose-700 text-xs font-black uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                <span>Intake Status: Applications Closed</span>
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+                Applications are closed for 2026/2027 NSS personnel
+              </h1>
+
+              <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                The online application and onboarding portal for the <strong>2026/2027 National Service Scheme (NSS)</strong> personnel deployment at the <strong>Driver and Vehicle Licensing Authority (DVLA)</strong> is currently closed. New registrations are not permitted at this time.
+              </p>
+            </div>
+
+            {/* Action Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-2">
+              {/* Card 1: Already Registered */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-emerald-300 transition-all space-y-3 flex flex-col justify-between">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-[#008053] font-bold text-sm">
+                    <LogIn className="w-4 h-4 shrink-0" />
+                    <span>Already Registered Personnel</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Have an existing account or submitted application? Log in to view your assignment station, print appointment letters, or check placement status.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/login')}
+                  className="w-full py-2.5 px-4 bg-[#008053] hover:bg-[#006843] text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Sign In to Account</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Card 2: Station Manager Portal */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3 flex flex-col justify-between">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-blue-700 font-bold text-sm">
+                    <Building2 className="w-4 h-4 shrink-0" />
+                    <span>Station Managers</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Station managers and DVLA personnel coordinators can access the official roster and export personnel data for their station.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/stationmanager')}
+                  className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Station Manager Portal</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Need Help Note & Support button */}
+            <div className="pt-2 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#008053]" />
+                Official DVLA National Service Administration
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsSupportOpen(true)}
+                className="font-bold text-[#008053] hover:underline cursor-pointer inline-flex items-center gap-1"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Contact Support Desk</span>
+              </button>
+            </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="relative z-20 py-4 px-6 text-center border-t border-white/10 bg-black/20 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-emerald-100/90">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              <span>Driver and Vehicle Licensing Authority • Headquarters, Cantonments, Accra</span>
+            </div>
+            <p>© {new Date().getFullYear()} DVLA Ghana. All rights reserved.</p>
+          </div>
+        </footer>
+
+        <ContactSupportModal
+          isOpen={isSupportOpen}
+          onClose={() => setIsSupportOpen(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

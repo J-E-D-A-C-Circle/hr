@@ -1,11 +1,26 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, query } from '@/lib/db';
 import { users, nssApplications } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { hashPassword, generateToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
+    // Check if registration intake is closed
+    try {
+      const settings = await query<{ setting_value: string }[]>(
+        `SELECT setting_value FROM system_settings WHERE setting_key = 'applications_closed' LIMIT 1`
+      );
+      if (settings && settings.length > 0 && (settings[0].setting_value === 'true' || settings[0].setting_value === '1')) {
+        return NextResponse.json(
+          { error: 'Applications intake for 2026/2027 NSS personnel is currently closed.' },
+          { status: 403 }
+        );
+      }
+    } catch (checkErr) {
+      // Continue if settings table not ready
+    }
+
     const body = await request.json();
     const { email, password, full_name, firstName, lastName } = body;
 

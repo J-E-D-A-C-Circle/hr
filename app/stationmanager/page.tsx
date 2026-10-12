@@ -31,6 +31,7 @@ import {
 import toast from 'react-hot-toast';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
 import ModalPortal from '@/components/ui/ModalPortal';
+import IntakeStatusToggle from '@/components/IntakeStatusToggle';
 import { getAutoServiceYear, getDefaultCcForStation, getCcListForStation } from '@/lib/utils';
 import { Station } from '@/lib/types/admin';
 
@@ -47,17 +48,24 @@ interface StationPersonnel {
   middle_name?: string;
   full_name: string;
   gender?: string;
+  date_of_birth?: string;
+  nationality?: string;
   phone_number?: string;
   email?: string;
+  residential_address?: string;
+  region?: string;
+  district?: string;
   institution_name?: string;
   course_program?: string;
+  year_of_completion?: string | number;
   posting_station?: string;
   posting_department?: string;
   posting_region?: string;
+  posting_district?: string;
   service_year?: string;
   service_period_start?: string;
   service_period_end?: string;
-  residential_address?: string;
+  status?: string;
   created_at?: string;
   reviewed_at?: string;
   appointmentLetterData?: any;
@@ -328,7 +336,7 @@ function StationManagerContent() {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  // Export station roster CSV
+  // Export station roster CSV with all personnel details for Excel
   const handleExportCSV = () => {
     if (filteredPersonnel.length === 0) {
       toast.error('No personnel records to export for this view.');
@@ -339,35 +347,102 @@ function StationManagerContent() {
       '#',
       'NSS Number',
       'Full Name',
+      'Surname / Last Name',
+      'First Name',
+      'Middle Name',
       'Gender',
+      'Date of Birth',
+      'Nationality',
       'Phone Number',
-      'Email',
+      'Email Address',
+      'Residential Address',
+      'Home Region',
+      'Home District',
+      'Tertiary Institution',
+      'Program of Study',
+      'Year of Completion',
       'Assigned Station',
       'Assigned Department',
-      'Institution',
-      'Program/Qualification',
-      'Commencement Date',
+      'Posting Region',
+      'Posting District',
       'Service Year',
+      'Service Start Date',
+      'Service End Date',
+      'Commencement Date',
+      'Appointment Ref Number',
+      'Appointment Letter Date',
+      'Authorized Signatory',
+      'Signatory Title',
+      'Approval Status',
+      'Approval Date',
+      'Submission Date',
     ];
 
-    const rows = filteredPersonnel.map((p, index) => [
-      index + 1,
-      `"${p.nss_number || 'N/A'}"`,
-      `"${p.full_name}"`,
-      `"${p.gender || 'N/A'}"`,
-      `"${p.phone_number || 'N/A'}"`,
-      `"${p.email || 'N/A'}"`,
-      `"${p.posting_station || selectedStationName || 'N/A'}"`,
-      `"${p.posting_department || 'General'}"`,
-      `"${p.institution_name || 'N/A'}"`,
-      `"${p.course_program || 'N/A'}"`,
-      `"${FIXED_EFFECTIVE_DATE_TEXT}"`,
-      `"${getAutoServiceYear(p.service_year)}"`,
-    ]);
+    const escapeCell = (val: any) => {
+      if (val === undefined || val === null || val === '') return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const formatPhone = (val: any) => {
+      if (!val) return '""';
+      // Format as ="..." so Excel preserves leading zeros without formatting loss
+      const cleaned = String(val).replace(/["'=]/g, '').trim();
+      return `="${cleaned}"`;
+    };
+
+    const rows = filteredPersonnel.map((p, index) => {
+      const letterData = p.appointmentLetterData || {};
+      const refNum = letterData.customRefNumber || `DVLA/HQ/NSS/2026/${String(p.id).padStart(3, '0')}`;
+      const letterDate =
+        letterData.letterDate ||
+        (p.reviewed_at
+          ? new Date(p.reviewed_at)
+              .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+              .toUpperCase()
+          : 'OCTOBER 12, 2026');
+      const signatory = letterData.signatoryName || 'EPHRAIM NII TAN SACKEY';
+      const sigTitle = letterData.signatoryTitle || 'AG. DIRECTOR HR';
+
+      return [
+        index + 1,
+        escapeCell(p.nss_number || 'N/A'),
+        escapeCell(p.full_name),
+        escapeCell(p.last_name),
+        escapeCell(p.first_name),
+        escapeCell(p.middle_name || ''),
+        escapeCell(p.gender || 'N/A'),
+        escapeCell(p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : 'N/A'),
+        escapeCell(p.nationality || 'Ghanaian'),
+        formatPhone(p.phone_number),
+        escapeCell(p.email || 'N/A'),
+        escapeCell(p.residential_address || 'N/A'),
+        escapeCell(p.region || 'N/A'),
+        escapeCell(p.district || 'N/A'),
+        escapeCell(p.institution_name || 'N/A'),
+        escapeCell(p.course_program || 'N/A'),
+        escapeCell(p.year_of_completion || 'N/A'),
+        escapeCell(p.posting_station || selectedStationName || 'N/A'),
+        escapeCell(p.posting_department || 'General Deployment'),
+        escapeCell(p.posting_region || currentStationObj?.region || 'N/A'),
+        escapeCell(p.posting_district || 'N/A'),
+        escapeCell(getAutoServiceYear(p.service_year)),
+        escapeCell(p.service_period_start || '2026-11-02'),
+        escapeCell(p.service_period_end || '2027-10-29'),
+        escapeCell(FIXED_EFFECTIVE_DATE_TEXT),
+        escapeCell(refNum),
+        escapeCell(letterDate),
+        escapeCell(signatory),
+        escapeCell(sigTitle),
+        escapeCell((p.status || 'APPROVED').toUpperCase()),
+        escapeCell(p.reviewed_at ? new Date(p.reviewed_at).toISOString().split('T')[0] : 'N/A'),
+        escapeCell(p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : 'N/A'),
+      ].join(',');
+    });
 
     const csvContent =
       'data:text/csv;charset=utf-8,\uFEFF' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+      [headers.join(','), ...rows].join('\n');
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -377,7 +452,7 @@ function StationManagerContent() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Station roster exported to CSV successfully!');
+    toast.success('Station roster with full personnel records exported to CSV!');
   };
 
   // Open Details Modal
@@ -639,6 +714,7 @@ function StationManagerContent() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <IntakeStatusToggle />
             <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 hidden md:flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-slate-500" />
               Cycle: <strong className="text-[#008053]">2026/2027</strong>

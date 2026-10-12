@@ -6,8 +6,9 @@ import {
   RefreshCw,
   Calendar,
   Menu,
-  X
+  X,
 } from 'lucide-react';
+import IntakeStatusToggle from '@/components/IntakeStatusToggle';
 
 interface AdminHeaderProps {
   activeTabTitle: string;
@@ -86,9 +87,12 @@ export default function AdminHeader({
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Intake Open/Closed Toggle */}
+        <IntakeStatusToggle />
+
         {/* System Status Pill */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-[#0d5c2e]">
+        <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-[#0d5c2e]">
           <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
           <span className="font-bold">DB Active</span>
         </div>
