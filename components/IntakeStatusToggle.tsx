@@ -86,8 +86,9 @@ export default function IntakeStatusToggle({ className = '', compact = false }: 
             closed ? 'bg-rose-600' : 'bg-emerald-600 animate-pulse'
           }`}
         />
-        <span>
-          Intake: <strong className={closed ? 'text-rose-700' : 'text-[#008053]'}>{closed ? 'CLOSED' : 'OPEN'}</strong>
+        <span className="text-[11px] sm:text-xs">
+          <span className="hidden sm:inline">Intake: </span>
+          <strong className={closed ? 'text-rose-700' : 'text-[#008053]'}>{closed ? 'CLOSED' : 'OPEN'}</strong>
         </span>
       </span>
 

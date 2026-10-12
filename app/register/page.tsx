@@ -973,49 +973,16 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* Action Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-2">
-              {/* Card 1: Already Registered */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-emerald-300 transition-all space-y-3 flex flex-col justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-[#008053] font-bold text-sm">
-                    <LogIn className="w-4 h-4 shrink-0" />
-                    <span>Already Registered Personnel</span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Have an existing account or submitted application? Log in to view your assignment station, print appointment letters, or check placement status.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/login')}
-                  className="w-full py-2.5 px-4 bg-[#008053] hover:bg-[#006843] text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span>Sign In to Account</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Card 2: Station Manager Portal */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3 flex flex-col justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-blue-700 font-bold text-sm">
-                    <Building2 className="w-4 h-4 shrink-0" />
-                    <span>Station Managers</span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Station managers and DVLA personnel coordinators can access the official roster and export personnel data for their station.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/stationmanager')}
-                  className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span>Station Manager Portal</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            {/* Action Button */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                className="w-full sm:w-auto px-6 py-3 bg-[#008053] hover:bg-[#006843] text-white text-sm font-bold rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Return to Sign In</span>
+              </button>
             </div>
 
             {/* Need Help Note & Support button */}

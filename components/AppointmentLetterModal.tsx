@@ -426,70 +426,68 @@ export default function AppointmentLetterModal({
     || application.posting_department ;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white w-full max-w-6xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden my-6 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white w-full max-w-6xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden my-2 sm:my-6 flex flex-col h-[96vh] sm:max-h-[92vh]">
         {/* Header */}
-        <div className="bg-[#0F5132] text-white px-6 py-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400 text-gray-950 flex items-center justify-center font-bold shadow">
-              <FileText className="w-5 h-5" />
+        <div className="bg-[#0F5132] text-white px-3.5 sm:px-6 py-3 sm:py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-400 text-gray-950 flex items-center justify-center font-bold shadow shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-black uppercase tracking-wider text-white">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xs sm:text-base font-black uppercase tracking-wider text-white truncate">
                 Appointment Letter Generator
               </h2>
-              <p className="text-xs text-emerald-200">
+              <p className="text-[11px] sm:text-xs text-emerald-200 truncate">
                 Candidate: <strong className="text-amber-300">{applicantName}</strong> &bull; {posTitle} ({deptName})
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-emerald-200 hover:text-white hover:bg-emerald-800 transition cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl text-emerald-200 hover:text-white hover:bg-emerald-800 transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Appointment Category Selection Bar */}
-        <div className="bg-emerald-950 text-white px-6 py-3 border-b border-emerald-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Category:</span>
-              <div className="inline-flex p-1 bg-emerald-900 rounded-xl border border-emerald-700">
-                <button
-                  type="button"
-                  onClick={() => handleTypeChange('TEMPORARY')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                    appointmentType === 'TEMPORARY'
-                      ? 'bg-amber-400 text-gray-950 shadow'
-                      : 'text-emerald-200 hover:text-white'
-                  }`}
-                >
-                  NSS Posting
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTypeChange('REPOSTING')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                    appointmentType === 'REPOSTING'
-                      ? 'bg-red-500 text-white shadow'
-                      : 'text-emerald-200 hover:text-white'
-                  }`}
-                >
-                  Reposting Release
-                </button>
-              </div>
+        <div className="bg-emerald-950 text-white px-3.5 sm:px-6 py-2.5 sm:py-3 border-b border-emerald-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4 shrink-0">
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            <span className="text-[11px] sm:text-xs font-bold text-emerald-300 uppercase tracking-wider shrink-0">Category:</span>
+            <div className="inline-flex p-1 bg-emerald-900 rounded-xl border border-emerald-700">
+              <button
+                type="button"
+                onClick={() => handleTypeChange('TEMPORARY')}
+                className={`px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition ${
+                  appointmentType === 'TEMPORARY'
+                    ? 'bg-amber-400 text-gray-950 shadow'
+                    : 'text-emerald-200 hover:text-white'
+                }`}
+              >
+                NSS Posting
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTypeChange('REPOSTING')}
+                className={`px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition ${
+                  appointmentType === 'REPOSTING'
+                    ? 'bg-red-500 text-white shadow'
+                    : 'text-emerald-200 hover:text-white'
+                }`}
+              >
+                Reposting Release
+              </button>
             </div>
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex items-center gap-2">
-            <div className="inline-flex p-1 bg-emerald-900 rounded-xl border border-emerald-700">
+          <div className="flex items-center justify-center sm:justify-end gap-2">
+            <div className="inline-flex p-1 bg-emerald-900 rounded-xl border border-emerald-700 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab('form')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                   activeTab === 'form'
                     ? 'bg-white text-emerald-950 shadow'
                     : 'text-emerald-200 hover:text-white'
@@ -501,7 +499,7 @@ export default function AppointmentLetterModal({
               <button
                 type="button"
                 onClick={() => setActiveTab('preview')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                   activeTab === 'preview'
                     ? 'bg-white text-emerald-950 shadow'
                     : 'text-emerald-200 hover:text-white'
@@ -515,7 +513,7 @@ export default function AppointmentLetterModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+        <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 bg-gray-50/50">
           {errorMsg && (
             <div className="mb-4 bg-red-50 border-l-4 border-red-600 p-3 rounded text-red-800 text-xs font-semibold">
               {errorMsg}
@@ -724,29 +722,31 @@ export default function AppointmentLetterModal({
                     Category: {appointmentType}
                   </span>
                 </div>
-                <div className="bg-slate-100 p-2 rounded-2xl border border-slate-200 max-h-[70vh] overflow-y-auto shadow-inner">
-                  <OfficialAppointmentLetter
-                    referenceNumber={application.referenceNumber || application.nss_number || String(application.id || '0000')}
-                    applicantName={applicantName}
-                    applicantAddress={applicantAddress}
-                    positionTitle={posTitle}
-                    departmentName={deptName}
-                    postingStationName={application.station?.name || application.posting_station || application.posting_district || 'Head Office'}
-                    appointmentType={appointmentType}
-                    effectiveDate={effectiveDate}
-                    issueDate={letterDate}
-                    salutation={salutation}
-                    customRefNumber={customRefNumber}
-                    customSubject={customSubject}
-                    customBodyText={customBodyText}
-                    salaryGrade={salaryGrade}
-                    probationPeriod={probationPeriod}
-                    contractDuration={contractDuration}
-                    signatoryName={signatoryName}
-                    signatoryTitle={signatoryTitle}
-                    signatoryForTitle={signatoryForTitle}
-                    ccList={ccText}
-                  />
+                <div className="bg-slate-100 p-2 sm:p-4 rounded-2xl border border-slate-200 max-h-[70vh] overflow-y-auto overflow-x-auto shadow-inner">
+                  <div className="min-w-[620px] sm:min-w-0">
+                    <OfficialAppointmentLetter
+                      referenceNumber={application.referenceNumber || application.nss_number || String(application.id || '0000')}
+                      applicantName={applicantName}
+                      applicantAddress={applicantAddress}
+                      positionTitle={posTitle}
+                      departmentName={deptName}
+                      postingStationName={application.station?.name || application.posting_station || application.posting_district || 'Head Office'}
+                      appointmentType={appointmentType}
+                      effectiveDate={effectiveDate}
+                      issueDate={letterDate}
+                      salutation={salutation}
+                      customRefNumber={customRefNumber}
+                      customSubject={customSubject}
+                      customBodyText={customBodyText}
+                      salaryGrade={salaryGrade}
+                      probationPeriod={probationPeriod}
+                      contractDuration={contractDuration}
+                      signatoryName={signatoryName}
+                      signatoryTitle={signatoryTitle}
+                      signatoryForTitle={signatoryForTitle}
+                      ccList={ccText}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -754,19 +754,19 @@ export default function AppointmentLetterModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="bg-white border-t border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="bg-white border-t border-gray-200 p-3.5 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition cursor-pointer text-center"
           >
             Cancel
           </button>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handlePrintLetter}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black text-emerald-950 bg-amber-400 hover:bg-amber-300 transition shadow flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black text-emerald-950 bg-amber-400 hover:bg-amber-300 transition shadow flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-4 h-4 text-emerald-950" />
               <span>Print / Download Letter</span>
@@ -775,14 +775,14 @@ export default function AppointmentLetterModal({
               type="submit"
               form="appointment-letter-form"
               disabled={isSubmitting}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0F5132] hover:bg-[#0B3D26] transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0F5132] hover:bg-[#0B3D26] transition shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer text-center"
             >
               {isSubmitting ? (
                 <span>Saving & Issuing Letter...</span>
               ) : (
                 <>
                   <Check className="w-4 h-4 text-amber-400" />
-                  <span>Save & Issue Official Appointment Letter</span>
+                  <span>Save & Issue Letter</span>
                 </>
               )}
             </button>
