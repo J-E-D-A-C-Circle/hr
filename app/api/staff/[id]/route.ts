@@ -86,6 +86,14 @@ export async function PATCH(
       user_role,
     } = body;
 
+    const previousStaff = await prisma.staff.findUnique({
+      where: { id: staffId },
+    });
+
+    if (!previousStaff) {
+      return NextResponse.json({ success: false, error: "Staff member not found" }, { status: 404 });
+    }
+
     // Check staff_code uniqueness if changed
     if (staff_code) {
       const existing = await prisma.staff.findFirst({
