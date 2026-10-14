@@ -3,6 +3,7 @@ import { getAuthPayload } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { nssApplications, auditLogs } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { sendWigalSms } from '@/lib/wigal';
 
 export async function handleReviewRequest(request: Request) {
   try {
@@ -22,21 +23,44 @@ export async function handleReviewRequest(request: Request) {
       );
     }
 
+    const appIdNum = parseInt(String(applicationId), 10);
+    if (isNaN(appIdNum)) {
+      return NextResponse.json({ error: 'Invalid application ID' }, { status: 400 });
+    }
+
+    // Fetch existing application details
+    const existingList = await db
+      .select({
+        id: nssApplications.id,
+        status: nssApplications.status,
+        firstName: nssApplications.firstName,
+        middleName: nssApplications.middleName,
+        lastName: nssApplications.lastName,
+        phoneNumber: nssApplications.phoneNumber,
+        email: nssApplications.email,
+        additionalInfo: nssApplications.additionalInfo,
+      })
+      .from(nssApplications)
+      .where(eq(nssApplications.id, appIdNum));
+
+    if (existingList.length === 0) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+    }
+
+    const existingApp = existingList[0];
+    const previousStatus = existingApp.status;
+
+    let existingExtra: any = {};
+    if (existingApp.additionalInfo) {
+      try {
+        existingExtra = JSON.parse(existingApp.additionalInfo);
+      } catch (e) {
+        existingExtra = { raw: existingApp.additionalInfo };
+      }
+    }
+
     // If updating appointment letter data specifically without status change
     if (!status && data.appointmentLetterData) {
-      const existing = await db
-        .select({ additionalInfo: nssApplications.additionalInfo })
-        .from(nssApplications)
-        .where(eq(nssApplications.id, parseInt(applicationId, 10)));
-      
-      let existingExtra: any = {};
-      if (existing.length > 0 && existing[0].additionalInfo) {
-        try {
-          existingExtra = JSON.parse(existing[0].additionalInfo);
-        } catch (e) {
-          existingExtra = { raw: existing[0].additionalInfo };
-        }
-      }
       existingExtra.appointmentLetterData = data.appointmentLetterData;
 
       await db.update(nssApplications)
@@ -44,7 +68,7 @@ export async function handleReviewRequest(request: Request) {
           additionalInfo: JSON.stringify(existingExtra),
           updatedAt: new Date(),
         })
-        .where(eq(nssApplications.id, parseInt(applicationId, 10)));
+        .where(eq(nssApplications.id, appIdNum));
 
       return NextResponse.json({ message: 'Appointment letter updated successfully' });
     }
@@ -76,12 +100,59 @@ export async function handleReviewRequest(request: Request) {
     const servicePeriodStart = '2026-11-02';
     const servicePeriodEnd = '2027-10-29';
 
+    if (data.appointmentLetterData) {
+      existingExtra.appointmentLetterData = data.appointmentLetterData;
+    }
+
+    // Send SMS notification if application is approved or rejected
+    let smsResult: any = null;
+    const shouldSendSms =
+      (status === 'approved' || status === 'rejected') &&
+      (previousStatus !== status || data.send_sms === true);
+
+    if (shouldSendSms && existingApp.phoneNumber) {
+      const fullName = [existingApp.firstName, existingApp.middleName, existingApp.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || 'Applicant';
+
+      const portalUrl = 'https://nss.dvla.gov.gh';
+
+      const message =
+        status === 'approved'
+          ? `Dear ${fullName}, congratulations! Your DVLA NSS application has been successfully approved. Visit ${portalUrl} to log in and download your appointment letter. NB: Use Chrome to download your appointment letter.`
+          : `Dear ${fullName}, we regret to inform you that your DVLA NSS application was not successful for this intake. Visit ${portalUrl} to log in and download your release letter for reposting. NB: Use Chrome to download your release letter.`;
+
+      try {
+        smsResult = await sendWigalSms({
+          destination: existingApp.phoneNumber,
+          message,
+          senderId: 'DVLA NSS',
+        });
+        console.log(`📱 [Review SMS] Status: ${status} | Sent to: ${existingApp.phoneNumber} | Success: ${smsResult.success}`);
+
+        if (!existingExtra.smsHistory) {
+          existingExtra.smsHistory = [];
+        }
+        existingExtra.smsHistory.push({
+          type: status,
+          sentAt: new Date().toISOString(),
+          phone: existingApp.phoneNumber,
+          success: smsResult.success,
+          message,
+        });
+      } catch (smsErr: any) {
+        console.error('⚠️ [Review SMS Error]:', smsErr);
+      }
+    }
+
     const updateFields: any = {
       status: status as any,
       reviewedBy: payload.user_id,
       reviewNotes,
       postingStation,
       postingDepartment,
+      additionalInfo: JSON.stringify(existingExtra),
       reviewedAt: new Date(),
     };
 
@@ -92,27 +163,9 @@ export async function handleReviewRequest(request: Request) {
       updateFields.servicePeriodEnd = servicePeriodEnd;
     }
 
-    if (data.appointmentLetterData) {
-      const existing = await db
-        .select({ additionalInfo: nssApplications.additionalInfo })
-        .from(nssApplications)
-        .where(eq(nssApplications.id, parseInt(applicationId, 10)));
-      
-      let existingExtra: any = {};
-      if (existing.length > 0 && existing[0].additionalInfo) {
-        try {
-          existingExtra = JSON.parse(existing[0].additionalInfo);
-        } catch (e) {
-          existingExtra = { raw: existing[0].additionalInfo };
-        }
-      }
-      existingExtra.appointmentLetterData = data.appointmentLetterData;
-      updateFields.additionalInfo = JSON.stringify(existingExtra);
-    }
-
     await db.update(nssApplications)
       .set(updateFields)
-      .where(eq(nssApplications.id, parseInt(applicationId, 10)));
+      .where(eq(nssApplications.id, appIdNum));
 
     // Log to audit_logs table
     try {
@@ -121,8 +174,10 @@ export async function handleReviewRequest(request: Request) {
         userName: payload.email || 'Admin',
         action: `Application ${status.toUpperCase()}`,
         entityType: 'application',
-        entityId: parseInt(applicationId, 10),
-        details: `Status changed to ${status}${postingStation ? ` (Station: ${postingStation}, Dept: ${postingDepartment}, Start Date: ${servicePeriodStart || 'N/A'})` : ''}`,
+        entityId: appIdNum,
+        details: `Status changed from ${previousStatus || 'pending'} to ${status}${
+          postingStation ? ` (Station: ${postingStation}, Dept: ${postingDepartment}, Start Date: ${servicePeriodStart || 'N/A'})` : ''
+        }${smsResult ? ` | SMS: ${smsResult.success ? 'Delivered' : 'Failed'}` : ''}`,
       });
     } catch (auditErr) {
       // Ignore if audit fails
@@ -131,6 +186,8 @@ export async function handleReviewRequest(request: Request) {
     return NextResponse.json({
       message: 'Application reviewed successfully',
       status,
+      smsSent: smsResult?.success ?? false,
+      smsResult: smsResult ? { success: smsResult.success, formattedNumber: smsResult.formattedNumber } : undefined,
     });
   } catch (error: any) {
     console.error('Review application error:', error);
@@ -148,4 +205,3 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
   return handleReviewRequest(request);
 }
-

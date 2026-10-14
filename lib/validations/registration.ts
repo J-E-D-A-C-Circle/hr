@@ -14,7 +14,7 @@ export const baseRegistrationSchema = z.object({
   middleName: z.string().optional(),
   lastName: z.string().min(1, 'Last name is required'),
   gender: z.enum(['Male', 'Female', 'Other'], {
-    errorMap: () => ({ message: 'Please select a gender' }),
+    message: 'Please select a gender',
   }),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
   nationality: z.string().min(1, 'Nationality is required'),

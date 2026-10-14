@@ -990,6 +990,7 @@ export default function Dashboard() {
                     <div className="text-base font-bold mb-1">Download Appointment Letter</div>
                     <div className="text-[15px] text-gray-600 mb-3">
                       Download your official appointment letter to get started at DVLA.
+                      <span className="block text-xs text-amber-700 font-medium mt-1">NB: Please use Google Chrome to download your appointment letter.</span>
                     </div>
                     <Button
                       onClick={() => generatePDF('appointment')}
@@ -1024,15 +1025,16 @@ export default function Dashboard() {
                     <div className="mb-2 p-2 bg-red-100 rounded-lg">
                       <DownloadCloud className="w-8 h-8 text-red-600" />
                     </div>
-                    <div className="text-base font-bold mb-1 text-gray-900">Download Reposting Letter</div>
+                    <div className="text-base font-bold mb-1 text-gray-900">Download Release Letter for Reposting</div>
                     <div className="text-[15px] text-gray-600 mb-3">
-                      Download your official NSS release and reposting letter for the NSS Secretariat.
+                      Download your official NSS release letter for reposting by the NSS Secretariat.
+                      <span className="block text-xs text-amber-700 font-medium mt-1">NB: Please use Google Chrome to download your release letter for reposting.</span>
                     </div>
                     <Button
                       onClick={() => generatePDF('reposting')}
                       className="mt-auto px-6 py-2 rounded-full text-white font-semibold bg-red-600 hover:bg-red-700 shadow-sm"
                     >
-                      Download Reposting Letter
+                      Download Release Letter
                     </Button>
                   </div>
                 ) : (
@@ -1040,7 +1042,7 @@ export default function Dashboard() {
                     <div className="mb-2 p-2 bg-gray-100 rounded-lg">
                       <DownloadCloud className="w-8 h-8 text-gray-400" />
                     </div>
-                    <div className="text-base font-bold mb-1 text-gray-700">Download Reposting Letter</div>
+                    <div className="text-base font-bold mb-1 text-gray-700">Download Release Letter for Reposting</div>
                     <div className="text-[15px] text-gray-500 mb-3">
                       Download your reposting release letter for the NSS secretariat. (Available only if application is rejected)
                     </div>

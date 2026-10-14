@@ -264,7 +264,7 @@ export default function AdminDashboard() {
         customRefNumber: nextRefNumber,
       };
 
-      await axios.put(
+      const reviewRes = await axios.put(
         '/api/applications/review',
         {
           application_id: selectedApplication.id,
@@ -284,7 +284,8 @@ export default function AdminDashboard() {
       if (selectedApplication.status === 'approved' && finalStatus === 'approved') {
         toast.success('Station & department assignment updated successfully!');
       } else {
-        toast.success(`Application ${finalStatus.toUpperCase()} successfully!`);
+        const smsNotice = reviewRes.data?.smsSent ? ' (SMS notification sent)' : '';
+        toast.success(`Application ${finalStatus.toUpperCase()} successfully!${smsNotice}`);
       }
       const updatedApp = {
         ...selectedApplication,
