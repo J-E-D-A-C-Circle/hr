@@ -94,6 +94,11 @@ export default function DashboardPage() {
     roleUpper.includes("DIRECTOR") ||
     roleUpper.includes("ADMIN") ||
     roleUpper.includes("SUPER");
+  const canImport =
+    roleUpper.includes("MANAGER") ||
+    roleUpper.includes("DIRECTOR") ||
+    roleUpper.includes("ADMIN") ||
+    roleUpper.includes("SUPER");
 
   return (
     <SidebarLayout>
@@ -124,13 +129,15 @@ export default function DashboardPage() {
               <UserPlus className="h-4 w-4" />
               <span>Add Staff</span>
             </Link>
-            <Link
-              href="/import"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
-            >
-              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-              <span>Import Excel</span>
-            </Link>
+            {canImport && (
+              <Link
+                href="/import"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                <span>Import Excel</span>
+              </Link>
+            )}
             <Link
               href="/export"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition"

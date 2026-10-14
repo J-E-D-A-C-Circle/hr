@@ -161,10 +161,19 @@ export default function StaffListPage() {
       .catch(() => {});
 
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("add") === "true" || params.get("openAdd") === "true") {
-        setShowAddStaffModal(true);
-      }
+      const handleUrlParams = () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("add") === "true" || params.get("openAdd") === "true") {
+          setShowAddStaffModal(true);
+        }
+      };
+      handleUrlParams();
+      window.addEventListener("popstate", handleUrlParams);
+      const interval = setInterval(handleUrlParams, 350);
+      return () => {
+        window.removeEventListener("popstate", handleUrlParams);
+        clearInterval(interval);
+      };
     }
   }, []);
 
@@ -264,7 +273,9 @@ export default function StaffListPage() {
   }, [staffList]);
 
   const roleUpper = (currentUserRole || "").toUpperCase();
-  const canSeePendingApprovals =
+  // Pending submissions tab is visible to HR Officers, Validation Officers, Approval Officers, and Admins
+  const canSeePendingApprovals = true;
+  const canApproveSubmissions =
     roleUpper.includes("APPROVAL") ||
     roleUpper.includes("MANAGER") ||
     roleUpper.includes("DIRECTOR") ||
@@ -498,7 +509,10 @@ export default function StaffListPage() {
                 }`}
               >
                 <Clock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
-                <span>Pending Officer Approvals ({staffList.filter((s) => s.approval_status === "PENDING_APPROVAL").length})</span>
+                <span>
+                  {canApproveSubmissions ? "Pending Officer Approvals" : "Pending Submissions"} (
+                  {staffList.filter((s) => s.approval_status === "PENDING_APPROVAL").length})
+                </span>
               </button>
             )}
 
@@ -847,7 +861,7 @@ export default function StaffListPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Approve / Reject Actions for Pending Staff */}
                             {staff.approval_status === "PENDING_APPROVAL" && (
-                              canSeePendingApprovals ? (
+                              canApproveSubmissions ? (
                                 <button
                                   onClick={() => handleApproveStaff(staff.id)}
                                   title="Approve Temporary Staff Member"
@@ -1050,8 +1064,32 @@ export default function StaffListPage() {
       {/* Modals */}
       <AddStaffModal
         isOpen={showAddStaffModal}
-        onClose={() => setShowAddStaffModal(false)}
-        onSuccess={() => fetchStaff()}
+        onClose={() => {
+          setShowAddStaffModal(false);
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("add") || url.searchParams.has("openAdd")) {
+              url.searchParams.delete("add");
+              url.searchParams.delete("openAdd");
+              window.history.replaceState({}, "", url.pathname + (url.search || ""));
+            }
+          }
+        }}
+        onSuccess={(newStaff) => {
+          fetchStaff();
+          if (newStaff?.approval_status === "PENDING_APPROVAL") {
+            setToast({
+              type: "info",
+              message: `Staff record for ${newStaff.full_name || "new staff"} submitted successfully. Awaiting Approval Officer review.`,
+            });
+            setStatusFilter("pending");
+          } else {
+            setToast({
+              type: "success",
+              message: `Staff member ${newStaff?.full_name ? `(${newStaff.full_name})` : ""} added successfully.`,
+            });
+          }
+        }}
       />
 
       <ValidateStaffModal

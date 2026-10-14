@@ -135,7 +135,15 @@ export async function POST(request: NextRequest) {
 
     const actorName = user_name || "HR Officer";
     const actorRole = user_role || "HR Officer";
-    const isPending = actorRole === "HR Officer";
+    const roleUpper = actorRole.toUpperCase();
+    const isApprovalAuthority =
+      roleUpper.includes("APPROVAL") ||
+      roleUpper.includes("MANAGER") ||
+      roleUpper.includes("DIRECTOR") ||
+      roleUpper.includes("INSPECTOR") ||
+      roleUpper.includes("ADMIN") ||
+      roleUpper.includes("SUPER");
+    const isPending = !isApprovalAuthority;
     const approvalStatus = isPending ? "PENDING_APPROVAL" : "APPROVED";
 
     // Create staff + initial contract

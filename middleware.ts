@@ -112,21 +112,42 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Role Access Guard: Validation Officers cannot access /staff directory or management views
+  const roleUpper = userRole.toUpperCase();
+  const isValidationOfficer = roleUpper.includes("VALIDAT");
+  const isApprovalOfficer = roleUpper.includes("APPROVAL");
+  const isHrOfficer =
+    !isValidationOfficer &&
+    !isApprovalOfficer &&
+    (roleUpper.includes("OFFICER") || roleUpper === "HR_OFFICER");
+
+  // Role Access Guard: Validation Officers cannot access financial, payslip, or management views
   const isRestrictedForValidationOfficer = [
-    "/staff",
     "/deductions",
+    "/payslip",
     "/history",
     "/audit-logs",
     "/import",
   ].some((r) => pathname === r || pathname.startsWith(r + "/"));
 
-  if (isRestrictedForValidationOfficer && userRole.toUpperCase().includes("VALIDAT")) {
+  if (isRestrictedForValidationOfficer && isValidationOfficer) {
     const dashboardUrl = new URL("/dashboard", request.url);
     return NextResponse.redirect(dashboardUrl);
   }
 
-  // Role Access Guard: HR Officer cannot access management/financial views
+  // Role Access Guard: Approval Officers can access /staff and /audit-logs, but not financial/import tools
+  const isRestrictedForApprovalOfficer = [
+    "/deductions",
+    "/payslip",
+    "/history",
+    "/import",
+  ].some((r) => pathname === r || pathname.startsWith(r + "/"));
+
+  if (isRestrictedForApprovalOfficer && isApprovalOfficer) {
+    const dashboardUrl = new URL("/dashboard", request.url);
+    return NextResponse.redirect(dashboardUrl);
+  }
+
+  // Role Access Guard: HR Officers cannot access management/financial views
   const isRestrictedForOfficer = [
     "/deductions",
     "/payslip",
@@ -135,7 +156,7 @@ export function middleware(request: NextRequest) {
     "/import",
   ].some((r) => pathname === r || pathname.startsWith(r + "/"));
 
-  if (isRestrictedForOfficer && userRole === "HR Officer") {
+  if (isRestrictedForOfficer && isHrOfficer) {
     const dashboardUrl = new URL("/dashboard", request.url);
     return NextResponse.redirect(dashboardUrl);
   }
