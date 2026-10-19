@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -18,12 +18,17 @@ import {
   FileSpreadsheet,
   AlertCircle,
   Trash2,
-  Loader2
+  Loader2,
+  MapPin,
+  Calendar,
+  GraduationCap,
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
-
 import { Application } from '@/lib/types/admin';
 import ModalPortal from '@/components/ui/ModalPortal';
+import ShadcnSelect from '@/components/ui/ShadcnSelect';
 
 interface ApplicationsTabProps {
   applications: Application[];
@@ -34,6 +39,46 @@ interface ApplicationsTabProps {
   onDeleteApplication?: (id: number) => Promise<void> | void;
 }
 
+const GHANA_REGIONS = [
+  'Greater Accra',
+  'Ashanti',
+  'Western',
+  'Eastern',
+  'Central',
+  'Northern',
+  'Volta',
+  'Bono',
+  'Bono East',
+  'Ahafo',
+  'Upper East',
+  'Upper West',
+  'Oti',
+  'Western North',
+  'Savannah',
+  'North East'
+];
+
+const POPULAR_COURSES = [
+  'BSc. Computer Science',
+  'BSc. Information Technology',
+  'BSc. Administration',
+  'BSc. Business Administration',
+  'BSc. Accounting',
+  'BSc. Finance',
+  'BSc. Human Resource Management',
+  'BSc. Marketing',
+  'BSc. Mechanical Engineering',
+  'BSc. Electrical / Electronic Engineering',
+  'BSc. Civil Engineering',
+  'BSc. Economics',
+  'BSc. Mathematics / Statistics',
+  'BSc. Procurement & Supply Chain Management',
+  'BA. Communication Studies / Public Relations',
+  'Diploma in IT',
+  'HND Mechanical Engineering',
+  'HND Accountancy'
+];
+
 export default function ApplicationsTab({
   applications,
   onSelectApplication,
@@ -43,6 +88,12 @@ export default function ApplicationsTab({
   onDeleteApplication
 }: ApplicationsTabProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [regionFilter, setRegionFilter] = useState<string>('all');
+  const [stationFilter, setStationFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [courseFilter, setCourseFilter] = useState<string>('');
+  const [courseInput, setCourseInput] = useState<string>('');
+  const [isCourseSuggestOpen, setIsCourseSuggestOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -52,6 +103,19 @@ export default function ApplicationsTab({
   const [deleteTarget, setDeleteTarget] = useState<Application | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  const courseSuggestRef = useRef<HTMLDivElement>(null);
+
+  // Close course dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (courseSuggestRef.current && !courseSuggestRef.current.contains(e.target as Node)) {
+        setIsCourseSuggestOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -79,26 +143,216 @@ export default function ApplicationsTab({
     }
   };
 
+  // Helper to test date filter
+  const matchesDateFilter = (createdAtStr: string, filter: string) => {
+    if (filter === 'all') return true;
+    if (!createdAtStr) return false;
+    const created = new Date(createdAtStr);
+    if (isNaN(created.getTime())) return false;
+    const now = new Date();
+
+    if (filter === 'today') {
+      return created.toDateString() === now.toDateString();
+    }
+    if (filter === 'this_week') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return created >= sevenDaysAgo;
+    }
+    if (filter === 'this_month') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return created >= thirtyDaysAgo;
+    }
+    return true;
+  };
+
+  // Region options with counts
+  const regionCounts: Record<string, number> = {};
+  applications.forEach((app) => {
+    const reg = (app.region || app.posting_region || '').trim();
+    if (reg) {
+      regionCounts[reg] = (regionCounts[reg] || 0) + 1;
+    }
+  });
+
+  const dynamicRegions = Array.from(
+    new Set([...GHANA_REGIONS, ...Object.keys(regionCounts)])
+  ).sort((a, b) => {
+    const countA = regionCounts[a] || 0;
+    const countB = regionCounts[b] || 0;
+    if (countB !== countA) return countB - countA;
+    return a.localeCompare(b);
+  });
+
+  const regionOptions = [
+    { value: 'all', label: 'All Regions', badge: applications.length },
+    ...dynamicRegions.map((reg) => ({
+      value: reg,
+      label: reg,
+      badge: regionCounts[reg] || 0
+    }))
+  ];
+
+  // Station options with counts
+  const unassignedCount = applications.filter(
+    (a) => !a.posting_station || a.posting_station.trim() === ''
+  ).length;
+  const assignedCount = applications.length - unassignedCount;
+
+  const stationCounts: Record<string, number> = {};
+  applications.forEach((a) => {
+    if (a.posting_station && a.posting_station.trim()) {
+      const st = a.posting_station.trim();
+      stationCounts[st] = (stationCounts[st] || 0) + 1;
+    }
+  });
+
+  const stationOptions = [
+    { value: 'all', label: 'All Stations', badge: applications.length },
+    { value: 'unassigned', label: 'Unassigned', badge: unassignedCount },
+    { value: 'assigned', label: 'Assigned (Any)', badge: assignedCount },
+    ...Object.entries(stationCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([st, count]) => ({
+        value: st,
+        label: st,
+        badge: count
+      }))
+  ];
+
+  // Date options
+  const dateOptions = [
+    { value: 'all', label: 'All Dates' },
+    { value: 'today', label: 'Today' },
+    { value: 'this_week', label: 'Past 7 Days' },
+    { value: 'this_month', label: 'Past 30 Days' }
+  ];
+
+  // Course suggestion list with counts
+  const courseCounts: Record<string, number> = {};
+  applications.forEach((a) => {
+    if (a.course_program && a.course_program.trim()) {
+      const c = a.course_program.trim();
+      courseCounts[c] = (courseCounts[c] || 0) + 1;
+    }
+  });
+
+  POPULAR_COURSES.forEach((c) => {
+    if (courseCounts[c] === undefined) {
+      courseCounts[c] = 0;
+    }
+  });
+
+  const cQuery = courseInput.trim().toLowerCase();
+  const suggestedCourses = Object.entries(courseCounts)
+    .filter(([courseName]) => {
+      if (!cQuery) return true;
+      return courseName.toLowerCase().includes(cQuery);
+    })
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      const aStarts = a[0].toLowerCase().startsWith(cQuery);
+      const bStarts = b[0].toLowerCase().startsWith(cQuery);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return a[0].localeCompare(b[0]);
+    })
+    .slice(0, 10);
+
   // Filter logic
   const filtered = applications.filter((app) => {
-    // Status filter
+    // 1. Status filter
     if (statusFilter !== 'all' && app.status !== statusFilter) {
       return false;
     }
-    // Search query
+
+    // 2. Region filter
+    if (regionFilter !== 'all') {
+      const regTarget = regionFilter.toLowerCase().trim();
+      const appReg = (app.region || '').toLowerCase().trim();
+      const postReg = (app.posting_region || '').toLowerCase().trim();
+      if (!appReg.includes(regTarget) && !postReg.includes(regTarget)) {
+        return false;
+      }
+    }
+
+    // 3. Station filter
+    if (stationFilter === 'unassigned') {
+      if (app.posting_station && app.posting_station.trim() !== '') return false;
+    } else if (stationFilter === 'assigned') {
+      if (!app.posting_station || app.posting_station.trim() === '') return false;
+    } else if (stationFilter !== 'all') {
+      if ((app.posting_station || '').toLowerCase() !== stationFilter.toLowerCase()) return false;
+    }
+
+    // 4. Date filter
+    if (!matchesDateFilter(app.created_at, dateFilter)) {
+      return false;
+    }
+
+    // 5. Course filter
+    if (courseFilter.trim() !== '') {
+      const cTarget = courseFilter.toLowerCase().trim();
+      const appCourse = (app.course_program || '').toLowerCase().trim();
+      if (!appCourse.includes(cTarget)) {
+        return false;
+      }
+    }
+
+    // 6. Universal Search query (Enhanced for comprehensive matching)
     if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      const fullName = `${app.first_name} ${app.middle_name || ''} ${app.last_name}`.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
+      const fullName = `${app.first_name || ''} ${app.middle_name || ''} ${app.last_name || ''}`.toLowerCase();
       const nss = (app.nss_number || '').toLowerCase();
       const email = (app.email || '').toLowerCase();
       const station = (app.posting_station || '').toLowerCase();
       const region = (app.region || '').toLowerCase();
-      if (!fullName.includes(q) && !nss.includes(q) && !email.includes(q) && !station.includes(q) && !region.includes(q)) {
+      const postingRegion = (app.posting_region || '').toLowerCase();
+      const district = (app.district || '').toLowerCase();
+      const postingDistrict = (app.posting_district || '').toLowerCase();
+      const course = (app.course_program || '').toLowerCase();
+      const institution = (app.institution_name || '').toLowerCase();
+      const phone = (app.phone_number || '').toLowerCase();
+
+      const matches =
+        fullName.includes(q) ||
+        nss.includes(q) ||
+        email.includes(q) ||
+        station.includes(q) ||
+        region.includes(q) ||
+        postingRegion.includes(q) ||
+        district.includes(q) ||
+        postingDistrict.includes(q) ||
+        course.includes(q) ||
+        institution.includes(q) ||
+        phone.includes(q);
+
+      if (!matches) {
         return false;
       }
     }
+
     return true;
   });
+
+  // Active filter count & reset handler
+  const activeFilterCount =
+    (statusFilter !== 'all' ? 1 : 0) +
+    (regionFilter !== 'all' ? 1 : 0) +
+    (stationFilter !== 'all' ? 1 : 0) +
+    (dateFilter !== 'all' ? 1 : 0) +
+    (courseFilter.trim() !== '' ? 1 : 0) +
+    (searchQuery.trim() !== '' ? 1 : 0);
+
+  const handleClearAllFilters = () => {
+    setStatusFilter('all');
+    setRegionFilter('all');
+    setStationFilter('all');
+    setDateFilter('all');
+    setCourseFilter('');
+    setCourseInput('');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
 
   // Sorting
   const sorted = [...filtered].sort((a, b) => {
@@ -178,62 +432,331 @@ export default function ApplicationsTab({
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Control Bar: Tabs & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-        {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200 overflow-x-auto custom-scrollbar">
-          {[
-            { id: 'all', label: 'All Applications', count: applications.length },
-            { id: 'pending', label: 'Pending', count: applications.filter((a) => a.status === 'pending').length },
-            { id: 'under_review', label: 'In Review', count: applications.filter((a) => a.status === 'under_review').length },
-            { id: 'approved', label: 'Approved', count: applications.filter((a) => a.status === 'approved').length },
-            { id: 'rejected', label: 'Rejected', count: applications.filter((a) => a.status === 'rejected').length },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setStatusFilter(tab.id);
-                setCurrentPage(1);
-              }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap ${
-                statusFilter === tab.id
-                  ? 'bg-[#0d5c2e] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  statusFilter === tab.id ? 'bg-emerald-900/60 text-emerald-100' : 'bg-slate-200 text-slate-700'
+      {/* Control Bar: Tabs, Actions & Advanced Filter Controls */}
+      <div className="space-y-3.5 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        {/* Row 1: Status Tabs, Search & Export */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Status Filter Tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200 overflow-x-auto custom-scrollbar">
+            {[
+              { id: 'all', label: 'All Applications', count: applications.length },
+              { id: 'pending', label: 'Pending', count: applications.filter((a) => a.status === 'pending').length },
+              { id: 'under_review', label: 'In Review', count: applications.filter((a) => a.status === 'under_review').length },
+              { id: 'approved', label: 'Approved', count: applications.filter((a) => a.status === 'approved').length },
+              { id: 'rejected', label: 'Rejected', count: applications.filter((a) => a.status === 'rejected').length },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setStatusFilter(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                  statusFilter === tab.id
+                    ? 'bg-[#0d5c2e] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                 }`}
               >
-                {tab.count}
-              </span>
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    statusFilter === tab.id ? 'bg-emerald-900/60 text-emerald-100' : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Search & Export Buttons */}
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex-1 sm:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search name, NSS, region, course..."
+                className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0d5c2e]"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => onExportCSV(filtered)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-[#0d5c2e]" />
+              <span className="hidden sm:inline">Export CSV</span>
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Search & Export Buttons */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 md:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search Table..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0d5c2e]"
+        {/* Row 2: Secondary Filters (Region, Station, Date, Suggestive Course Search) */}
+        <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
+          {/* Region Dropdown */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <MapPin className="w-3 h-3 text-[#0d5c2e]" />
+              Region
+            </label>
+            <ShadcnSelect
+              options={regionOptions}
+              value={regionFilter}
+              onChange={(val) => {
+                setRegionFilter(val);
+                setCurrentPage(1);
+              }}
+              enableSearch
+              searchPlaceholder="Filter regions..."
+              placeholder="All Regions"
             />
           </div>
 
-          <button
-            onClick={() => onExportCSV(filtered)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors shrink-0"
-          >
-            <Download className="w-4 h-4 text-[#0d5c2e]" />
-            <span className="hidden sm:inline">Export CSV</span>
-          </button>
+          {/* Station / Assignment Dropdown */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <Building2 className="w-3 h-3 text-[#0d5c2e]" />
+              Posting Station
+            </label>
+            <ShadcnSelect
+              options={stationOptions}
+              value={stationFilter}
+              onChange={(val) => {
+                setStationFilter(val);
+                setCurrentPage(1);
+              }}
+              enableSearch
+              searchPlaceholder="Filter stations..."
+              placeholder="All Stations"
+            />
+          </div>
+
+          {/* Date Filter */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <Calendar className="w-3 h-3 text-[#0d5c2e]" />
+              Submission Date
+            </label>
+            <ShadcnSelect
+              options={dateOptions}
+              value={dateFilter}
+              onChange={(val) => {
+                setDateFilter(val);
+                setCurrentPage(1);
+              }}
+              placeholder="All Dates"
+            />
+          </div>
+
+          {/* Course with Suggestive Typing */}
+          <div ref={courseSuggestRef} className="relative">
+            <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <GraduationCap className="w-3.5 h-3.5 text-[#0d5c2e]" />
+                Course / Program
+              </span>
+              {courseFilter && (
+                <span className="text-[10px] text-emerald-700 font-extrabold lowercase">
+                  active
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={courseInput}
+                onFocus={() => setIsCourseSuggestOpen(true)}
+                onChange={(e) => {
+                  setCourseInput(e.target.value);
+                  setCourseFilter(e.target.value);
+                  setIsCourseSuggestOpen(true);
+                  setCurrentPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsCourseSuggestOpen(false);
+                  }
+                }}
+                placeholder="Type course (e.g. Computer)..."
+                className={`w-full pl-3 pr-8 py-2 text-xs font-semibold rounded-xl bg-white border transition-all text-slate-900 placeholder-slate-400 shadow-xs focus:outline-none ${
+                  courseFilter
+                    ? 'border-[#0d5c2e] ring-2 ring-[#0d5c2e]/20'
+                    : 'border-slate-300 hover:border-slate-400'
+                }`}
+              />
+              {courseInput ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCourseInput('');
+                    setCourseFilter('');
+                    setIsCourseSuggestOpen(false);
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              )}
+            </div>
+
+            {/* Suggestive Dropdown Panel */}
+            {isCourseSuggestOpen && (
+              <div className="absolute z-40 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 custom-scrollbar animate-in fade-in duration-100">
+                <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                  <span>Suggested Programs</span>
+                  <span>Applicants</span>
+                </div>
+                {suggestedCourses.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-slate-400">
+                    No matching courses found. Press Enter to search "{courseInput}".
+                  </div>
+                ) : (
+                  suggestedCourses.map(([courseName, count]) => (
+                    <button
+                      key={courseName}
+                      type="button"
+                      onClick={() => {
+                        setCourseInput(courseName);
+                        setCourseFilter(courseName);
+                        setIsCourseSuggestOpen(false);
+                        setCurrentPage(1);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs font-medium flex items-center justify-between hover:bg-emerald-50 hover:text-[#0d5c2e] transition-colors cursor-pointer ${
+                        courseFilter.toLowerCase() === courseName.toLowerCase()
+                          ? 'bg-emerald-50 text-[#0d5c2e] font-bold'
+                          : 'text-slate-700'
+                      }`}
+                    >
+                      <span className="truncate pr-2">{courseName}</span>
+                      {count > 0 ? (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-[#0d5c2e] shrink-0">
+                          {count}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 shrink-0">0</span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Active Filters Bar */}
+        {activeFilterCount > 0 && (
+          <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500 mr-1">Active Filters:</span>
+
+              {statusFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0d5c2e] font-bold text-[11px]">
+                  Status: {statusFilter.replace('_', ' ')}
+                  <button
+                    onClick={() => setStatusFilter('all')}
+                    className="hover:text-emerald-900 cursor-pointer ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {regionFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0d5c2e] font-bold text-[11px]">
+                  Region: {regionFilter}
+                  <button
+                    onClick={() => setRegionFilter('all')}
+                    className="hover:text-emerald-900 cursor-pointer ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {stationFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0d5c2e] font-bold text-[11px]">
+                  Station: {stationFilter}
+                  <button
+                    onClick={() => setStationFilter('all')}
+                    className="hover:text-emerald-900 cursor-pointer ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {dateFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0d5c2e] font-bold text-[11px]">
+                  Date: {dateOptions.find((d) => d.value === dateFilter)?.label}
+                  <button
+                    onClick={() => setDateFilter('all')}
+                    className="hover:text-emerald-900 cursor-pointer ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {courseFilter && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0d5c2e] font-bold text-[11px]">
+                  Course: {courseFilter}
+                  <button
+                    onClick={() => {
+                      setCourseFilter('');
+                      setCourseInput('');
+                    }}
+                    className="hover:text-emerald-900 cursor-pointer ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-[11px]">
+                  Query: "{searchQuery}"
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="hover:text-slate-900 cursor-pointer ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-semibold text-slate-500">
+                Found <strong className="text-slate-900">{filtered.length}</strong> of{' '}
+                <strong className="text-slate-900">{applications.length}</strong> applicants
+              </span>
+              <button
+                type="button"
+                onClick={handleClearAllFilters}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-extrabold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset All
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bulk Action Bar (when selected) */}
@@ -345,10 +868,28 @@ export default function ApplicationsTab({
                             {app.first_name} {app.middle_name || ''} {app.last_name}
                           </span>
                           <span className="text-[11px] text-slate-500 font-medium">{app.email}</span>
+                          {app.course_program && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[11px] text-emerald-800 font-semibold mt-0.5"
+                              title={app.course_program}
+                            >
+                              <GraduationCap className="w-3 h-3 text-[#0d5c2e] shrink-0" />
+                              <span className="truncate max-w-[190px]">{app.course_program}</span>
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="p-4 text-slate-700 font-medium">
-                        {app.region || 'National'} {app.district ? `(${app.district})` : ''}
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-900">
+                            {app.region || app.posting_region || 'National'}
+                          </span>
+                          {(app.district || app.posting_district) && (
+                            <span className="text-[11px] text-slate-500">
+                              {app.district || app.posting_district}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 text-slate-700">
                         {app.posting_station ? (
