@@ -2,14 +2,14 @@
 # Using Node 22 slim (Debian glibc) for stability
 
 # Step 1: Dependencies Stage
-FROM node:22-slim AS deps
+FROM public.ecr.aws/docker/library/node:22-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json* bun.lock* ./
 RUN npm install --legacy-peer-deps
 RUN npm install @next/swc-linux-x64-gnu@16.0.1 --no-save
 
 # Step 2: Builder Stage
-FROM node:22-slim AS builder
+FROM public.ecr.aws/docker/library/node:22-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -21,7 +21,7 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Step 3: Production Runner Stage
-FROM node:22-slim AS runner
+FROM public.ecr.aws/docker/library/node:22-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
