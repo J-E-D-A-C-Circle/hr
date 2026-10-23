@@ -44,14 +44,14 @@ if [ -n "$K3S_PATH" ]; then
     echo "📦 Detected K3s at $K3S_PATH."
     echo "📥 Importing fresh Docker image into K3s (k8s.io containerd namespace)..."
     if sudo $K3S_PATH image import --help &> /dev/null 2>&1; then
-        docker save nss-portal-app:$BUILD_TAG | sudo $K3S_PATH image import -
+        docker save nss-portal-app:$BUILD_TAG nss-portal-app:latest | sudo $K3S_PATH image import -
     else
-        docker save nss-portal-app:$BUILD_TAG | sudo $K3S_PATH ctr -n k8s.io images import -
+        docker save nss-portal-app:$BUILD_TAG nss-portal-app:latest | sudo $K3S_PATH ctr -n k8s.io images import -
     fi
     KUBECTL="sudo $K3S_PATH kubectl"
 elif command -v microk8s &> /dev/null; then
     echo "📦 Detected MicroK8s."
-    microk8s ctr image build --no-cache -t nss-portal-app:$BUILD_TAG .
+    microk8s ctr image build --no-cache -t nss-portal-app:$BUILD_TAG -t nss-portal-app:latest .
     KUBECTL="microk8s kubectl"
 elif [ -n "$KUBECTL_PATH" ]; then
     echo "📦 Standard kubectl detected at $KUBECTL_PATH."
@@ -75,15 +75,17 @@ $KUBECTL apply -f k8s/phpmyadmin-deployment.yaml
 $KUBECTL apply -f k8s/deployment.yaml
 $KUBECTL apply -f k8s/service.yaml
 
-echo "⏳ Waiting for MySQL database initialization..."
-$KUBECTL rollout status deployment/nss-mysql-app -n nss-portal --timeout=180s
-
-echo "🔄 Pointing deployment to new image tag ($BUILD_TAG) and forcing fresh pod rollout..."
+echo "🔄 Pointing portal deployment to current image tag ($BUILD_TAG)..."
 $KUBECTL set image deployment/nss-portal-app nss-portal=nss-portal-app:$BUILD_TAG -n nss-portal 2>/dev/null || true
+
+echo "⏳ Waiting for MySQL database initialization..."
+$KUBECTL rollout status deployment/nss-mysql-app -n nss-portal --timeout=300s || echo "⚠️ MySQL rollout taking longer than usual, proceeding to app rollout..."
+
+echo "🔄 Forcing fresh pod rollout for portal app..."
 $KUBECTL rollout restart deployment/nss-portal-app -n nss-portal 2>/dev/null || true
 
 echo "⏳ Waiting for DVLA NSS Portal app rollout..."
-$KUBECTL rollout status deployment/nss-portal-app -n nss-portal --timeout=180s
+$KUBECTL rollout status deployment/nss-portal-app -n nss-portal --timeout=300s
 
 echo "============================================================"
 echo "✅ DVLA NSS Portal successfully deployed to Kubernetes!"
