@@ -29,7 +29,8 @@ echo "🏷️ Deployment Image Tag: nss-portal-app:$BUILD_TAG"
 echo "🧹 Pruning stale Docker build cache & dangling images..."
 docker builder prune -f 2>/dev/null || true
 docker image prune -f 2>/dev/null || true
-# Remove older untagged or previous build images
+# Clean up past build tags from Docker to keep disk lean
+docker images --format '{{.Repository}}:{{.Tag}}' | grep 'nss-portal-app:build-' | xargs -r docker rmi 2>/dev/null || true
 docker images --filter "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
 
 # Build Docker image without stale cache

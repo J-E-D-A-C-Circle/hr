@@ -17,6 +17,15 @@ spec:
       labels:
         app: nss-mysql-app
     spec:
+      tolerations:
+        - key: "node.kubernetes.io/disk-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/memory-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
       containers:
         - name: mysql
           image: mysql:8.0

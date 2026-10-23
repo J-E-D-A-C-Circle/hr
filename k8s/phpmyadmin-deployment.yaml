@@ -15,6 +15,15 @@ spec:
       labels:
         app: nss-phpmyadmin
     spec:
+      tolerations:
+        - key: "node.kubernetes.io/disk-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/memory-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
       containers:
         - name: phpmyadmin
           image: phpmyadmin/phpmyadmin:latest

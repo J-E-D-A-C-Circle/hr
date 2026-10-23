@@ -17,6 +17,15 @@ spec:
       labels:
         app: nss-portal-app
     spec:
+      tolerations:
+        - key: "node.kubernetes.io/disk-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/memory-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
       containers:
         - name: nss-portal
           image: nss-portal-app:latest
