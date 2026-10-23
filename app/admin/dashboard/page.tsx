@@ -34,6 +34,7 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import OverviewTab from '@/components/admin/OverviewTab';
 import ApplicationsTab from '@/components/admin/ApplicationsTab';
 import PersonnelTab from '@/components/admin/PersonnelTab';
+import ApplicantManagementTab from '@/components/admin/ApplicantManagementTab';
 import StationsTab from '@/components/admin/StationsTab';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import AuditTab from '@/components/admin/AuditTab';
@@ -435,6 +436,10 @@ export default function AdminDashboard() {
     overview: { title: 'Overview', subtitle: 'Executive overview & personnel placement status' },
     applications: { title: 'Applications Desk', subtitle: 'Manage, search, filter, and review intake submissions' },
     personnel: { title: 'Personnel Roster', subtitle: 'Directory of approved and assigned NSS personnel' },
+    'applicant-management': {
+      title: 'Applicant Accounts & Credentials',
+      subtitle: 'Reset applicant passwords, update phone numbers, emails, and residential addresses'
+    },
     stations: { title: 'Station & Placement Hub', subtitle: 'DVLA station headcounts and capacity metrics' },
     analytics: { title: 'Analytics & Intelligence', subtitle: 'Demographic reports and status breakdown charts' },
     audit: { title: 'Audit & Activity Logs', subtitle: 'Timestamped administrative history trail' },
@@ -505,6 +510,13 @@ export default function AdminDashboard() {
               applications={applications}
               onSelectApplication={handleSelectApplication}
               onExportCSV={handleExportCSV}
+            />
+          )}
+
+          {activeTab === 'applicant-management' && (
+            <ApplicantManagementTab
+              onRefreshParent={handleRefresh}
+              refreshKey={refreshKey}
             />
           )}
 

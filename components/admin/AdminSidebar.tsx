@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ShieldCheck,
   LifeBuoy,
+  UserCog,
   X
 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export type AdminTabId =
   | 'overview' 
   | 'applications' 
   | 'personnel' 
+  | 'applicant-management'
   | 'stations' 
   | 'analytics' 
   | 'audit'
@@ -74,6 +76,12 @@ export default function AdminSidebar({
       icon: Users,
       badge: totalPersonnelCount > 0 ? totalPersonnelCount : null,
       badgeColor: 'bg-emerald-200 text-[#0d5c2e] border-emerald-100',
+    },
+    {
+      id: 'applicant-management' as AdminTabId,
+      label: 'Applicant Accounts',
+      icon: UserCog,
+      badge: null,
     },
     {
       id: 'stations' as AdminTabId,

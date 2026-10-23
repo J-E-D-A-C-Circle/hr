@@ -46,3 +46,29 @@ export interface Station {
   capacity: number;
   departments: string[];
 }
+
+export interface ApplicantAccount {
+  user_id: number;
+  user_email: string;
+  user_full_name: string;
+  user_role: string;
+  user_created_at: string;
+  user_updated_at?: string;
+  application_id: number | null;
+  nss_number?: string | null;
+  first_name?: string | null;
+  middle_name?: string | null;
+  last_name?: string | null;
+  phone_number?: string | null;
+  application_email?: string | null;
+  residential_address?: string | null;
+  region?: string | null;
+  district?: string | null;
+  status?: string | null;
+  posting_station?: string | null;
+  posting_department?: string | null;
+  institution_name?: string | null;
+  course_program?: string | null;
+  application_created_at?: string | null;
+  application_updated_at?: string | null;
+}
