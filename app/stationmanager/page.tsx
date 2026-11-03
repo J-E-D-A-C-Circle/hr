@@ -26,7 +26,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  GraduationCap
+  GraduationCap,
+  FileSpreadsheet
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import OfficialAppointmentLetter from '@/components/OfficialAppointmentLetter';
@@ -92,6 +93,11 @@ function StationManagerContent() {
   const [isStationMenuOpen, setIsStationMenuOpen] = useState<boolean>(false);
   const [highlightedStationIndex, setHighlightedStationIndex] = useState<number>(-1);
   const stationComboboxRef = useRef<HTMLDivElement>(null);
+
+  // Export menu state
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   // Pagination state (critical for large volumes)
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -165,7 +171,7 @@ function StationManagerContent() {
     }
   }, [selectedStationName]);
 
-  // Click outside listener for suggestive typing dropdown
+  // Click outside listener for suggestive typing dropdown and export menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (stationComboboxRef.current && !stationComboboxRef.current.contains(event.target as Node)) {
@@ -176,6 +182,9 @@ function StationManagerContent() {
         } else {
           setStationSearchInput('');
         }
+      }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setIsExportMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -336,47 +345,274 @@ function StationManagerContent() {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
+  // Master roster headers identical to automated export script
+  const ROSTER_HEADERS = [
+    '#',
+    'NSS Number',
+    'Full Name',
+    'Surname / Last Name',
+    'First Name',
+    'Middle Name',
+    'Gender',
+    'Date of Birth',
+    'Nationality',
+    'Phone Number',
+    'Email Address',
+    'Residential Address',
+    'Home Region',
+    'Home District',
+    'Tertiary Institution',
+    'Program of Study',
+    'Year of Completion',
+    'Assigned Station',
+    'Assigned Department',
+    'Posting Region',
+    'Posting District',
+    'Service Year',
+    'Service Start Date',
+    'Service End Date',
+    'Commencement Date',
+    'Appointment Ref Number',
+    'Appointment Letter Date',
+    'Authorized Signatory',
+    'Signatory Title',
+    'Approval Status',
+    'Approval Date',
+    'Submission Date',
+  ];
+
+  // Column widths for professional Excel workbook formatting
+  const ROSTER_COLUMN_WIDTHS = [
+    { wch: 6 },  // #
+    { wch: 18 }, // NSS Number
+    { wch: 26 }, // Full Name
+    { wch: 18 }, // Surname
+    { wch: 18 }, // First Name
+    { wch: 16 }, // Middle Name
+    { wch: 10 }, // Gender
+    { wch: 14 }, // DOB
+    { wch: 14 }, // Nationality
+    { wch: 18 }, // Phone
+    { wch: 28 }, // Email
+    { wch: 30 }, // Residential Address
+    { wch: 18 }, // Home Region
+    { wch: 18 }, // Home District
+    { wch: 32 }, // Institution
+    { wch: 30 }, // Program
+    { wch: 14 }, // Year
+    { wch: 26 }, // Station
+    { wch: 26 }, // Department
+    { wch: 18 }, // Posting Region
+    { wch: 18 }, // Posting District
+    { wch: 14 }, // Service Year
+    { wch: 14 }, // Start Date
+    { wch: 14 }, // End Date
+    { wch: 26 }, // Commencement Date
+    { wch: 24 }, // Ref Num
+    { wch: 20 }, // Letter Date
+    { wch: 26 }, // Signatory
+    { wch: 20 }, // Signatory Title
+    { wch: 14 }, // Status
+    { wch: 14 }, // Reviewed At
+    { wch: 14 }, // Created At
+  ];
+
+  // Format personnel record into standardized row values
+  const formatPersonnelRow = (p: StationPersonnel, index: number) => {
+    const letterData = p.appointmentLetterData || {};
+    const refNum = letterData.customRefNumber || `DVLA/HQ/NSS/2026/${String(p.id).padStart(3, '0')}`;
+    const letterDate =
+      letterData.letterDate ||
+      (p.reviewed_at
+        ? new Date(p.reviewed_at)
+            .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            .toUpperCase()
+        : 'OCTOBER 12, 2026');
+    const signatory = letterData.signatoryName || 'EPHRAIM NII TAN SACKEY';
+    const sigTitle = letterData.signatoryTitle || 'AG. DIRECTOR HR';
+    const phone = p.phone_number ? String(p.phone_number).trim() : '';
+
+    return [
+      index + 1,
+      p.nss_number || 'N/A',
+      p.full_name || 'NSS Personnel',
+      p.last_name || '',
+      p.first_name || '',
+      p.middle_name || '',
+      p.gender || 'N/A',
+      p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : 'N/A',
+      p.nationality || 'Ghanaian',
+      phone,
+      p.email || 'N/A',
+      p.residential_address || 'N/A',
+      p.region || 'N/A',
+      p.district || 'N/A',
+      p.institution_name || 'N/A',
+      p.course_program || 'N/A',
+      p.year_of_completion ? String(p.year_of_completion) : 'N/A',
+      p.posting_station || selectedStationName || 'N/A',
+      p.posting_department || 'General Deployment',
+      p.posting_region || currentStationObj?.region || 'N/A',
+      p.posting_district || 'N/A',
+      getAutoServiceYear(p.service_year),
+      p.service_period_start || '2026-11-02',
+      p.service_period_end || '2027-10-29',
+      FIXED_EFFECTIVE_DATE_TEXT,
+      refNum,
+      letterDate,
+      signatory,
+      sigTitle,
+      (p.status || 'APPROVED').toUpperCase(),
+      p.reviewed_at ? new Date(p.reviewed_at).toISOString().split('T')[0] : 'N/A',
+      p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : 'N/A',
+    ];
+  };
+
+  // Export station roster as multi-sheet Excel (.xlsx) with tabs per department
+  const handleExportExcel = async (scope: 'station' | 'current-view' | 'all-stations' = 'station') => {
+    setIsExportMenuOpen(false);
+    setIsExportingExcel(true);
+    const toastId = toast.loading('Generating multi-sheet Excel workbook...');
+
+    try {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.utils.book_new();
+
+      if (scope === 'all-stations') {
+        if (applications.length === 0) {
+          toast.error('No personnel records to export.', { id: toastId });
+          setIsExportingExcel(false);
+          return;
+        }
+
+        const stationMap: Record<string, StationPersonnel[]> = {};
+        for (const p of applications) {
+          const stName = (p.posting_station || 'Unassigned Station').trim();
+          if (!stationMap[stName]) stationMap[stName] = [];
+          stationMap[stName].push(p);
+        }
+
+        // Master nationwide tab first
+        const masterRows = [ROSTER_HEADERS, ...applications.map((p, idx) => formatPersonnelRow(p, idx))];
+        const masterWs = XLSX.utils.aoa_to_sheet(masterRows);
+        masterWs['!cols'] = ROSTER_COLUMN_WIDTHS;
+        XLSX.utils.book_append_sheet(wb, masterWs, 'All Approved Applicants');
+
+        // Add sheet for each station
+        const sortedStationNames = Object.keys(stationMap).sort((a, b) => a.localeCompare(b));
+        const usedSheetNames = new Set<string>(['all approved applicants']);
+        for (const stName of sortedStationNames) {
+          const list = stationMap[stName];
+          const rows = [ROSTER_HEADERS, ...list.map((p, idx) => formatPersonnelRow(p, idx))];
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+          ws['!cols'] = ROSTER_COLUMN_WIDTHS;
+
+          let cleanName = stName.replace(/[\\/?*:[\]]+/g, '_').trim().slice(0, 31) || 'Station';
+          let uniqueName = cleanName;
+          let counter = 2;
+          while (usedSheetNames.has(uniqueName.toLowerCase())) {
+            const suffix = ` (${counter})`;
+            uniqueName = cleanName.slice(0, 31 - suffix.length) + suffix;
+            counter++;
+          }
+          usedSheetNames.add(uniqueName.toLowerCase());
+
+          XLSX.utils.book_append_sheet(wb, ws, uniqueName);
+        }
+
+        XLSX.writeFile(wb, 'DVLA_NSS_Master_Roster_All_Stations.xlsx');
+        toast.success(`Exported master roster with ${sortedStationNames.length} station sheets!`, { id: toastId });
+      } else if (scope === 'current-view') {
+        if (filteredPersonnel.length === 0) {
+          toast.error('No personnel records in current view to export.', { id: toastId });
+          setIsExportingExcel(false);
+          return;
+        }
+
+        const rows = [ROSTER_HEADERS, ...filteredPersonnel.map((p, idx) => formatPersonnelRow(p, idx))];
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = ROSTER_COLUMN_WIDTHS;
+        const sheetTitle = (selectedDeptFilter !== 'all' ? selectedDeptFilter : 'Personnel Roster').replace(/[\\/?*:[\]]+/g, '_').slice(0, 31);
+        XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+
+        const safeStation = (selectedStationName || 'Station').replace(/[^a-zA-Z0-9]/g, '_');
+        const safeDept = selectedDeptFilter !== 'all' ? `_${selectedDeptFilter.replace(/[^a-zA-Z0-9]/g, '_')}` : '';
+        XLSX.writeFile(wb, `DVLA_NSS_${safeStation}${safeDept}.xlsx`);
+        toast.success('Current view exported to Excel!', { id: toastId });
+      } else {
+        // Multi-sheet workbook per Station: tabs for each department first, then full roster
+        const stationPersonnel = selectedStationName && selectedStationName !== 'all'
+          ? applications.filter((p) => (p.posting_station || '').trim().toLowerCase() === selectedStationName.trim().toLowerCase())
+          : filteredPersonnel;
+
+        if (stationPersonnel.length === 0) {
+          toast.error('No personnel records to export for this station.', { id: toastId });
+          setIsExportingExcel(false);
+          return;
+        }
+
+        // Group by department
+        const deptMap: Record<string, StationPersonnel[]> = {};
+        for (const p of stationPersonnel) {
+          const dept = (p.posting_department || 'General Deployment').trim();
+          if (!deptMap[dept]) deptMap[dept] = [];
+          deptMap[dept].push(p);
+        }
+
+        // Sort departments: put 'Administration' first if present, then alphabetical
+        const sortedDepts = Object.keys(deptMap).sort((a, b) => {
+          if (a.toLowerCase() === 'administration') return -1;
+          if (b.toLowerCase() === 'administration') return 1;
+          return a.localeCompare(b);
+        });
+
+        const usedSheetNames = new Set<string>();
+
+        // 1. Department sheets first (Administration, Finance, etc.)
+        for (const dept of sortedDepts) {
+          const deptList = deptMap[dept];
+          const rows = [ROSTER_HEADERS, ...deptList.map((p, idx) => formatPersonnelRow(p, idx))];
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+          ws['!cols'] = ROSTER_COLUMN_WIDTHS;
+
+          let cleanName = dept.replace(/[\\/?*:[\]]+/g, '_').trim().slice(0, 31) || 'Department';
+          let uniqueName = cleanName;
+          let counter = 2;
+          while (usedSheetNames.has(uniqueName.toLowerCase())) {
+            const suffix = ` (${counter})`;
+            uniqueName = cleanName.slice(0, 31 - suffix.length) + suffix;
+            counter++;
+          }
+          usedSheetNames.add(uniqueName.toLowerCase());
+
+          XLSX.utils.book_append_sheet(wb, ws, uniqueName);
+        }
+
+        // 2. Add "All Station Personnel" sheet as master overview
+        const allRows = [ROSTER_HEADERS, ...stationPersonnel.map((p, idx) => formatPersonnelRow(p, idx))];
+        const allWs = XLSX.utils.aoa_to_sheet(allRows);
+        allWs['!cols'] = ROSTER_COLUMN_WIDTHS;
+        XLSX.utils.book_append_sheet(wb, allWs, 'All Station Personnel');
+
+        const safeStation = (selectedStationName || 'All_Stations').replace(/[^a-zA-Z0-9]/g, '_');
+        XLSX.writeFile(wb, `DVLA_NSS_Personnel_Roster_${safeStation}.xlsx`);
+        toast.success(`Exported Excel workbook with ${sortedDepts.length} department sheets!`, { id: toastId });
+      }
+    } catch (err: any) {
+      console.error('Failed to export Excel roster:', err);
+      toast.error('Failed to export Excel roster: ' + (err.message || 'Unknown error'), { id: toastId });
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   // Export station roster CSV with all personnel details for Excel
   const handleExportCSV = () => {
+    setIsExportMenuOpen(false);
     if (filteredPersonnel.length === 0) {
       toast.error('No personnel records to export for this view.');
       return;
     }
-
-    const headers = [
-      '#',
-      'NSS Number',
-      'Full Name',
-      'Surname / Last Name',
-      'First Name',
-      'Middle Name',
-      'Gender',
-      'Date of Birth',
-      'Nationality',
-      'Phone Number',
-      'Email Address',
-      'Residential Address',
-      'Home Region',
-      'Home District',
-      'Tertiary Institution',
-      'Program of Study',
-      'Year of Completion',
-      'Assigned Station',
-      'Assigned Department',
-      'Posting Region',
-      'Posting District',
-      'Service Year',
-      'Service Start Date',
-      'Service End Date',
-      'Commencement Date',
-      'Appointment Ref Number',
-      'Appointment Letter Date',
-      'Authorized Signatory',
-      'Signatory Title',
-      'Approval Status',
-      'Approval Date',
-      'Submission Date',
-    ];
 
     const escapeCell = (val: any) => {
       if (val === undefined || val === null || val === '') return '""';
@@ -386,63 +622,23 @@ function StationManagerContent() {
 
     const formatPhone = (val: any) => {
       if (!val) return '""';
-      // Format as ="..." so Excel preserves leading zeros without formatting loss
       const cleaned = String(val).replace(/["'=]/g, '').trim();
       return `="${cleaned}"`;
     };
 
     const rows = filteredPersonnel.map((p, index) => {
-      const letterData = p.appointmentLetterData || {};
-      const refNum = letterData.customRefNumber || `DVLA/HQ/NSS/2026/${String(p.id).padStart(3, '0')}`;
-      const letterDate =
-        letterData.letterDate ||
-        (p.reviewed_at
-          ? new Date(p.reviewed_at)
-              .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-              .toUpperCase()
-          : 'OCTOBER 12, 2026');
-      const signatory = letterData.signatoryName || 'EPHRAIM NII TAN SACKEY';
-      const sigTitle = letterData.signatoryTitle || 'AG. DIRECTOR HR';
-
-      return [
-        index + 1,
-        escapeCell(p.nss_number || 'N/A'),
-        escapeCell(p.full_name),
-        escapeCell(p.last_name),
-        escapeCell(p.first_name),
-        escapeCell(p.middle_name || ''),
-        escapeCell(p.gender || 'N/A'),
-        escapeCell(p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : 'N/A'),
-        escapeCell(p.nationality || 'Ghanaian'),
-        formatPhone(p.phone_number),
-        escapeCell(p.email || 'N/A'),
-        escapeCell(p.residential_address || 'N/A'),
-        escapeCell(p.region || 'N/A'),
-        escapeCell(p.district || 'N/A'),
-        escapeCell(p.institution_name || 'N/A'),
-        escapeCell(p.course_program || 'N/A'),
-        escapeCell(p.year_of_completion || 'N/A'),
-        escapeCell(p.posting_station || selectedStationName || 'N/A'),
-        escapeCell(p.posting_department || 'General Deployment'),
-        escapeCell(p.posting_region || currentStationObj?.region || 'N/A'),
-        escapeCell(p.posting_district || 'N/A'),
-        escapeCell(getAutoServiceYear(p.service_year)),
-        escapeCell(p.service_period_start || '2026-11-02'),
-        escapeCell(p.service_period_end || '2027-10-29'),
-        escapeCell(FIXED_EFFECTIVE_DATE_TEXT),
-        escapeCell(refNum),
-        escapeCell(letterDate),
-        escapeCell(signatory),
-        escapeCell(sigTitle),
-        escapeCell((p.status || 'APPROVED').toUpperCase()),
-        escapeCell(p.reviewed_at ? new Date(p.reviewed_at).toISOString().split('T')[0] : 'N/A'),
-        escapeCell(p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : 'N/A'),
-      ].join(',');
+      const rowData = formatPersonnelRow(p, index);
+      return rowData
+        .map((cell, colIdx) => {
+          if (colIdx === 9) return formatPhone(cell);
+          return escapeCell(cell);
+        })
+        .join(',');
     });
 
     const csvContent =
       'data:text/csv;charset=utf-8,\uFEFF' +
-      [headers.join(','), ...rows].join('\n');
+      [ROSTER_HEADERS.join(','), ...rows].join('\n');
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -452,7 +648,7 @@ function StationManagerContent() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Station roster with full personnel records exported to CSV!');
+    toast.success('Station roster exported to CSV!');
   };
 
   // Open Details Modal
@@ -881,12 +1077,73 @@ function StationManagerContent() {
                   </div>
                 </>
               )}
-              <button
-                onClick={handleExportCSV}
-                className="col-span-2 sm:col-span-1 h-11 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-              >
-                <Download className="w-4 h-4 text-emerald-400" /> Export CSV Roster
-              </button>
+              <div className="relative col-span-2 sm:col-span-1" ref={exportMenuRef}>
+                <div className="flex h-11 rounded-xl shadow-xs overflow-hidden border border-emerald-700/30">
+                  <button
+                    onClick={() => handleExportExcel('station')}
+                    disabled={isExportingExcel || filteredPersonnel.length === 0}
+                    className="flex-1 px-3.5 bg-gradient-to-r from-[#008053] to-[#00603e] hover:from-[#006e47] hover:to-[#005034] text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Export multi-sheet Excel (.xlsx) with tabs for each department"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+                    <span>{isExportingExcel ? 'Exporting...' : 'Export Excel (.xlsx)'}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                    className="px-2.5 bg-[#00603e] hover:bg-[#005034] text-white border-l border-emerald-600/40 transition flex items-center justify-center cursor-pointer"
+                    title="More export options (CSV, Master All-Stations)"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+
+                {/* Export Dropdown Menu */}
+                {isExportMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Export Rosters
+                    </div>
+
+                    <button
+                      onClick={() => handleExportExcel('station')}
+                      className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-start gap-2.5 transition text-xs font-medium text-slate-700 cursor-pointer"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-[#008053] mt-0.5 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-900">Excel Workbook (.xlsx)</div>
+                        <div className="text-[11px] text-slate-500">Multi-sheet with tabs for each department</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={handleExportCSV}
+                      className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-start gap-2.5 transition text-xs font-medium text-slate-700 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-900">CSV Roster (.csv)</div>
+                        <div className="text-[11px] text-slate-500">Flat spreadsheet for current filtered view</div>
+                      </div>
+                    </button>
+
+                    {applications.length > 0 && (
+                      <>
+                        <div className="my-1 border-t border-slate-100" />
+                        <button
+                          onClick={() => handleExportExcel('all-stations')}
+                          className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-start gap-2.5 transition text-xs font-medium text-slate-700 cursor-pointer"
+                        >
+                          <Building2 className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
+                          <div>
+                            <div className="font-bold text-slate-900">All Stations Master Excel</div>
+                            <div className="text-[11px] text-slate-500">Nationwide workbook with sheet per station</div>
+                          </div>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

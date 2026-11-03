@@ -42,3 +42,7 @@ next-env.d.ts
 
 # User Uploads
 /uploads/
+
+# Generated Data Exports & Scratch
+/exports/
+/scratch/

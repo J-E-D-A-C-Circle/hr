@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       const countsResult = await query<{ posting_station: string; count: number }[]>(
         `SELECT posting_station, COUNT(*) AS count
          FROM nss_applications
-         WHERE status = 'approved' AND posting_station IS NOT NULL AND TRIM(posting_station) != ''
+         WHERE LOWER(status) = 'approved' AND posting_station IS NOT NULL AND TRIM(posting_station) != ''
          GROUP BY posting_station`
       );
       if (Array.isArray(countsResult)) {
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
       const distinctAssigned = await query<{ posting_station: string; posting_region?: string }[]>(
         `SELECT DISTINCT posting_station, posting_region
          FROM nss_applications
-         WHERE status = 'approved' AND posting_station IS NOT NULL AND TRIM(posting_station) != ''`
+         WHERE LOWER(status) = 'approved' AND posting_station IS NOT NULL AND TRIM(posting_station) != ''`
       );
       if (Array.isArray(distinctAssigned)) {
         for (const item of distinctAssigned) {
@@ -118,6 +118,7 @@ export async function GET(request: Request) {
     stations.sort((a, b) => a.name.localeCompare(b.name));
 
     // 4. Fetch approved applications assigned to stations
+    const approvedCondition = sql`LOWER(${nssApplications.status}) = 'approved'`;
     let appsQuery = db
       .select({
         id: nssApplications.id,
@@ -149,7 +150,7 @@ export async function GET(request: Request) {
         reviewed_at: nssApplications.reviewedAt,
       })
       .from(nssApplications)
-      .where(eq(nssApplications.status, 'approved'))
+      .where(approvedCondition)
       .$dynamic();
 
     // If specific station filter is applied
@@ -167,8 +168,12 @@ export async function GET(request: Request) {
 
       appsQuery = appsQuery.where(
         and(
-          eq(nssApplications.status, 'approved'),
-          eq(nssApplications.postingStation, targetStationName)
+          approvedCondition,
+          sql`(
+            LOWER(TRIM(${nssApplications.postingStation})) = ${targetStationName.toLowerCase().trim()}
+            OR LOWER(TRIM(${nssApplications.postingStation})) = ${decodedFilter.toLowerCase().trim()}
+            OR ${nssApplications.postingStation} = ${targetStationName}
+          )`
         )
       );
     }
