@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
         const basic = item.salary ? Number(item.salary) : 1400.00;
         const ghanaCalc = calculateGhanaDeductions(
           basic,
-          true,
+          item.payment_status !== "unpaid",
           rates.ssnit_employee_rate,
           rates.ssnit_employer_rate,
           rates.petra_employee_rate,
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
         const joining = item.contracts?.[0]?.start_date || item.created_at;
         if (!joining) return false;
         const d = new Date(joining);
-        return d.getMonth() === 7 && d.getFullYear() === 2026;
+        return d.getMonth() === effMIdx && d.getFullYear() === mYr;
       }).length;
 
       const renewals = filtered.filter((item: any) => {

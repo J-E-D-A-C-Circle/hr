@@ -43,11 +43,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const rates = await getDeductionRates();
+    const rates = await getDeductionRates(month);
     const basic = staffRecord.salary ? Number(staffRecord.salary) : 1400.0;
+    const isPaid = staffRecord.payment_status !== "unpaid";
     const ghanaCalc = calculateGhanaDeductions(
       basic,
-      true,
+      isPaid,
       rates.ssnit_employee_rate,
       rates.ssnit_employer_rate,
       rates.petra_employee_rate,

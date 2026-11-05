@@ -59,7 +59,7 @@ export async function POST() {
       const monthsLeft = calc.monthsRemaining;
 
       const milestonesToEvaluate: { milestone: string; condition: boolean }[] = [
-        { milestone: "6_MONTHS", condition: monthsLeft <= 6 && monthsLeft > 0 },
+        { milestone: "6_MONTHS", condition: monthsLeft <= 6 && calc.daysRemaining > 0 },
         { milestone: "1_YEAR", condition: monthsLeft <= 12 && monthsLeft > 6 },
         { milestone: "3_YEARS", condition: monthsLeft <= 36 && monthsLeft > 12 },
         { milestone: "5_YEARS", condition: monthsLeft <= 60 && monthsLeft > 36 },

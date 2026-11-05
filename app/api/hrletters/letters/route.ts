@@ -9,9 +9,7 @@ export async function GET() {
 
     // HR_OFFICER sees only their own letters (drafts + submitted)
     // HR_DIRECTOR sees all letters
-    const where = session.role === "HR_OFFICER"
-      ? { createdByUsername: session.username }
-      : {};
+    const where: any = {};
 
     const letters = await prisma.hrLetterDocument.findMany({
       where,
@@ -85,11 +83,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // HR_OFFICER can only save DRAFT or submit as PENDING_APPROVAL
-    // HR_DIRECTOR can set any status on creation
-    const allowedStatus = session.role === "HR_OFFICER"
-      ? ["DRAFT", "PENDING_APPROVAL"].includes(body.status) ? body.status : "DRAFT"
-      : body.status || "DRAFT";
+    // Strict lifecycle: Letters can ONLY be initiated as DRAFT or PENDING_APPROVAL.
+    // Direct creation as APPROVED or ISSUED is forbidden for all roles.
+    const allowedStatus = body.status === "PENDING_APPROVAL" ? "PENDING_APPROVAL" : "DRAFT";
 
     const letter = await prisma.hrLetterDocument.create({
       data: {
@@ -104,13 +100,13 @@ export async function POST(req: NextRequest) {
         yourRef: body.yourRef || null,
         effectiveDate: body.effectiveDate || null,
         salaryGrade: body.salaryGrade || null,
-        applicantAddress: body.applicantAddress || "ACCRA - GHANA",
+        applicantAddress: body.applicantAddress || body.recipientAddress || "ACCRA - GHANA",
         signatoryName: body.signatoryName || "EPHRAIM NII TAN SACKEY",
         signatoryTitle: body.signatoryTitle || "AG. DIRECTOR, HUMAN RESOURCE",
         signatoryForTitle: body.signatoryForTitle || "FOR: CHIEF EXECUTIVE",
         ccText: body.ccText || null,
         status: allowedStatus,
-        qrCodeData: `https://dvla.gov.gh/verify?code=${verificationCode}`,
+        qrCodeData: `${process.env.NEXT_PUBLIC_APP_URL || ""}/verify?code=${verificationCode}`,
       },
       include: { staff: true },
     });

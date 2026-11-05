@@ -31,9 +31,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Password check (plain: prefix pattern consistent with other portals)
-    const expectedHash = `plain:${password.trim()}`;
-    if (user.passwordHash !== expectedHash) {
+    // Flexible password check (plain: prefix or exact match)
+    const stored = user.passwordHash || "";
+    const inputPwd = password.trim();
+    const isValid = stored.startsWith("plain:")
+      ? inputPwd === stored.replace("plain:", "")
+      : inputPwd === stored;
+    if (!isValid) {
       return NextResponse.json(
         { success: false, error: "Invalid credentials" },
         { status: 401 }

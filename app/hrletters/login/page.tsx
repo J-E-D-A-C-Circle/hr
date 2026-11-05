@@ -7,7 +7,7 @@ export default function HrLettersLoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/login?system=hrletters");
+    router.replace("/login?system=HR_LETTERS");
   }, [router]);
 
   return (

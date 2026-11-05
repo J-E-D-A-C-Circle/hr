@@ -8,7 +8,7 @@ const ADMIN_SESSION_COOKIE = "dvla_super_admin_session";
 const HRLETTERS_SESSION_COOKIE = "dvla_hrletters_session";
 
 // Public paths that never need auth
-const TEMPSTAFF_PUBLIC = ["/login", "/api/auth"];
+const TEMPSTAFF_PUBLIC = ["/login", "/api/auth", "/portal", "/api/portal", "/verify", "/api/verify"];
 const RETIREMENT_PUBLIC = ["/retirement/login", "/api/retirement/auth"];
 const ADMIN_PUBLIC = ["/admin/login", "/api/admin/auth"];
 const HR_LETTERS_PUBLIC = ["/hrletters/login", "/api/hrletters/auth"];

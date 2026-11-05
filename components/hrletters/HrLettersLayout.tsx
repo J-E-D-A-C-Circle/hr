@@ -11,6 +11,8 @@ import {
   Archive,
   Users,
   Settings,
+  ShieldCheck,
+  Globe,
   LogOut,
   Menu,
   X,
@@ -98,17 +100,21 @@ export function HrLettersLayout({ children }: HrLettersLayoutProps) {
   const navItems = [
     { label: "Dashboard", href: "/hrletters/dashboard", icon: LayoutDashboard },
     { label: "Generate Letter", href: "/hrletters/generate", icon: PenTool },
-    { label: "Letter Archive", href: "/hrletters/archive", icon: Archive },
+    { label: "Letter Archive & Queue", href: "/hrletters/archive", icon: Archive },
     { label: "Templates", href: "/hrletters/templates", icon: FileText },
     { label: "Staff Registry", href: "/hrletters/staff", icon: Users },
+    { label: "Staff Portal", href: "/hrletters/portal", icon: Globe },
+    { label: "Verify Letter", href: "/hrletters/verify", icon: ShieldCheck },
   ];
 
   const PAGE_TITLES: Record<string, string> = {
     "/hrletters/dashboard": "HR Letters Dashboard",
     "/hrletters/generate": "Letter Generator",
-    "/hrletters/archive": "Letter Archive",
+    "/hrletters/archive": "Letter Archive & Queue",
     "/hrletters/templates": "Letter Templates",
     "/hrletters/staff": "Staff Registry",
+    "/hrletters/portal": "Staff Document Portal",
+    "/hrletters/verify": "Letter Verification Gateway",
   };
 
   const pageTitle = Object.entries(PAGE_TITLES).find(([k]) => pathname === k || pathname.startsWith(k + "/"))?.[1] || "HR Letters";

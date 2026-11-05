@@ -74,6 +74,13 @@ Kindly sign and return the duplicate of this letter to indicate your acceptance 
 
 const DEFAULT_USERS = [
   {
+    username: "admin",
+    email: "admin@dvla.gov.gh",
+    fullName: "Super Administrator",
+    passwordHash: "plain:admin123",
+    role: "HR_DIRECTOR",
+  },
+  {
     username: "hr.officer",
     email: "hr.officer@dvla.gov.gh",
     fullName: "HR Officer",

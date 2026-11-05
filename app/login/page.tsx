@@ -91,11 +91,15 @@ const SYSTEMS: Record<SystemKey, SystemConfig> = {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialSys = (searchParams.get("system")?.toUpperCase() as SystemKey) || "TEMPSTAFF";
+  const rawSys = (searchParams.get("system") || "TEMPSTAFF").toUpperCase();
+  const initialSys: SystemKey =
+    rawSys === "HRLETTERS" || rawSys === "HR_LETTERS" || rawSys === "HR-LETTERS"
+      ? "HR_LETTERS"
+      : rawSys === "RETIREMENT"
+      ? "RETIREMENT"
+      : "TEMPSTAFF";
 
-  const [selectedSystem, setSelectedSystem] = useState<SystemKey>(
-    SYSTEMS[initialSys] ? initialSys : "TEMPSTAFF"
-  );
+  const [selectedSystem, setSelectedSystem] = useState<SystemKey>(initialSys);
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -105,13 +109,19 @@ function LoginForm() {
 
   // Check if session exists on load
   useEffect(() => {
-    fetch("/api/auth/check")
-      .then((res) => {
-        if (res.ok) router.replace("/dashboard");
-        else setCheckingSession(false);
-      })
-      .catch(() => setCheckingSession(false));
-  }, [router]);
+    const requestedSys = searchParams.get("system");
+    // Only auto-redirect to TempStaff /dashboard if user didn't explicitly request another system
+    if (!requestedSys || requestedSys.toUpperCase() === "TEMPSTAFF") {
+      fetch("/api/auth/check")
+        .then((res) => {
+          if (res.ok) router.replace("/dashboard");
+          else setCheckingSession(false);
+        })
+        .catch(() => setCheckingSession(false));
+    } else {
+      setCheckingSession(false);
+    }
+  }, [router, searchParams]);
 
   const activeConfig = SYSTEMS[selectedSystem] || SYSTEMS.TEMPSTAFF;
   const ActiveIcon = activeConfig.icon;
