@@ -12,7 +12,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: "Invalid staff ID" }, { status: 400 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { user_name, user_role, rejection_reason } = body;
 
     if (!rejection_reason || !rejection_reason.trim()) {

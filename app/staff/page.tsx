@@ -280,7 +280,8 @@ export default function StaffListPage() {
     roleUpper.includes("MANAGER") ||
     roleUpper.includes("DIRECTOR") ||
     roleUpper.includes("ADMIN") ||
-    roleUpper.includes("SUPER");
+    roleUpper.includes("SUPER") ||
+    roleUpper.includes("VALIDAT");
 
   // Only Validation Officers, HR Managers, Directors, Inspectors & Administrators can see/use validate button
   const canValidateStaff =

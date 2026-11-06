@@ -111,14 +111,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check duplicate staff_code if provided
-    if (staff_code) {
-      const existing = await prisma.staff.findUnique({
-        where: { staff_code },
+    // Safely sanitize staff_code and check for duplicates
+    const cleanStaffCode = staff_code && String(staff_code).trim() !== "" ? String(staff_code).trim() : null;
+    if (cleanStaffCode) {
+      const existing = await prisma.staff.findFirst({
+        where: { staff_code: cleanStaffCode },
       });
       if (existing) {
         return NextResponse.json(
-          { success: false, error: `Staff Code "${staff_code}" already exists.` },
+          { success: false, error: `Staff Code "${cleanStaffCode}" already exists.` },
           { status: 400 }
         );
       }
@@ -142,30 +143,36 @@ export async function POST(request: NextRequest) {
       roleUpper.includes("DIRECTOR") ||
       roleUpper.includes("INSPECTOR") ||
       roleUpper.includes("ADMIN") ||
-      roleUpper.includes("SUPER");
+      roleUpper.includes("SUPER") ||
+      roleUpper.includes("VALIDAT");
     const isPending = !isApprovalAuthority;
     const approvalStatus = isPending ? "PENDING_APPROVAL" : "APPROVED";
+
+    const cleanSalary = salary ? parseFloat(String(salary).replace(/[^0-9.]/g, "")) : null;
+    const cleanPremium = insurance_premium ? parseFloat(String(insurance_premium).replace(/[^0-9.]/g, "")) : null;
+    const cleanSsnit = ssnit_no && String(ssnit_no).trim() !== "" ? String(ssnit_no).trim().toUpperCase() : null;
+    const cleanNia = nia_number && String(nia_number).trim() !== "" ? String(nia_number).trim().toUpperCase() : null;
 
     // Create staff + initial contract
     const newStaff = await prisma.staff.create({
       data: {
-        staff_code: staff_code || null,
-        full_name,
+        staff_code: cleanStaffCode,
+        full_name: String(full_name).trim(),
         date_of_birth: parseFlexibleDate(date_of_birth),
         gender: gender || null,
-        email: email || null,
-        ssnit_no: ssnit_no || null,
-        nia_number: nia_number || null,
+        email: email && String(email).trim() !== "" ? String(email).trim() : null,
+        ssnit_no: cleanSsnit,
+        nia_number: cleanNia,
         role: role || null,
         department: department || null,
         phone: phone || null,
         bank_name: bank_name || null,
         bank_branch: bank_branch || null,
         bank_account: bank_account || null,
-        salary: salary ? parseFloat(salary) : null,
+        salary: cleanSalary && !isNaN(cleanSalary) ? cleanSalary : null,
         insurance_provider: insurance_provider || "Petra",
         insurance_policy_no: insurance_policy_no || null,
-        insurance_premium: insurance_premium ? parseFloat(insurance_premium) : null,
+        insurance_premium: cleanPremium && !isNaN(cleanPremium) ? cleanPremium : null,
         approval_status: approvalStatus,
         created_by: `${actorName} (${actorRole})`,
         approved_by: isPending ? null : actorName,

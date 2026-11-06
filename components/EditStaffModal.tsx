@@ -20,6 +20,9 @@ interface EditStaffModalProps {
 }
 
 export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: EditStaffModalProps) {
+  const [surname, setSurname] = useState("");
+  const [firstMiddleName, setFirstMiddleName] = useState("");
+ 
   const [formData, setFormData] = useState({
     staff_code: "",
     full_name: "",
@@ -46,7 +49,12 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
   useEffect(() => {
     if (isOpen && staff) {
       const currentContract = staff.contracts?.find((c: any) => c.is_current) || staff.contracts?.[0] || staff.currentContract;
-      
+      const nameParts = (staff.full_name || "").trim().split(/\s+/);
+      const initSurname = nameParts[0] || "";
+      const initGiven = nameParts.slice(1).join(" ") || "";
+      setSurname(initSurname);
+      setFirstMiddleName(initGiven);
+
       setFormData({
         staff_code: staff.staff_code || "",
         full_name: staff.full_name || "",
@@ -79,10 +87,18 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.full_name.trim()) {
-      setError("Full Name is required.");
+    const formattedSurname = surname.trim().toUpperCase();
+    const formattedGiven = firstMiddleName.trim();
+
+    if (!formattedSurname) {
+      setError("Surname (Last Name) is required.");
       return;
     }
+    if (!formattedGiven) {
+      setError("First & Middle Name(s) are required.");
+      return;
+    }
+    const combinedFullName = `${formattedSurname} ${formattedGiven}`;
 
     setLoading(true);
     setError(null);
@@ -101,6 +117,7 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
 
       const payload = {
         ...formData,
+        full_name: combinedFullName,
         user_name: userName,
         user_role: userRole,
       };
@@ -208,24 +225,61 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
               <Building className="h-4 w-4 text-amber-500" />
-              <span>2. Employee & SSNIT Details</span>
+              <span>2. Personal & Employment Details</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Full Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  name="full_name"
-                  placeholder="e.g. Kwame Mensah"
-                  value={formData.full_name}
-                  onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                />
+            {/* Split Name: Surname (1st for SSNIT) then First & Middle Name */}
+            <div className="col-span-1 sm:col-span-2 bg-slate-50/70 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-900 dark:text-white mb-1">
+                    Surname (Last Name) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={surname}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSurname(val);
+                      const full = `${val.trim()} ${firstMiddleName.trim()}`.trim();
+                      setFormData((prev) => ({ ...prev, full_name: full }));
+                    }}
+                    placeholder="MENSAH"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-semibold uppercase placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                                  </div>
+
+                <div>
+                  <label className="block font-bold text-slate-900 dark:text-white mb-1">
+                    First &amp; Middle Name(s) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={firstMiddleName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFirstMiddleName(val);
+                      const full = `${surname.trim()} ${val.trim()}`.trim();
+                      setFormData((prev) => ({ ...prev, full_name: full }));
+                    }}
+                    placeholder="Clementine Kofi"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                                  </div>
               </div>
+
+              {(surname.trim() || firstMiddleName.trim()) && (
+                <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 text-[11px]">
+                  <span className="text-slate-500 font-medium">Full Name:</span>
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                    {`${surname.trim().toUpperCase()} ${firstMiddleName.trim()}`.trim()}
+                  </span>
+                </div>
+              )}
+            </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
