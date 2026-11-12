@@ -14,7 +14,7 @@ WHERE UPPER(TRIM(`department`)) IN (
 
 -- Regional & District Offices (preserves ADENTAN OFFICE(COMPLIANCE))
 UPDATE `staff` SET `department` = 'ADENTAN'
-WHERE UPPER(TRIM(`department`)) IN ('ADENTAN OFFICE', 'ADENTA');
+WHERE UPPER(TRIM(`department`)) IN ('ADENTAN OFFICE', 'ADENTAN DISTRICT OFFICE', 'ADENTA');
 
 UPDATE `staff` SET `department` = 'WEIJA'
 WHERE UPPER(TRIM(`department`)) = 'WEIJA OFFICE';
@@ -47,7 +47,7 @@ UPDATE `staff` SET `department` = 'CAPE-COAST'
 WHERE UPPER(TRIM(`department`)) = 'CAPE COAST';
 
 UPDATE `staff` SET `department` = 'HO'
-WHERE UPPER(TRIM(`department`)) = 'HO OFFICE';
+WHERE UPPER(TRIM(`department`)) IN ('HO OFFICE', 'HO REGIONAL OFFICE');
 
 UPDATE `staff` SET `department` = 'NKORANZA OFFICE'
 WHERE UPPER(TRIM(`department`)) = 'NKORANZA';
@@ -126,13 +126,25 @@ UPDATE `staff` SET `department` = 'AMRAHIA'
 WHERE UPPER(TRIM(`department`)) = 'AMRAHIA ULTRA CENTRE';
 
 UPDATE `staff` SET `department` = 'ANYAA'
-WHERE UPPER(TRIM(`department`)) = 'ANYAA ULTRA';
+WHERE UPPER(TRIM(`department`)) IN ('ANYAA ULTRA', 'ANYAA ULTRA CENTRE');
 
 UPDATE `staff` SET `department` = 'NSAWAM'
 WHERE UPPER(TRIM(`department`)) = 'NSAWAM ULTRA CENTRE';
 
 UPDATE `staff` SET `department` = 'ASHAIMAN'
-WHERE UPPER(TRIM(`department`)) = 'ASHAIMAN ULTRA CENTRE';
+WHERE UPPER(TRIM(`department`)) IN ('ASHAIMAN ULTRA CENTRE', 'ASHIAMAN ULTRA CENTRE');
+
+UPDATE `staff` SET `department` = 'ADUM'
+WHERE UPPER(TRIM(`department`)) = 'ADUM ULTRA CENTRE';
+
+UPDATE `staff` SET `department` = 'TESHIE'
+WHERE UPPER(TRIM(`department`)) = 'TESHIE ULTRA CENTRE';
+
+UPDATE `staff` SET `department` = 'KWABENYA'
+WHERE UPPER(TRIM(`department`)) = 'KWABENYA OFFICE';
+
+UPDATE `staff` SET `department` = 'KASOA'
+WHERE UPPER(TRIM(`department`)) = 'KASOA OFFICE';
 
 UPDATE `staff` SET `department` = 'DOME'
 WHERE UPPER(TRIM(`department`)) = 'DOME ULTRA CENTRE';
