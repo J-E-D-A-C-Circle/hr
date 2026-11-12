@@ -54,6 +54,12 @@ export async function GET(request: NextRequest) {
         )
       : false;
 
+    // Check if month matches added staff creation date (for additions report exports)
+    const monthYearParts = validationMonth ? validationMonth.trim().split(/\s+/) : [];
+    const reportMonthName = monthYearParts[0] || "";
+    const reportYearNum = monthYearParts[1] ? parseInt(monthYearParts[1], 10) : null;
+    const isPeriodAdditionExport = reportYearNum !== null && !isNaN(reportYearNum);
+
     const filtered = annotated.filter((item: any) => {
       // Station filter (canonicalized, while preserving sub-unit label in item.department)
       if (normalizedDepartmentFilter) {
@@ -62,8 +68,24 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Month Validation Filter (if validations exist for targetMonth, filter strictly by them)
-      if (validationMonth && hasAnyValidationForMonth) {
+      // Period addition filter when exporting from Station & Monthly Additions Report
+      if (isPeriodAdditionExport && item.created_at) {
+        const d = new Date(item.created_at);
+        if (d.getFullYear() !== reportYearNum) {
+          return false;
+        }
+        if (reportMonthName && reportMonthName.toLowerCase() !== "all") {
+          const mNames = [
+            "january", "february", "march", "april", "may", "june",
+            "july", "august", "september", "october", "november", "december"
+          ];
+          const mIdx = mNames.indexOf(reportMonthName.toLowerCase());
+          if (mIdx !== -1 && d.getMonth() !== mIdx) {
+            return false;
+          }
+        }
+      } else if (validationMonth && hasAnyValidationForMonth) {
+        // Month Validation Filter (if validations exist for targetMonth, filter strictly by them)
         const hasValidation = item.validations?.some(
           (v: any) => v.month.trim().toLowerCase() === targetMonth
         );
@@ -256,9 +278,13 @@ export async function GET(request: NextRequest) {
       excelBuffer = await buildMonthlyComputationWorkbook(filtered, mStr);
       filename = `Monthly_Computation_${mStr.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.xlsx`;
     } else {
-      const exportList = (exportType === "standard" && (filter === "all" || !filter)) ? annotated : filtered;
-      excelBuffer = await buildExportWorkbook(exportList);
-      filename = `Standard_Full_Staff_Directory_${dateStr}.xlsx`;
+      const titleStation = department ? department : "All Stations";
+      const titleMonth = validationMonth ? ` - ${validationMonth}` : "";
+      excelBuffer = await buildExportWorkbook(filtered, `${titleStation} Staff Directory${titleMonth}`);
+
+      const safeDept = department ? `_${department.replace(/[^a-zA-Z0-9]/g, "_")}` : "_ALL_STATIONS";
+      const safeMonth = validationMonth ? `_${validationMonth.replace(/[^a-zA-Z0-9]/g, "_")}` : "";
+      filename = `Staff_Directory${safeDept}${safeMonth}_${dateStr}.xlsx`;
     }
 
     return new NextResponse(excelBuffer as unknown as BodyInit, {
