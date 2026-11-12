@@ -45,8 +45,8 @@ interface StationReportData {
 
 interface StationAdditionsReportProps {
   onSelectStationForExport?: (station: string) => void;
-  onDownloadForStation?: (station: string) => void;
-  onDownloadAll?: () => void;
+  onDownloadForStation?: (station: string, year: string, month: string) => void;
+  onDownloadAll?: (year: string, month: string) => void;
 }
 
 export default function StationAdditionsReport({
@@ -116,7 +116,7 @@ export default function StationAdditionsReport({
           {onDownloadAll && (
             <button
               type="button"
-              onClick={onDownloadAll}
+              onClick={() => onDownloadAll(year, month)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-sm transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
@@ -387,7 +387,7 @@ export default function StationAdditionsReport({
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onDownloadForStation(row.station);
+                                      onDownloadForStation(row.station, year, month);
                                     }}
                                     title={`Download Excel export directly for ${row.station}`}
                                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[11px] font-bold shadow-xs transition-colors"

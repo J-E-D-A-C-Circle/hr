@@ -517,26 +517,33 @@ export default function ExportPage() {
           </div>
         </div>
 
-        {/* Station & Monthly Staff Addition Reports */}
+        {/* Station & Monthly Staff Addition Reports (Independent from Export Criteria above) */}
         <StationAdditionsReport
           onSelectStationForExport={(st) => setDepartment(st)}
-          onDownloadForStation={(st) => {
-            setDepartment(st);
+          onDownloadForStation={(st, rYear, rMonth) => {
+            const reportMonthStr =
+              rMonth === "all"
+                ? ""
+                : `${rMonth} ${rYear === "all" ? "" : rYear}`.trim();
             const params = new URLSearchParams({
-              filter,
+              filter: "all",
               department: st,
-              export_type: exportType,
-              validation_month: validationMonth,
+              export_type: "standard",
+              validation_month: reportMonthStr,
               format: "excel",
             });
             window.open(`/api/export?${params.toString()}`, "_blank");
           }}
-          onDownloadAll={() => {
+          onDownloadAll={(rYear, rMonth) => {
+            const reportMonthStr =
+              rMonth === "all"
+                ? ""
+                : `${rMonth} ${rYear === "all" ? "" : rYear}`.trim();
             const params = new URLSearchParams({
-              filter,
+              filter: "all",
               department: "",
-              export_type: exportType,
-              validation_month: validationMonth,
+              export_type: "standard",
+              validation_month: reportMonthStr,
               format: "excel",
             });
             window.open(`/api/export?${params.toString()}`, "_blank");
