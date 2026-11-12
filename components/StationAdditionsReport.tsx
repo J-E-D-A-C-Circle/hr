@@ -9,6 +9,7 @@ import {
   TrendingUp,
   MapPin,
   Loader2,
+  Search,
 } from "lucide-react";
 import StationSelect from "@/components/StationSelect";
 import {
@@ -44,10 +45,14 @@ interface StationReportData {
 
 interface StationAdditionsReportProps {
   onSelectStationForExport?: (station: string) => void;
+  onDownloadForStation?: (station: string) => void;
+  onDownloadAll?: () => void;
 }
 
 export default function StationAdditionsReport({
   onSelectStationForExport,
+  onDownloadForStation,
+  onDownloadAll,
 }: StationAdditionsReportProps) {
   const now = new Date();
   const [year, setYear] = useState(String(now.getFullYear()));
@@ -55,6 +60,7 @@ export default function StationAdditionsReport({
     now.toLocaleString("en-US", { month: "long" })
   );
   const [station, setStation] = useState("");
+  const [tableSearch, setTableSearch] = useState("");
   const [report, setReport] = useState<StationReportData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -106,12 +112,24 @@ export default function StationAdditionsReport({
             Track overall staff added and station-specific additions by year and month.
           </p>
         </div>
-        {loading && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            <span>Updating report...</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {onDownloadAll && (
+            <button
+              type="button"
+              onClick={onDownloadAll}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-sm transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Export All Stations</span>
+            </button>
+          )}
+          {loading && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Updating...</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -243,20 +261,20 @@ export default function StationAdditionsReport({
       {report && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Month-by-Month Breakdown for Selected Year */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+          <div className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+            <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900 dark:text-white">
                 Monthly Additions ({year === "all" ? "All Years" : year})
               </span>
               {station && (
-                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
                   {station}
                 </span>
               )}
             </div>
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-72 overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50/60 dark:bg-slate-900 sticky top-0 text-slate-500 dark:text-slate-400">
+                <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="text-left px-4 py-2 font-semibold">Month</th>
                     <th className="text-right px-4 py-2 font-semibold">Overall Added</th>
@@ -265,7 +283,7 @@ export default function StationAdditionsReport({
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
                   {report.monthlyBreakdown.map((row) => {
                     const isActiveMonth =
                       month.toLowerCase() === row.monthName.toLowerCase();
@@ -275,18 +293,18 @@ export default function StationAdditionsReport({
                         onClick={() => setMonth(row.monthName)}
                         className={`cursor-pointer transition-colors ${
                           isActiveMonth
-                            ? "bg-emerald-50/70 dark:bg-emerald-950/30 font-semibold"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                            ? "bg-emerald-100/70 dark:bg-emerald-950 font-semibold"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800/80"
                         }`}
                       >
-                        <td className="px-4 py-2 text-slate-800 dark:text-slate-200">
+                        <td className="px-4 py-2 text-slate-900 dark:text-white">
                           {row.monthName}
                         </td>
                         <td className="px-4 py-2 text-right font-mono text-slate-900 dark:text-white">
                           {row.totalAdded}
                         </td>
                         {station && (
-                          <td className="px-4 py-2 text-right font-mono text-emerald-700 dark:text-emerald-400">
+                          <td className="px-4 py-2 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">
                             {row.stationAdded}
                           </td>
                         )}
@@ -299,69 +317,104 @@ export default function StationAdditionsReport({
           </div>
 
           {/* Station Breakdown Table */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Breakdown by Station ({periodLabel})
-              </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                {report.stationBreakdown.length} stations
-              </span>
+          <div className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-xs flex flex-col">
+            <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                  Breakdown by Station ({periodLabel})
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                  {report.stationBreakdown.length}
+                </span>
+              </div>
+              {/* Suggestive typing search filter directly inside the breakdown card */}
+              <div className="relative w-full sm:w-48">
+                <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
+                  placeholder="Search station..."
+                  className="w-full pl-8 pr-2 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
             </div>
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-72 overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50/60 dark:bg-slate-900 sticky top-0 text-slate-500 dark:text-slate-400">
+                <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="text-left px-4 py-2 font-semibold">Station</th>
                     <th className="text-right px-4 py-2 font-semibold">Added</th>
                     <th className="text-right px-4 py-2 font-semibold">Total</th>
-                    {onSelectStationForExport && (
-                      <th className="text-right px-3 py-2 font-semibold">Export</th>
+                    {(onDownloadForStation || onSelectStationForExport) && (
+                      <th className="text-right px-3 py-2 font-semibold">Download / Filter</th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {report.stationBreakdown.map((row) => (
-                    <tr
-                      key={row.station}
-                      onClick={() => {
-                        if (row.station !== "UNASSIGNED") setStation(row.station);
-                      }}
-                      className={`cursor-pointer transition-colors ${
-                        station === row.station
-                          ? "bg-amber-50/70 dark:bg-amber-950/30 font-semibold"
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                      }`}
-                    >
-                      <td className="px-4 py-2 text-slate-800 dark:text-slate-200">
-                        {row.station}
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono text-emerald-700 dark:text-emerald-400">
-                        {row.addedInPeriod}
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono text-slate-700 dark:text-slate-300">
-                        {row.totalStaff}
-                      </td>
-                      {onSelectStationForExport && (
-                        <td className="px-3 py-2 text-right">
-                          {row.station !== "UNASSIGNED" && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectStationForExport(row.station);
-                              }}
-                              title={`Filter export by ${row.station}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition-colors"
-                            >
-                              <Download className="h-3 w-3" />
-                              <span>Select</span>
-                            </button>
-                          )}
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                  {report.stationBreakdown
+                    .filter((row) =>
+                      !tableSearch.trim() ||
+                      row.station.toLowerCase().includes(tableSearch.trim().toLowerCase())
+                    )
+                    .map((row) => (
+                      <tr
+                        key={row.station}
+                        onClick={() => {
+                          if (row.station !== "UNASSIGNED") setStation(row.station);
+                        }}
+                        className={`cursor-pointer transition-colors ${
+                          station === row.station
+                            ? "bg-amber-100/70 dark:bg-amber-950/60 font-semibold"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800/80"
+                        }`}
+                      >
+                        <td className="px-4 py-2 text-slate-900 dark:text-white">
+                          {row.station}
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        <td className="px-4 py-2 text-right font-mono text-emerald-700 dark:text-emerald-400 font-semibold">
+                          {row.addedInPeriod}
+                        </td>
+                        <td className="px-4 py-2 text-right font-mono text-slate-700 dark:text-slate-300">
+                          {row.totalStaff}
+                        </td>
+                        {(onDownloadForStation || onSelectStationForExport) && (
+                          <td className="px-3 py-2 text-right">
+                            {row.station !== "UNASSIGNED" && (
+                              <div className="inline-flex items-center gap-1.5 justify-end">
+                                {onDownloadForStation && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDownloadForStation(row.station);
+                                    }}
+                                    title={`Download Excel export directly for ${row.station}`}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[11px] font-bold shadow-xs transition-colors"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    <span>Download</span>
+                                  </button>
+                                )}
+                                {onSelectStationForExport && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onSelectStationForExport(row.station);
+                                    }}
+                                    title={`Filter table preview by ${row.station}`}
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-[11px] font-semibold transition-colors"
+                                  >
+                                    <span>Filter</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>

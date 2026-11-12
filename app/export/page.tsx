@@ -520,6 +520,27 @@ export default function ExportPage() {
         {/* Station & Monthly Staff Addition Reports */}
         <StationAdditionsReport
           onSelectStationForExport={(st) => setDepartment(st)}
+          onDownloadForStation={(st) => {
+            setDepartment(st);
+            const params = new URLSearchParams({
+              filter,
+              department: st,
+              export_type: exportType,
+              validation_month: validationMonth,
+              format: "excel",
+            });
+            window.open(`/api/export?${params.toString()}`, "_blank");
+          }}
+          onDownloadAll={() => {
+            const params = new URLSearchParams({
+              filter,
+              department: "",
+              export_type: exportType,
+              validation_month: validationMonth,
+              format: "excel",
+            });
+            window.open(`/api/export?${params.toString()}`, "_blank");
+          }}
         />
 
         {/* Live Export Preview Table */}
