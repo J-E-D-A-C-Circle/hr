@@ -501,7 +501,7 @@ export async function buildPayrollPaymentWorkbook(staffRecords: any[], monthStr:
 
   staffRecords.forEach((item, idx) => {
     const basic = item.salary ? Number(item.salary) : 1400.00;
-    const isPaid = staffRecord.payment_status !== "unpaid";
+    const isPaid = item.payment_status !== "unpaid";
     const ghanaCalc = calculateGhanaDeductions(basic, isPaid);
     const ssnitEmployee = ghanaCalc.ssnit_employee_amount;
     const graPaye = ghanaCalc.paye_tax_amount;
@@ -1037,7 +1037,7 @@ export async function buildMonthlyComputationWorkbook(
     const currentContract = item.contracts?.find((c: any) => c.is_current) || item.contracts?.[0];
     
     const basic = item.salary ? Number(item.salary) : 1400.00;
-    const isPaid = staffRecord.payment_status !== "unpaid";
+    const isPaid = item.payment_status !== "unpaid";
     const ghanaCalc = calculateGhanaDeductions(basic, isPaid);
     const gross = basic;
     const months = 1;
