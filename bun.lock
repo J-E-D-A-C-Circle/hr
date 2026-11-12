@@ -5,7 +5,6 @@
     "": {
       "name": "temp",
       "dependencies": {
-        "@next/swc-win32-x64-msvc": "^16.3.0",
         "@prisma/client": "^5.22.0",
         "@radix-ui/react-select": "^2.3.7",
         "clsx": "^2.1.1",
@@ -20,7 +19,6 @@
         "xlsx": "^0.18.5",
       },
       "devDependencies": {
-        "@next/swc-wasm-nodejs": "^16.3.0",
         "@tailwindcss/postcss": "^4",
         "@types/node": "^20",
         "@types/react": "^19",
@@ -196,8 +194,6 @@
     "@next/swc-linux-x64-gnu": ["@next/swc-linux-x64-gnu@16.3.0", "", { "os": "linux", "cpu": "x64" }, "sha512-pjGxK5EY7yWml78ALejFkWmgHsU7wbFQrISiugpH6FbUJhgEvw3xFZ/EBAtLl7QtL0WdQKiG9eWJ3mOKGTukHw=="],
 
     "@next/swc-linux-x64-musl": ["@next/swc-linux-x64-musl@16.3.0", "", { "os": "linux", "cpu": "x64" }, "sha512-sjo++Xx+lomlPs3HRsHWhVDyGG6ms1kGW5EtHLERdII8AyG1i+f6aq68xHREO6AEMlhjTNEWBSmfJfqm9orf7g=="],
-
-    "@next/swc-wasm-nodejs": ["@next/swc-wasm-nodejs@16.4.5", "", {}, "sha512-Ip/z0VUrPAJmKtRH16GTI5YWoRFetP7pY6semXj0pMS9dGi43fURRfIu8LVzcStB5R8ovX681QAdqDOSXMb4nQ=="],
 
     "@next/swc-win32-arm64-msvc": ["@next/swc-win32-arm64-msvc@16.3.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-C5JSgiO54wURdaxdEUIXqkz04uMqC9UmPX1gtDrV/5Tf1UowdWYI8uA5hfFbPolTlp0q4KZ60xlHePNibf0VIw=="],
 

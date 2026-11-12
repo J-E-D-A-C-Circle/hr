@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
 import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook, buildGraPayeWorkbook } from "@/lib/excel";
 import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
+import { normalizeStation } from "@/lib/stations";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,13 +14,7 @@ export async function GET(request: NextRequest) {
     const exportType = searchParams.get("export_type") || "payroll"; // "payroll", "ssnit", "computation", "petra", "gra", "standard"
     const validationMonth = searchParams.get("validation_month") || "";
 
-    const whereClause: any = {};
-    if (department) {
-      whereClause.department = department;
-    }
-
     const staffList = await prisma.staff.findMany({
-      where: whereClause,
       include: {
         contracts: {
           orderBy: {
@@ -38,11 +33,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Annotate and filter
+    const normalizedDepartmentFilter = department ? normalizeStation(department) : "";
+
     const annotated = staffList.map((item: any) => {
       const currentContract = item.contracts.find((c: any) => c.is_current) || item.contracts[0] || null;
       const status = computeContractStatus(currentContract);
       return {
         ...item,
+        department: normalizeStation(item.department) || item.department,
         currentContract,
         computedStatus: status,
       };
@@ -56,6 +54,13 @@ export async function GET(request: NextRequest) {
       : false;
 
     const filtered = annotated.filter((item: any) => {
+      // Station filter (canonicalized)
+      if (normalizedDepartmentFilter) {
+        if ((item.department || "").toUpperCase() !== normalizedDepartmentFilter) {
+          return false;
+        }
+      }
+
       // Month Validation Filter (if validations exist for targetMonth, filter strictly by them)
       if (validationMonth && hasAnyValidationForMonth) {
         const hasValidation = item.validations?.some(

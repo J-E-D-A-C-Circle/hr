@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { calculateEndDate, computeContractStatus, computeDaysRemaining, parseFlexibleDate } from "@/lib/status";
+import { normalizeStation } from "@/lib/stations";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,9 +14,6 @@ export async function GET(request: NextRequest) {
     // Fetch staff with contracts
     const whereClause: any = {};
 
-    if (departmentFilter) {
-      whereClause.department = departmentFilter;
-    }
     if (roleFilter) {
       whereClause.role = roleFilter;
     }
@@ -57,16 +55,25 @@ export async function GET(request: NextRequest) {
 
       return {
         ...item,
+        department: normalizeStation(item.department) || item.department,
         currentContract,
         computedStatus: status,
         daysRemaining: currentContract && !currentContract.is_terminated ? daysRemaining : null,
       };
     });
 
-    // Filter by computed status if requested
-    const filteredStaff = statusFilter
-      ? annotatedStaff.filter((s: any) => s.computedStatus.toLowerCase() === statusFilter.toLowerCase())
-      : annotatedStaff;
+    const normalizedDeptFilter = departmentFilter ? normalizeStation(departmentFilter) : "";
+
+    // Filter by computed status and/or normalized station if requested
+    const filteredStaff = annotatedStaff.filter((s: any) => {
+      if (statusFilter && s.computedStatus.toLowerCase() !== statusFilter.toLowerCase()) {
+        return false;
+      }
+      if (normalizedDeptFilter && (s.department || "").toUpperCase() !== normalizedDeptFilter) {
+        return false;
+      }
+      return true;
+    });
 
     return NextResponse.json({ success: true, data: filteredStaff });
   } catch (error: any) {
@@ -164,7 +171,7 @@ export async function POST(request: NextRequest) {
         ssnit_no: cleanSsnit,
         nia_number: cleanNia,
         role: role || null,
-        department: department || null,
+        department: department ? normalizeStation(department) || null : null,
         phone: phone || null,
         bank_name: bank_name || null,
         bank_branch: bank_branch || null,

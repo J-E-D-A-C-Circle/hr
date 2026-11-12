@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import SidebarLayout from "@/components/SidebarLayout";
 import StatusBadge from "@/components/StatusBadge";
+import StationSelect from "@/components/StationSelect";
+import StationAdditionsReport from "@/components/StationAdditionsReport";
 import {
   Select,
   SelectTrigger,
@@ -504,18 +506,21 @@ export default function ExportPage() {
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Station Filter (Optional)
               </label>
-              <input
-                type="text"
-                placeholder="Leave blank for All Stations"
+              <StationSelect
+                allowAll
+                allLabel="All Stations"
                 value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                onChange={setDepartment}
+                placeholder="Type or select station..."
               />
             </div>
           </div>
         </div>
 
-
+        {/* Station & Monthly Staff Addition Reports */}
+        <StationAdditionsReport
+          onSelectStationForExport={(st) => setDepartment(st)}
+        />
 
         {/* Live Export Preview Table */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">

@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Pencil, Calendar, Building, CreditCard, AlertCircle, Save, X, Hash } from "lucide-react";
 import { formatDateForInput, parseFlexibleDate } from "@/lib/status";
 import DateInput from "@/components/DateInput";
+import StationSelect from "@/components/StationSelect";
+import { normalizeStation } from "@/lib/stations";
 import {
   Select,
   SelectTrigger,
@@ -64,7 +66,7 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
         ssnit_no: staff.ssnit_no || "",
         nia_number: staff.nia_number || "",
         role: staff.role || "",
-        department: staff.department || "",
+        department: normalizeStation(staff.department) || "",
         phone: staff.phone || "",
         bank_name: staff.bank_name || "",
         bank_branch: staff.bank_branch || "",
@@ -386,15 +388,15 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
 
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Station / Location
+                  Station / Location <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="department"
-                  placeholder="e.g. TEMA HARBOUR, WEIJA OFFICE"
+                <StationSelect
+                  required
                   value={formData.department}
-                  onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                  onChange={(station) =>
+                    setFormData((prev) => ({ ...prev, department: station }))
+                  }
+                  placeholder="Type or select station..."
                 />
               </div>
 

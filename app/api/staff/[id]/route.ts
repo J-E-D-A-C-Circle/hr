@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { calculateEndDate, computeContractStatus, computeDaysRemaining, parseFlexibleDate } from "@/lib/status";
+import { normalizeStation } from "@/lib/stations";
 
 export async function GET(
   request: NextRequest,
@@ -137,7 +138,7 @@ export async function PATCH(
           ssnit_no,
           nia_number,
           role,
-          department,
+          department: department !== undefined ? (department ? normalizeStation(department) : "") : undefined,
           phone,
           bank_name,
           bank_branch,
@@ -217,7 +218,7 @@ export async function PATCH(
         ssnit_no: ssnit_no !== undefined ? ssnit_no : undefined,
         nia_number: nia_number !== undefined ? nia_number : undefined,
         role: role !== undefined ? role : undefined,
-        department: department !== undefined ? department : undefined,
+        department: department !== undefined ? (department ? normalizeStation(department) : null) : undefined,
         phone: phone !== undefined ? phone : undefined,
         bank_name: bank_name !== undefined ? bank_name : undefined,
         bank_branch: bank_branch !== undefined ? bank_branch : undefined,
