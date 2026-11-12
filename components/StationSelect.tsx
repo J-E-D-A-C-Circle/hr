@@ -159,7 +159,7 @@ export default function StationSelect({
             if (!open) setOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className="w-full pl-9 pr-14 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
+          className="w-full pl-9 pr-14 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 disabled:opacity-50"
         />
         {/* Hidden required input ensures native form validation enforces an official selection */}
         {required && (
@@ -222,10 +222,10 @@ export default function StationSelect({
         <ul
           ref={listRef}
           role="listbox"
-          className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-lg py-1 text-sm"
+          className="absolute z-50 mt-1.5 w-full max-h-60 overflow-y-auto rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xl py-1 text-sm"
         >
           {options.length === 0 ? (
-            <li className="px-3 py-2.5 text-muted-foreground text-xs text-center">
+            <li className="px-3 py-2.5 text-slate-500 dark:text-slate-400 text-xs text-center">
               No matching official station found.
             </li>
           ) : (
@@ -247,16 +247,16 @@ export default function StationSelect({
                   }}
                   className={`flex items-center justify-between px-3 py-2 cursor-pointer transition-colors ${
                     isHighlighted
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-medium"
                       : isSelected
-                      ? "bg-muted/60 font-medium"
-                      : "hover:bg-muted/40"
+                      ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
+                      : "hover:bg-slate-200/70 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <span className={isAllOption ? "italic text-muted-foreground" : ""}>
+                  <span className={isAllOption ? "italic text-slate-500 dark:text-slate-400" : ""}>
                     {label}
                   </span>
-                  {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                  {isSelected && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
                 </li>
               );
             })
