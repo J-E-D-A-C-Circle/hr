@@ -1,26 +1,20 @@
 -- Idempotent Data Cleaning & Station Mapping Migration
--- Maps legacy staff.department values to canonical official DVLA station names
--- sourced from: UPDATED LIST OF REGIONAL, DISTRICT, ULTRA HEADS AND OFFICE LOCATIONS (1).pdf
+-- Cleans typos and redundant suffixes in staff.department WITHOUT overwriting sub-units
+-- (e.g. HEAD OFFICE PME, HEAD OFFICE IT, GREATER ACCRA STORES, ADENTAN OFFICE(COMPLIANCE)
+-- are preserved in the DB and grouped under their parent official station in the app).
 
 UPDATE `staff` SET `department` = TRIM(REGEXP_REPLACE(`department`, '[[:space:]]+', ' ')) WHERE `department` IS NOT NULL;
 
--- Head Office & Units
-UPDATE `staff` SET `department` = 'HEAD OFFICE'
-WHERE UPPER(TRIM(`department`)) LIKE 'HEAD OFFICE%'
-   OR UPPER(TRIM(`department`)) = 'TERT DRIVE';
-
--- Greater Accra / Narmah / Haatso
+-- Greater Accra / Narmah / Haatso (preserves GREATER ACCRA STORES & LA PLASPACK)
 UPDATE `staff` SET `department` = 'NARMAH/HAATSO/ACCRA OFFICE'
 WHERE UPPER(TRIM(`department`)) IN (
   'GREATER ACCRA',
-  'GREATER ACCRA STORES',
-  'GREATER ACCRA REGIONAL OFFICE',
-  'LA PLASPACK'
+  'GREATER ACCRA REGIONAL OFFICE'
 );
 
--- Regional & District Offices
+-- Regional & District Offices (preserves ADENTAN OFFICE(COMPLIANCE))
 UPDATE `staff` SET `department` = 'ADENTAN'
-WHERE UPPER(TRIM(`department`)) IN ('ADENTAN OFFICE', 'ADENTAN OFFICE(COMPLIANCE)', 'ADENTA');
+WHERE UPPER(TRIM(`department`)) IN ('ADENTAN OFFICE', 'ADENTA');
 
 UPDATE `staff` SET `department` = 'WEIJA'
 WHERE UPPER(TRIM(`department`)) = 'WEIJA OFFICE';

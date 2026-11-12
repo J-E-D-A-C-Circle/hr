@@ -215,11 +215,12 @@ export default function StaffListPage() {
     }
   };
 
-  // Unique departments for filter dropdown
+  // Unique canonical stations for filter dropdown
   const departments = useMemo(() => {
     const set = new Set<string>();
     staffList.forEach((s) => {
-      if (s.department) set.add(s.department);
+      const station = s.canonicalStation || s.department;
+      if (station) set.add(station);
     });
     return Array.from(set).sort();
   }, [staffList]);
@@ -327,9 +328,9 @@ export default function StaffListPage() {
             return false;
           }
         }
-        // Department filter
+        // Department / canonical station filter
         if (departmentFilter !== "all") {
-          if (item.department !== departmentFilter) {
+          if ((item.canonicalStation || item.department) !== departmentFilter) {
             return false;
           }
         }

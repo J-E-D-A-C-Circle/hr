@@ -55,7 +55,8 @@ export async function GET(request: NextRequest) {
 
       return {
         ...item,
-        department: normalizeStation(item.department) || item.department,
+        department: item.department,
+        canonicalStation: normalizeStation(item.department) || item.department,
         currentContract,
         computedStatus: status,
         daysRemaining: currentContract && !currentContract.is_terminated ? daysRemaining : null,
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
       if (statusFilter && s.computedStatus.toLowerCase() !== statusFilter.toLowerCase()) {
         return false;
       }
-      if (normalizedDeptFilter && (s.department || "").toUpperCase() !== normalizedDeptFilter) {
+      if (normalizedDeptFilter && (s.canonicalStation || "").toUpperCase() !== normalizedDeptFilter) {
         return false;
       }
       return true;

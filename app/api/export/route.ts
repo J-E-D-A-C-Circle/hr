@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
       const status = computeContractStatus(currentContract);
       return {
         ...item,
-        department: normalizeStation(item.department) || item.department,
+        department: item.department,
+        canonicalStation: normalizeStation(item.department) || item.department,
         currentContract,
         computedStatus: status,
       };
@@ -54,9 +55,9 @@ export async function GET(request: NextRequest) {
       : false;
 
     const filtered = annotated.filter((item: any) => {
-      // Station filter (canonicalized)
+      // Station filter (canonicalized, while preserving sub-unit label in item.department)
       if (normalizedDepartmentFilter) {
-        if ((item.department || "").toUpperCase() !== normalizedDepartmentFilter) {
+        if ((item.canonicalStation || "").toUpperCase() !== normalizedDepartmentFilter) {
           return false;
         }
       }
