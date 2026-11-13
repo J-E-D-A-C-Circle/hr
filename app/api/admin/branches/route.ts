@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { db, branches, regions } from '@/lib/db';
 import { eq, and, asc } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
+import crypto from 'crypto';
 
 export async function GET(request: Request) {
   try {
@@ -60,9 +61,9 @@ export async function POST(request: Request) {
 
     const branchCode = code && code.trim() ? code.trim() : null;
 
-    let branch;
+    let branch: any;
     if (id) {
-      db.update(branches)
+      await db.update(branches)
         .set({
           name,
           code: branchCode,
@@ -72,15 +73,13 @@ export async function POST(request: Request) {
           active: active ?? true,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(branches.id, id))
-        .run();
+        .where(eq(branches.id, id));
       branch = await db.query.branches.findFirst({ where: eq(branches.id, id) });
     } else {
-      branch = db
-        .insert(branches)
-        .values({ name, code: branchCode, regionId, headName, headEmail, active: active ?? true })
-        .returning()
-        .get();
+      const newId = crypto.randomUUID();
+      const newBranch = { id: newId, name, code: branchCode, regionId, headName, headEmail, active: active ?? true };
+      await db.insert(branches).values(newBranch);
+      branch = newBranch;
     }
 
     await logAuditAction({
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, branch });
   } catch (error: any) {
     console.error('Error saving branch:', error);
-    if (error.message?.includes('UNIQUE constraint failed')) {
+    if (error.message?.includes('UNIQUE constraint failed') || error.code === 'ER_DUP_ENTRY' || error.message?.includes('Duplicate entry')) {
       return NextResponse.json({ error: 'A station branch with this name already exists' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Failed to save branch' }, { status: 500 });
@@ -113,7 +112,7 @@ export async function DELETE(request: Request) {
     const deleteAll = searchParams.get('deleteAll');
 
     if (deleteAll === 'true') {
-      db.delete(branches).run();
+      await db.delete(branches);
       await logAuditAction({
         actorId: session.id,
         action: 'BRANCH_DELETE_ALL',
@@ -128,7 +127,7 @@ export async function DELETE(request: Request) {
     }
 
     const targetBranch = await db.query.branches.findFirst({ where: eq(branches.id, id) });
-    db.delete(branches).where(eq(branches.id, id)).run();
+    await db.delete(branches).where(eq(branches.id, id));
 
     await logAuditAction({
       actorId: session.id,

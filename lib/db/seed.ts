@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export const Role = {
   STATION_MANAGER: 'STATION_MANAGER',
@@ -22,17 +23,16 @@ async function main() {
   }
 
   // 2. Deadline Config
-  const existingConfig = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+  const existingConfig = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
   if (!existingConfig) {
-    db.insert(deadlineConfigs)
-      .values({ id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 })
-      .run();
+    await db.insert(deadlineConfigs)
+      .values({ id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 });
   }
 
   // 3. Policy Config
-  const existingPolicy = db.select().from(policyConfigs).where(eq(policyConfigs.id, 'default')).get();
+  const existingPolicy = (await db.select().from(policyConfigs).where(eq(policyConfigs.id, 'default')))[0];
   if (!existingPolicy) {
-    db.insert(policyConfigs)
+    await db.insert(policyConfigs)
       .values({
         id: 'default',
         maxFileSizeMb: 30,
@@ -40,8 +40,7 @@ async function main() {
         allowedFormats: 'PDF',
         guidelinesText:
           'All monthly payroll validation documents must be signed by the Station Manager and uploaded in PDF format prior to the 21st monthly cutoff.',
-      })
-      .run();
+      });
   }
 
   // 4. Official 16 Regions of Ghana
@@ -65,10 +64,12 @@ async function main() {
 
   const regionMap: Record<string, string> = {};
   for (const rData of regionsData) {
-    let reg = db.select().from(regions).where(eq(regions.code, rData.code)).get();
+    let reg = (await db.select().from(regions).where(eq(regions.code, rData.code)))[0];
     if (!reg) {
-      const inserted = db.insert(regions).values(rData).returning().get();
-      reg = inserted;
+      const regId = crypto.randomUUID();
+      const newReg = { id: regId, ...rData };
+      await db.insert(regions).values(newReg);
+      reg = newReg;
     }
     regionMap[rData.code] = reg.id;
   }
@@ -76,34 +77,34 @@ async function main() {
   // 5. Admin Account & Finance Officer Account
   const accraRegId = regionMap['REG-ACCRA'];
 
-  let adminUser = db.select().from(users).where(eq(users.email, 'admin@pvc.local')).get();
+  let adminUser = (await db.select().from(users).where(eq(users.email, 'admin@pvc.local')))[0];
   if (!adminUser) {
-    adminUser = db
-      .insert(users)
-      .values({
-        name: 'HR Administration Head',
-        email: 'admin@pvc.local',
-        passwordHash,
-        role: Role.HR_ADMIN,
-        regionId: accraRegId,
-      })
-      .returning()
-      .get();
+    const adminId = crypto.randomUUID();
+    const newAdmin = {
+      id: adminId,
+      name: 'HR Administration Head',
+      email: 'admin@pvc.local',
+      passwordHash,
+      role: Role.HR_ADMIN,
+      regionId: accraRegId,
+    };
+    await db.insert(users).values(newAdmin);
+    adminUser = newAdmin as any;
   }
 
-  let financeUser = db.select().from(users).where(eq(users.email, 'finance@pvc.local')).get();
+  let financeUser = (await db.select().from(users).where(eq(users.email, 'finance@pvc.local')))[0];
   if (!financeUser) {
-    financeUser = db
-      .insert(users)
-      .values({
-        name: 'Finance Audit Officer',
-        email: 'finance@pvc.local',
-        passwordHash,
-        role: Role.FINANCE_OFFICER,
-        regionId: accraRegId,
-      })
-      .returning()
-      .get();
+    const financeId = crypto.randomUUID();
+    const newFinance = {
+      id: financeId,
+      name: 'Finance Audit Officer',
+      email: 'finance@pvc.local',
+      passwordHash,
+      role: Role.FINANCE_OFFICER,
+      regionId: accraRegId,
+    };
+    await db.insert(users).values(newFinance);
+    financeUser = newFinance as any;
   }
 
   // 6. DVLA Ghana Official Station List (53 Stations)
@@ -138,34 +139,34 @@ async function main() {
   for (const st of dvlaStationsList) {
     const regId = regionMap[st.regionCode] || accraRegId;
 
-    let branch = db.select().from(branches).where(eq(branches.name, st.name)).get();
+    let branch = (await db.select().from(branches).where(eq(branches.name, st.name)))[0];
     if (!branch) {
-      branch = db
-        .insert(branches)
-        .values({
-          code: st.code,
-          name: st.name,
-          regionId: regId,
-          headName: st.headName,
-          headEmail: st.headEmail,
-          active: true,
-        })
-        .returning()
-        .get();
+      const branchId = crypto.randomUUID();
+      const newBranch = {
+        id: branchId,
+        code: st.code,
+        name: st.name,
+        regionId: regId,
+        headName: st.headName,
+        headEmail: st.headEmail,
+        active: true,
+      };
+      await db.insert(branches).values(newBranch);
+      branch = newBranch as any;
     }
 
-    let user = db.select().from(users).where(eq(users.email, st.headEmail)).get();
+    let user = (await db.select().from(users).where(eq(users.email, st.headEmail)))[0];
     if (!user) {
-      db.insert(users)
+      await db.insert(users)
         .values({
+          id: crypto.randomUUID(),
           name: st.headName,
           email: st.headEmail,
           passwordHash,
           role: Role.STATION_MANAGER,
           branchId: branch.id,
           regionId: regId,
-        })
-        .run();
+        });
     }
     branchCount++;
   }

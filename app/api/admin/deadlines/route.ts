@@ -11,13 +11,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let config = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+    let config = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
     if (!config) {
-      config = db
-        .insert(deadlineConfigs)
-        .values({ id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 })
-        .returning()
-        .get();
+      const newConfig = { id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3, updatedAt: new Date().toISOString() };
+      await db.insert(deadlineConfigs).values(newConfig);
+      config = newConfig as any;
     }
 
     return NextResponse.json({ config });
@@ -48,19 +46,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Reminder lead days must be between 1 and 15' }, { status: 400 });
     }
 
-    let config = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+    let config = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
     if (config) {
-      db.update(deadlineConfigs)
+      await db.update(deadlineConfigs)
         .set({ cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder, updatedAt: new Date().toISOString() })
-        .where(eq(deadlineConfigs.id, 'default'))
-        .run();
-      config = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+        .where(eq(deadlineConfigs.id, 'default'));
+      config = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
     } else {
-      config = db
-        .insert(deadlineConfigs)
-        .values({ id: 'default', cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder })
-        .returning()
-        .get();
+      const newConfig = { id: 'default', cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder, updatedAt: new Date().toISOString() };
+      await db.insert(deadlineConfigs).values(newConfig);
+      config = newConfig as any;
     }
 
     await logAuditAction({

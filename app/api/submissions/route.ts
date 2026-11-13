@@ -6,6 +6,7 @@ import { checkPDFLegibility } from '@/lib/ocr';
 import { logAuditAction } from '@/lib/audit';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export async function GET(request: Request) {
   try {
@@ -196,29 +197,29 @@ export async function POST(request: Request) {
       }
     } catch (e) {}
 
-    const newSubmission = db
-      .insert(submissions)
-      .values({
-        branchId,
-        month,
-        year,
-        fileName,
-        filePath: relativeFilePath,
-        fileSize: file.size,
-        note: note.slice(0, 500),
-        uploadedById: uploaderId,
-        uploadedAt: new Date().toISOString(),
-        status: 'PENDING',
-        resubmissionOfId: priorSubmission?.id || null,
-        ocrPassed: ocrResult.passed,
-        ocrText: ocrResult.text.slice(0, 1000),
-        staffType,
-      })
-      .returning()
-      .get();
+    const newSubmissionId = crypto.randomUUID();
+    const newSubmissionData = {
+      id: newSubmissionId,
+      branchId,
+      month,
+      year,
+      fileName,
+      filePath: relativeFilePath,
+      fileSize: file.size,
+      note: note.slice(0, 500),
+      uploadedById: uploaderId,
+      uploadedAt: new Date().toISOString(),
+      status: 'PENDING' as const,
+      resubmissionOfId: priorSubmission?.id || null,
+      ocrPassed: ocrResult.passed,
+      ocrText: ocrResult.text.slice(0, 1000),
+      staffType,
+    };
+
+    await db.insert(submissions).values(newSubmissionData);
 
     const fullNewSubmission = await db.query.submissions.findFirst({
-      where: eq(submissions.id, newSubmission.id),
+      where: eq(submissions.id, newSubmissionId),
       with: {
         branch: { with: { region: true } },
         uploadedBy: { columns: { id: true, name: true, email: true } },
@@ -229,7 +230,7 @@ export async function POST(request: Request) {
       actorId: uploaderId,
       action: isResubmission ? 'RESUBMIT' : 'UPLOAD',
       targetType: 'SUBMISSION',
-      targetId: newSubmission.id,
+      targetId: newSubmissionId,
       metadata: {
         branch: branch.name,
         month,
@@ -240,7 +241,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, submission: fullNewSubmission || newSubmission });
+    return NextResponse.json({ success: true, submission: fullNewSubmission || newSubmissionData });
   } catch (error) {
     console.error('Error handling upload:', error);
     return NextResponse.json({ error: 'Failed to process document upload' }, { status: 500 });

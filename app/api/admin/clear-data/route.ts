@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,15 +27,15 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-      db.delete(submissions).run();
-      db.insert(auditLogs)
+      await db.delete(submissions);
+      await db.insert(auditLogs)
         .values({
+          id: crypto.randomUUID(),
           actorId: session.id,
           action: 'CLEAR_DATA_SUBMISSIONS',
           targetType: 'SYSTEM',
           metadata: JSON.stringify({ mode }),
-        })
-        .run();
+        });
       return NextResponse.json({ message: 'All test submissions and uploaded PDF files cleared successfully.' });
     }
 
@@ -50,20 +51,20 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-      db.delete(submissions).run();
-      db.delete(auditLogs).run();
-      db.delete(users).where(eq(users.role, 'STATION_MANAGER')).run();
-      db.delete(branches).run();
-      db.delete(announcements).run();
+      await db.delete(submissions);
+      await db.delete(auditLogs);
+      await db.delete(users).where(eq(users.role, 'STATION_MANAGER'));
+      await db.delete(branches);
+      await db.delete(announcements);
 
-      db.insert(auditLogs)
+      await db.insert(auditLogs)
         .values({
+          id: crypto.randomUUID(),
           actorId: session.id,
           action: 'CLEAR_DATA_FULL_RESET',
           targetType: 'SYSTEM',
           metadata: JSON.stringify({ mode }),
-        })
-        .run();
+        });
 
       return NextResponse.json({ message: 'Database reset completed. All test stations, manager accounts, and submissions cleared.' });
     }

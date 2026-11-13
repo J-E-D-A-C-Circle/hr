@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 async function main() {
   console.log('🧹 Clearing all dummy data for production readiness with Drizzle ORM...');
@@ -26,38 +27,37 @@ async function main() {
   }
 
   // 2. Clear Database Records
-  db.delete(submissions).run();
+  await db.delete(submissions);
   console.log('✅ Deleted all submission records');
 
-  db.delete(auditLogs).run();
+  await db.delete(auditLogs);
   console.log('✅ Deleted all audit log entries');
 
-  db.delete(users).where(eq(users.role, 'STATION_MANAGER')).run();
+  await db.delete(users).where(eq(users.role, 'STATION_MANAGER'));
   console.log('✅ Deleted dummy station manager accounts');
 
-  db.delete(branches).run();
+  await db.delete(branches);
   console.log('✅ Deleted dummy branch stations');
 
   // Ensure default HR Admin account exists
   const passwordHash = await bcrypt.hash('password123', 10);
-  const existingAdmin = db.select().from(users).where(eq(users.email, 'admin@pvc.local')).get();
+  const existingAdmin = (await db.select().from(users).where(eq(users.email, 'admin@pvc.local')))[0];
   if (!existingAdmin) {
-    db.insert(users)
+    await db.insert(users)
       .values({
+        id: crypto.randomUUID(),
         name: 'HR Admin',
         email: 'admin@pvc.local',
         passwordHash,
         role: 'HR_ADMIN',
-      })
-      .run();
+      });
   }
 
   // Ensure default Deadline config exists
-  const existingDeadline = db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')).get();
+  const existingDeadline = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
   if (!existingDeadline) {
-    db.insert(deadlineConfigs)
-      .values({ id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 })
-      .run();
+    await db.insert(deadlineConfigs)
+      .values({ id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 });
   }
 
   console.log('✨ Database successfully cleared! Clean state ready for real data entry.');

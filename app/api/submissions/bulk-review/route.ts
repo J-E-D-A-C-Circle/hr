@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
 
-    db.update(submissions)
+    await db.update(submissions)
       .set({
         status: newStatus,
         reviewerId: session.id,
@@ -36,8 +36,7 @@ export async function POST(request: Request) {
         reviewedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
-      .where(inArray(submissions.id, submissionIds))
-      .run();
+      .where(inArray(submissions.id, submissionIds));
 
     const count = submissionIds.length;
 

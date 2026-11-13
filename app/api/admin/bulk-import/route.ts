@@ -4,6 +4,7 @@ import { db, branches, regions, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
 import Papa from 'papaparse';
+import crypto from 'crypto';
 
 export async function POST(request: Request) {
   try {
@@ -60,22 +61,23 @@ export async function POST(request: Request) {
       const regionCode = `REG-${regionName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
       let reg = await db.query.regions.findFirst({ where: eq(regions.code, regionCode) });
       if (!reg) {
-        reg = db.insert(regions).values({ name: regionName, code: regionCode }).returning().get();
+        const regId = crypto.randomUUID();
+        const newReg = { id: regId, name: regionName, code: regionCode };
+        await db.insert(regions).values(newReg);
+        reg = newReg as any;
       }
 
       let branch = await db.query.branches.findFirst({ where: eq(branches.name, branchName) });
       if (branch) {
-        db.update(branches)
-          .set({ code: branchCode, regionId: reg.id, headName, headEmail, updatedAt: new Date().toISOString() })
-          .where(eq(branches.id, branch.id))
-          .run();
+        await db.update(branches)
+          .set({ code: branchCode, regionId: reg!.id, headName, headEmail, updatedAt: new Date().toISOString() })
+          .where(eq(branches.id, branch.id));
         branch = (await db.query.branches.findFirst({ where: eq(branches.id, branch.id) }))!;
       } else {
-        branch = db
-          .insert(branches)
-          .values({ code: branchCode, name: branchName, regionId: reg.id, headName, headEmail, active: true })
-          .returning()
-          .get();
+        const branchId = crypto.randomUUID();
+        const newBranch = { id: branchId, code: branchCode, name: branchName, regionId: reg!.id, headName, headEmail, active: true };
+        await db.insert(branches).values(newBranch);
+        branch = newBranch as any;
       }
       importedBranches++;
 
@@ -83,20 +85,19 @@ export async function POST(request: Request) {
 
       let usr = await db.query.users.findFirst({ where: eq(users.email, headEmail) });
       if (usr) {
-        db.update(users)
-          .set({ name: headName, branchId: branch.id, role: 'STATION_MANAGER', updatedAt: new Date().toISOString() })
-          .where(eq(users.id, usr.id))
-          .run();
+        await db.update(users)
+          .set({ name: headName, branchId: branch!.id, role: 'STATION_MANAGER', updatedAt: new Date().toISOString() })
+          .where(eq(users.id, usr.id));
       } else {
-        db.insert(users)
+        await db.insert(users)
           .values({
+            id: crypto.randomUUID(),
             name: headName,
             email: headEmail,
             passwordHash: passHash,
             role: 'STATION_MANAGER',
-            branchId: branch.id,
-          })
-          .run();
+            branchId: branch!.id,
+          });
       }
       importedUsers++;
     }

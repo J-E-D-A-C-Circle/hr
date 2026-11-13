@@ -37,7 +37,7 @@ export async function POST(
 
     const updatedStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
 
-    db.update(submissions)
+    await db.update(submissions)
       .set({
         status: updatedStatus,
         reviewerId: session.id,
@@ -45,8 +45,7 @@ export async function POST(
         reviewedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(submissions.id, id))
-      .run();
+      .where(eq(submissions.id, id));
 
     const updated = await db.query.submissions.findFirst({
       where: eq(submissions.id, id),

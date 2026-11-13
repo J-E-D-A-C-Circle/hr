@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, announcements, auditLogs } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
+import crypto from 'crypto';
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,27 +30,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
     }
 
-    const announcement = db
-      .insert(announcements)
-      .values({
-        title,
-        content,
-        priority: priority || 'INFO',
-        active: active !== undefined ? active : true,
-        author: session.name || 'HR Administration',
-      })
-      .returning()
-      .get();
+    const id = crypto.randomUUID();
+    const announcement = {
+      id,
+      title,
+      content,
+      priority: (priority || 'INFO') as 'INFO' | 'WARNING' | 'CRITICAL',
+      active: active !== undefined ? active : true,
+      author: session.name || 'HR Administration',
+    };
 
-    db.insert(auditLogs)
+    await db.insert(announcements).values(announcement);
+
+    await db.insert(auditLogs)
       .values({
+        id: crypto.randomUUID(),
         actorId: session.id,
         action: 'ANNOUNCEMENT_CREATED',
         targetType: 'SYSTEM',
-        targetId: announcement.id,
+        targetId: id,
         metadata: JSON.stringify({ title, priority }),
-      })
-      .run();
+      });
 
     return NextResponse.json({ announcement, message: 'Announcement published successfully' });
   } catch (error) {
@@ -72,7 +73,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Announcement ID required' }, { status: 400 });
     }
 
-    db.delete(announcements).where(eq(announcements.id, id)).run();
+    await db.delete(announcements).where(eq(announcements.id, id));
 
     return NextResponse.json({ message: 'Announcement removed' });
   } catch (error) {

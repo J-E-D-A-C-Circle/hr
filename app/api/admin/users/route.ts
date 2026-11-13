@@ -3,6 +3,7 @@ import { getSession, hashPassword } from '@/lib/auth';
 import { db, users } from '@/lib/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { logAuditAction } from '@/lib/audit';
+import crypto from 'crypto';
 
 export async function GET(request: Request) {
   try {
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
         updateData.passwordHash = await hashPassword(password);
       }
 
-      db.update(users).set(updateData).where(eq(users.id, id)).run();
+      await db.update(users).set(updateData).where(eq(users.id, id));
       user = await db.query.users.findFirst({ where: eq(users.id, id) });
     } else {
       if (!password) {
@@ -110,19 +111,19 @@ export async function POST(request: Request) {
       }
 
       const passwordHash = await hashPassword(password);
-      user = db
-        .insert(users)
-        .values({
-          name,
-          email: email.toLowerCase().trim(),
-          passwordHash,
-          role,
-          branchId: branchId || null,
-          regionId: regionId || null,
-          active: active ?? true,
-        })
-        .returning()
-        .get();
+      const userId = crypto.randomUUID();
+      const newUser = {
+        id: userId,
+        name,
+        email: email.toLowerCase().trim(),
+        passwordHash,
+        role,
+        branchId: branchId || null,
+        regionId: regionId || null,
+        active: active ?? true,
+      };
+      await db.insert(users).values(newUser);
+      user = newUser;
     }
 
     await logAuditAction({
@@ -139,7 +140,7 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('Error saving user:', error);
-    if (error.message?.includes('UNIQUE constraint failed')) {
+    if (error.message?.includes('UNIQUE constraint failed') || error.code === 'ER_DUP_ENTRY' || error.message?.includes('Duplicate entry')) {
       return NextResponse.json({ error: 'A user with this email address already exists' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Failed to save user account' }, { status: 500 });
