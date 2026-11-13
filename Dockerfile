@@ -1,15 +1,14 @@
-# Multi-stage Dockerfile for Next.js Standalone with Drizzle ORM
-# Using Node 22 slim (Debian glibc) for better-sqlite3 & Turbopack stability
+# Multi-stage Dockerfile for Next.js Standalone with MySQL
+# Using Node 22 slim (Debian glibc) matching nssportal2
 
 # Step 1: Dependencies Stage
-FROM node:22-slim AS deps
+FROM public.ecr.aws/docker/library/node:22-slim AS deps
 WORKDIR /app
-RUN apt-get update && apt-get install -y openssl default-mysql-client python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* bun.lock* ./
 RUN npm install --legacy-peer-deps
 
 # Step 2: Builder Stage
-FROM node:22-slim AS builder
+FROM public.ecr.aws/docker/library/node:22-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -21,10 +20,8 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Step 3: Production Runner Stage
-FROM node:22-slim AS runner
+FROM public.ecr.aws/docker/library/node:22-slim AS runner
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y openssl default-mysql-client && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -38,21 +35,16 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/lib/db ./lib/db
-
-# Copy DB init script (pure CJS, no build step needed)
-COPY scripts/init-db.js /app/scripts/init-db.js
-
-# Copy node_modules from deps stage to ensure native modules (better-sqlite3, bcryptjs, etc.) are present
+COPY --from=builder /app/scripts ./scripts
 COPY --from=deps /app/node_modules ./node_modules
 
-# Create upload and DB-storage directories with correct permissions
-# /app/prisma is the default volume mount for the SQLite file
-RUN mkdir -p /app/uploads /app/prisma && \
-    chown -R nextjs:nodejs /app/uploads /app/prisma /app/scripts /app
+# Create upload directory with correct permissions
+RUN mkdir -p /app/uploads && \
+    chown -R nextjs:nodejs /app/uploads /app/scripts /app
 
 # Copy startup script
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 USER nextjs
 

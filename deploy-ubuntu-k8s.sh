@@ -26,16 +26,14 @@ fi
 BUILD_TAG="build-$(date +%Y%m%d%H%M%S)"
 echo "🏷️ Deployment Image Tag: hr-validation-app:$BUILD_TAG"
 
-# Prune stale Docker build cache & dangling images to keep disk lean
-echo "🧹 Pruning stale Docker build cache & dangling images..."
-docker builder prune -f 2>/dev/null || true
-docker image prune -f 2>/dev/null || true
-docker images --format '{{.Repository}}:{{.Tag}}' | grep 'hr-validation-app:build-' | xargs -r docker rmi 2>/dev/null || true
-docker images --filter "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
+# Prune past build tags & dangling images quietly
+echo "🧹 Cleaning up old deployment images..."
+docker images --format '{{.Repository}}:{{.Tag}}' | grep 'hr-validation-app:build-' | xargs -r docker rmi >/dev/null 2>&1 || true
+docker image prune -f >/dev/null 2>&1 || true
 
-# Build Docker image without cache
-echo "🔨 Building Docker image (fresh build)..."
-docker build --no-cache -t hr-validation-app:$BUILD_TAG -t hr-validation-app:latest .
+# Build Docker image (utilizes Docker layer caching for fast builds)
+echo "🔨 Building Docker image..."
+docker build -t hr-validation-app:$BUILD_TAG -t hr-validation-app:latest .
 
 # Dynamically locate K3s, MicroK8s, or standard kubectl binary
 K3S_PATH=$(which k3s 2>/dev/null || find /usr -name k3s 2>/dev/null | head -n 1 || echo "")
