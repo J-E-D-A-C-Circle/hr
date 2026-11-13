@@ -4,7 +4,7 @@
 # Step 1: Dependencies Stage
 FROM public.ecr.aws/docker/library/node:22-slim AS deps
 WORKDIR /app
-COPY package.json package-lock.json* bun.lock* ./
+COPY package.json ./
 RUN npm install --legacy-peer-deps
 
 # Step 2: Builder Stage
