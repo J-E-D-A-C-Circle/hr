@@ -30,6 +30,7 @@ echo "🏷️ Deployment Image Tag: hr-validation-app:$BUILD_TAG"
 echo "🧹 Cleaning up old deployment images..."
 docker images --format '{{.Repository}}:{{.Tag}}' | grep 'hr-validation-app:build-' | xargs -r docker rmi >/dev/null 2>&1 || true
 docker image prune -f >/dev/null 2>&1 || true
+docker builder prune -f --filter "until=24h" >/dev/null 2>&1 || true
 
 # Build Docker image (utilizes Docker layer caching for fast builds)
 echo "🔨 Building Docker image..."
@@ -89,6 +90,11 @@ if ! $KUBECTL rollout status deployment/hr-validation-app -n hr-validation --tim
     $KUBECTL logs deployment/hr-validation-app -n hr-validation --tail=50 || true
     $KUBECTL describe pod -n hr-validation -l app=hr-validation-app | grep -A 15 "Events:" || true
     exit 1
+fi
+
+if [ -n "$K3S_PATH" ]; then
+    echo "🧹 Pruning unused K3s containerd images..."
+    sudo $K3S_PATH crictl rmi --prune >/dev/null 2>&1 || true
 fi
 
 echo "============================================================"

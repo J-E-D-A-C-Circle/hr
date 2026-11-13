@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import HardRefreshButton from '@/components/HardRefreshButton';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -12,7 +13,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const [collapsed, setCollapsed] = useState(false);
 
   if (pathname === '/login') {
-    return <div className="min-h-screen bg-slate-900">{children}</div>;
+    return (
+      <div className="min-h-screen bg-slate-900 relative">
+        <div className="fixed top-4 right-4 z-50">
+          <HardRefreshButton />
+        </div>
+        {children}
+      </div>
+    );
   }
 
   const isPublicFormPage = pathname === '/' || pathname === '/upload';
@@ -32,6 +40,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 <span className="text-xs text-slate-500 font-normal mt-0.5">Payroll Validation Form</span>
               </div>
             </Link>
+            <HardRefreshButton />
           </div>
         </header>
 

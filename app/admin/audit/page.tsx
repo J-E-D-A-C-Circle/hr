@@ -9,6 +9,7 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuditZipExportModal from '@/components/AuditZipExportModal';
@@ -113,6 +114,36 @@ export default function AuditPage() {
   const totalPages = Math.ceil(logs.length / ITEMS_PER_PAGE) || 1;
   const paginatedLogs = logs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
+  const exportAuditCsv = () => {
+    if (logs.length === 0) {
+      toast.info('No audit logs to export');
+      return;
+    }
+    const escapeCell = (val: unknown) => {
+      const str = String(val ?? '');
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+    const headers = ['Timestamp', 'Actor', 'Email', 'Role', 'Action', 'Target Type', 'Target ID', 'Details'];
+    const rows = logs.map((l) => [
+      l.timestamp,
+      l.actor?.name || 'System',
+      l.actor?.email || '',
+      l.actor?.role || '',
+      l.action,
+      l.targetType,
+      l.targetId || '',
+      typeof l.metadata === 'string' ? l.metadata : JSON.stringify(l.metadata || {}),
+    ]);
+    const csv = [headers.map(escapeCell).join(','), ...rows.map((r) => r.map(escapeCell).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hr-audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Zip Export Modal */}
@@ -134,6 +165,14 @@ export default function AuditPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={exportAuditCsv}
+            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white border border-emerald-500/40 shadow-md transition flex items-center gap-2 cursor-pointer"
+          >
+            <Download className="h-4 w-4 text-emerald-200" />
+            <span>Export CSV</span>
+          </button>
+
           <button
             onClick={() => setShowZipModal(true)}
             className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center gap-2 cursor-pointer"

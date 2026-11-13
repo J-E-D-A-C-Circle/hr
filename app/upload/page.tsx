@@ -102,8 +102,10 @@ export default function PublicValidationFormPage() {
 
   // Submission State
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedResponse, setSubmittedResponse] = useState<any | null>(null);
+  const [rejectedNotice, setRejectedNotice] = useState<SubmissionRecord | null>(null);
 
   // OCR Pre-check warning state
   const [ocrWarning, setOcrWarning] = useState<string | null>(null);
@@ -134,6 +136,25 @@ export default function PublicValidationFormPage() {
       })
       .catch(() => setLoadingBranches(false));
   }, []);
+
+  // Check if selected branch/period has a rejected submission needing resubmission
+  useEffect(() => {
+    if (!selectedBranchId || !month || !year) {
+      setRejectedNotice(null);
+      return;
+    }
+    fetch(`/api/submissions?branchId=${selectedBranchId}&month=${month}&year=${year}&limit=1`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const latest = data?.submissions?.[0];
+        if (latest && latest.status === 'REJECTED') {
+          setRejectedNotice(latest);
+        } else {
+          setRejectedNotice(null);
+        }
+      })
+      .catch(() => setRejectedNotice(null));
+  }, [selectedBranchId, month, year]);
 
   // Fetch station history whenever history filters change
   useEffect(() => {
@@ -254,9 +275,10 @@ export default function PublicValidationFormPage() {
     return new File([pdfBlob], compiledFileName, { type: 'application/pdf' });
   };
 
-  // Perform Form Submission
+  // Perform Form Submission with live upload progress
   const processSubmission = async (fileToUpload: File) => {
     setSubmitting(true);
+    setUploadProgress(0);
     setSubmitError(null);
 
     try {
@@ -276,22 +298,39 @@ export default function PublicValidationFormPage() {
 
       formData.append('note', JSON.stringify(formPayload));
 
-      const res = await fetch('/api/submissions', {
-        method: 'POST',
-        body: formData,
+      const data = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/submissions');
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            setUploadProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        };
+
+        xhr.onload = () => {
+          try {
+            const parsed = JSON.parse(xhr.responseText || '{}');
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(parsed);
+            } else {
+              reject(new Error(parsed.error || parsed.message || 'Failed to submit validation form'));
+            }
+          } catch {
+            reject(new Error('Invalid server response during upload'));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error occurred while uploading file'));
+        xhr.send(formData);
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit validation form');
-      }
 
       setSubmittedResponse(data.submission);
     } catch (err: any) {
       setSubmitError(err.message || 'An error occurred during submission.');
     } finally {
       setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -454,6 +493,21 @@ export default function PublicValidationFormPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Rejection / Resubmission Alert */}
+        {rejectedNotice && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs font-normal flex items-start gap-3 shadow-xs">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            <div className="space-y-1">
+              <div className="font-semibold text-amber-900">
+                Previous submission for {month}/{year} was Rejected — Resubmission Required
+              </div>
+              <p className="text-amber-800">
+                Reviewer Note: {rejectedNotice.reviewerNotes || 'Please upload a corrected signed PDF scan.'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Error Alert */}
         {submitError && (
           <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-normal flex items-center gap-3">
@@ -789,8 +843,23 @@ export default function PublicValidationFormPage() {
           )}
         </div>
 
-        {/* Submit Form Button */}
-        <div className="pt-2">
+        {/* Submit Form Button & Progress Bar */}
+        <div className="pt-2 space-y-3">
+          {submitting && uploadProgress > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>Uploading validation document...</span>
+                <span className="font-semibold text-emerald-700">{uploadProgress}%</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-600 transition-all duration-200"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={submitting}
@@ -799,7 +868,9 @@ export default function PublicValidationFormPage() {
             {submitting ? (
               <>
                 <RefreshCcw className="h-4 w-4 animate-spin" />
-                <span>Processing & Submitting Form...</span>
+                <span>
+                  {uploadProgress > 0 ? `Uploading (${uploadProgress}%)...` : 'Processing & Submitting Form...'}
+                </span>
               </>
             ) : (
               <>

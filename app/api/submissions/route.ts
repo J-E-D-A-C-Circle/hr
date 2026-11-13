@@ -24,6 +24,11 @@ export async function GET(request: Request) {
     const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50;
 
+    // Unauthenticated callers (public upload history lookup) must scope to a single branchId
+    if (!session && !branchId) {
+      return NextResponse.json({ error: 'Authentication or branchId is required' }, { status: 401 });
+    }
+
     let effectiveBranchId = branchId;
     if (session && session.role === 'STATION_MANAGER') {
       effectiveBranchId = session.branchId || branchId;
@@ -70,7 +75,16 @@ export async function GET(request: Request) {
 
     const totalCount = allSubmissions.length;
     const startIndex = (page - 1) * limit;
-    const paginatedSubmissions = limit > 0 ? allSubmissions.slice(startIndex, startIndex + limit) : allSubmissions;
+    const paginatedSubmissions = (limit > 0 ? allSubmissions.slice(startIndex, startIndex + limit) : allSubmissions).map(
+      (sub: any) => {
+        if (session) return sub;
+        return {
+          ...sub,
+          uploadedBy: sub.uploadedBy ? { id: sub.uploadedBy.id, name: sub.uploadedBy.name } : null,
+          reviewer: sub.reviewer ? { id: sub.reviewer.id, name: sub.reviewer.name } : null,
+        };
+      }
+    );
 
     return NextResponse.json({
       submissions: paginatedSubmissions,
@@ -97,7 +111,10 @@ export async function POST(request: Request) {
     const year = parseInt(formData.get('year') as string);
     const note = (formData.get('note') as string) || '';
     const confirmOcrOverride = formData.get('confirmOcrOverride') === 'true';
-    let branchId = (formData.get('branchId') as string) || session?.branchId;
+    let branchId =
+      session?.role === 'STATION_MANAGER' && session.branchId
+        ? session.branchId
+        : (formData.get('branchId') as string) || session?.branchId;
 
     if (!branchId) {
       return NextResponse.json({ error: 'Please select a station branch for upload' }, { status: 400 });

@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react';
+import HardRefreshButton from '@/components/HardRefreshButton';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -118,6 +119,8 @@ export default function Header({ onOpenMobileMenu }: HeaderProps) {
               {isOverdue ? 'Cutoff Passed (21st)' : `Cutoff: ${daysRemaining} day(s) left`}
             </span>
           </div>
+
+          <HardRefreshButton />
         </div>
       </div>
     </header>

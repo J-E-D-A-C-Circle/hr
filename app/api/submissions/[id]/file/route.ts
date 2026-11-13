@@ -37,12 +37,13 @@ export async function GET(
     }
 
     const fileBuffer = fs.readFileSync(fullPath);
+    const safeDownloadName = submission.fileName.replace(/["\r\n\\]/g, '_');
 
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${submission.fileName}"`,
+        'Content-Disposition': `inline; filename="${safeDownloadName}"`,
         'Cache-Control': 'private, max-age=3600',
       },
     });

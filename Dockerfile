@@ -17,7 +17,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-RUN npm run build
+RUN npm run build && npm prune --omit=dev
 
 # Step 3: Production Runner Stage
 FROM public.ecr.aws/docker/library/node:22-slim AS runner
@@ -36,7 +36,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/lib/db ./lib/db
 COPY --from=builder /app/scripts ./scripts
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 # Create upload directory with correct permissions
 RUN mkdir -p /app/uploads && \
