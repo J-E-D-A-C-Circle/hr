@@ -60,6 +60,7 @@ async function main() {
     { name: 'Western North Region', code: 'REG-WESTERNNORTH' },
     { name: 'Oti Region', code: 'REG-OTI' },
     { name: 'Savannah Region', code: 'REG-SAVANNAH' },
+    { name: 'North East Region', code: 'REG-NORTHEAST' },
   ];
 
   const regionMap: Record<string, string> = {};
@@ -101,32 +102,105 @@ async function main() {
     });
   }
 
-  // 6. DVLA Ghana Official Station List (53 Stations)
+  // 6. Official DVLA Stations (66 Stations from staff-management)
   const dvlaStationsList = [
-    { code: 'DVLA-ACC-01', name: '37 Station - Accra Head Office', regionCode: 'REG-ACCRA', headName: 'Emmanuel Mensah', headEmail: 'head.acc01@pvc.local' },
-    { code: 'DVLA-ACC-02', name: 'Weija Station', regionCode: 'REG-ACCRA', headName: 'Abena Osei', headEmail: 'head.acc02@pvc.local' },
-    { code: 'DVLA-ACC-03', name: 'Tema Station', regionCode: 'REG-ACCRA', headName: 'Kofi Annan', headEmail: 'head.acc03@pvc.local' },
-    { code: 'DVLA-ACC-04', name: 'Amasaman Station', regionCode: 'REG-ACCRA', headName: 'Akua Donkor', headEmail: 'head.acc04@pvc.local' },
-    { code: 'DVLA-ACC-05', name: 'Madina Station', regionCode: 'REG-ACCRA', headName: 'Kwame Nkrumah', headEmail: 'head.acc05@pvc.local' },
-    { code: 'DVLA-ASH-01', name: 'Kumasi Central Station', regionCode: 'REG-ASHANTI', headName: 'Kwadwo Poku', headEmail: 'head.ash01@pvc.local' },
-    { code: 'DVLA-ASH-02', name: 'Mampong Station', regionCode: 'REG-ASHANTI', headName: 'Yaa Asantewaa', headEmail: 'head.ash02@pvc.local' },
-    { code: 'DVLA-ASH-03', name: 'Obuasi Station', regionCode: 'REG-ASHANTI', headName: 'Yaw Boakye', headEmail: 'head.ash03@pvc.local' },
-    { code: 'DVLA-WST-01', name: 'Takoradi Station', regionCode: 'REG-WESTERN', headName: 'Ebo Quansah', headEmail: 'head.wst01@pvc.local' },
-    { code: 'DVLA-WST-02', name: 'Tarkwa Station', regionCode: 'REG-WESTERN', headName: 'Ama Serwaa', headEmail: 'head.wst02@pvc.local' },
-    { code: 'DVLA-EST-01', name: 'Koforidua Station', regionCode: 'REG-EASTERN', headName: 'Kwaku Addo', headEmail: 'head.est01@pvc.local' },
-    { code: 'DVLA-EST-02', name: 'Nkawkaw Station', regionCode: 'REG-EASTERN', headName: 'Afia Mansa', headEmail: 'head.est02@pvc.local' },
-    { code: 'DVLA-CNT-01', name: 'Cape Coast Station', regionCode: 'REG-CENTRAL', headName: 'Kojo Mills', headEmail: 'head.cnt01@pvc.local' },
-    { code: 'DVLA-CNT-02', name: 'Winneba Station', regionCode: 'REG-CENTRAL', headName: 'Araba Koomson', headEmail: 'head.cnt02@pvc.local' },
-    { code: 'DVLA-NTH-01', name: 'Tamale Main Station', regionCode: 'REG-NORTHERN', headName: 'Ibrahim Alhassan', headEmail: 'head.nth01@pvc.local' },
-    { code: 'DVLA-VLT-01', name: 'Ho Main Station', regionCode: 'REG-VOLTA', headName: 'Fafali Agbeko', headEmail: 'head.vlt01@pvc.local' },
-    { code: 'DVLA-UEA-01', name: 'Bolgatanga Station', regionCode: 'REG-UPPEREAST', headName: 'Azonko Atia', headEmail: 'head.uea01@pvc.local' },
-    { code: 'DVLA-UWE-01', name: 'Wa Main Station', regionCode: 'REG-UPPERWEST', headName: 'Dery Kuanyir', headEmail: 'head.uwe01@pvc.local' },
-    { code: 'DVLA-BON-01', name: 'Sunyani Station', regionCode: 'REG-BONO', headName: 'Kwasi Busia', headEmail: 'head.bon01@pvc.local' },
-    { code: 'DVLA-BOE-01', name: 'Techiman Station', regionCode: 'REG-BONOEAST', headName: 'Adwoa Fosuah', headEmail: 'head.boe01@pvc.local' },
-    { code: 'DVLA-AHF-01', name: 'Goaso Station', regionCode: 'REG-AHAFO', headName: 'Kofi Tuah', headEmail: 'head.ahf01@pvc.local' },
-    { code: 'DVLA-WNO-01', name: 'Sefwi Wiawso Station', regionCode: 'REG-WESTERNNORTH', headName: 'Nana Gyasi', headEmail: 'head.wno01@pvc.local' },
-    { code: 'DVLA-OTI-01', name: 'Dambai Station', regionCode: 'REG-OTI', headName: 'Ketan Krakani', headEmail: 'head.oti01@pvc.local' },
-    { code: 'DVLA-SAV-01', name: 'Damongo Station', regionCode: 'REG-SAVANNAH', headName: 'Seidu Mahama', headEmail: 'head.sav01@pvc.local' },
+    // Greater Accra Region
+    { code: 'DVLA-ACC-01', name: 'HEAD OFFICE', regionCode: 'REG-ACCRA', headName: 'Emmanuel Mensah', headEmail: 'head.headoffice@pvc.local' },
+    { code: 'DVLA-ACC-02', name: 'NARMAH/HAATSO/ACCRA OFFICE', regionCode: 'REG-ACCRA', headName: 'Abena Osei', headEmail: 'head.haatso@pvc.local' },
+    { code: 'DVLA-ACC-03', name: 'TEMA', regionCode: 'REG-ACCRA', headName: 'Kofi Annan', headEmail: 'head.tema@pvc.local' },
+    { code: 'DVLA-ACC-04', name: 'WEIJA', regionCode: 'REG-ACCRA', headName: 'Akua Donkor', headEmail: 'head.weija@pvc.local' },
+    { code: 'DVLA-ACC-05', name: 'ADENTAN', regionCode: 'REG-ACCRA', headName: 'Kwame Nkrumah', headEmail: 'head.adentan@pvc.local' },
+    { code: 'DVLA-ACC-06', name: 'DANSOMAN', regionCode: 'REG-ACCRA', headName: 'Joseph Botchway', headEmail: 'head.dansoman@pvc.local' },
+    { code: 'DVLA-ACC-07', name: 'CIRCLE', regionCode: 'REG-ACCRA', headName: 'Rita Addo', headEmail: 'head.circle@pvc.local' },
+    { code: 'DVLA-ACC-08', name: 'SPINTEX', regionCode: 'REG-ACCRA', headName: 'Samuel Quaye', headEmail: 'head.spintex@pvc.local' },
+    { code: 'DVLA-ACC-09', name: 'ASHAIMAN', regionCode: 'REG-ACCRA', headName: 'Grace Aryee', headEmail: 'head.ashaiman@pvc.local' },
+    { code: 'DVLA-ACC-10', name: 'ANYAA', regionCode: 'REG-ACCRA', headName: 'David Lamptey', headEmail: 'head.anyaa@pvc.local' },
+    { code: 'DVLA-ACC-11', name: 'TESHIE', regionCode: 'REG-ACCRA', headName: 'Comfort Sowah', headEmail: 'head.teshie@pvc.local' },
+    { code: 'DVLA-ACC-12', name: 'DOME', regionCode: 'REG-ACCRA', headName: 'Isaac Tetteh', headEmail: 'head.dome@pvc.local' },
+    { code: 'DVLA-ACC-13', name: 'AMRAHIA', regionCode: 'REG-ACCRA', headName: 'Mary Ayitey', headEmail: 'head.amrahia@pvc.local' },
+    { code: 'DVLA-ACC-14', name: 'KWABENYA', regionCode: 'REG-ACCRA', headName: 'Daniel Nortey', headEmail: 'head.kwabenya@pvc.local' },
+
+    // Ashanti Region
+    { code: 'DVLA-ASH-01', name: 'KUMASI', regionCode: 'REG-ASHANTI', headName: 'Kwadwo Poku', headEmail: 'head.kumasi@pvc.local' },
+    { code: 'DVLA-ASH-02', name: 'OBUASI', regionCode: 'REG-ASHANTI', headName: 'Yaw Boakye', headEmail: 'head.obuasi@pvc.local' },
+    { code: 'DVLA-ASH-03', name: 'MAMPONG ASHANTI', regionCode: 'REG-ASHANTI', headName: 'Yaa Asantewaa', headEmail: 'head.mampongash@pvc.local' },
+    { code: 'DVLA-ASH-04', name: 'AGONA-ASHANTI', regionCode: 'REG-ASHANTI', headName: 'Kwabena Appiah', headEmail: 'head.agonaash@pvc.local' },
+    { code: 'DVLA-ASH-05', name: 'BEKWAI', regionCode: 'REG-ASHANTI', headName: 'Akosua Darko', headEmail: 'head.bekwai@pvc.local' },
+    { code: 'DVLA-ASH-06', name: 'OFFINSO', regionCode: 'REG-ASHANTI', headName: 'Kofi Sarfo', headEmail: 'head.offinso@pvc.local' },
+    { code: 'DVLA-ASH-07', name: 'EFFIDUASI', regionCode: 'REG-ASHANTI', headName: 'Ama Agyei', headEmail: 'head.effiduasi@pvc.local' },
+    { code: 'DVLA-ASH-08', name: 'KUMAWU', regionCode: 'REG-ASHANTI', headName: 'Kwaku Duah', headEmail: 'head.kumawu@pvc.local' },
+    { code: 'DVLA-ASH-09', name: 'BANTAMA', regionCode: 'REG-ASHANTI', headName: 'Nana Prempeh', headEmail: 'head.bantama@pvc.local' },
+    { code: 'DVLA-ASH-10', name: 'BONWIRE', regionCode: 'REG-ASHANTI', headName: 'Adwoa Kyeremaa', headEmail: 'head.bonwire@pvc.local' },
+    { code: 'DVLA-ASH-11', name: 'ADUM', regionCode: 'REG-ASHANTI', headName: 'Kwabena Frimpong', headEmail: 'head.adum@pvc.local' },
+    { code: 'DVLA-ASH-12', name: 'ABUAKWA', regionCode: 'REG-ASHANTI', headName: 'Osei Tutu', headEmail: 'head.abuakwa@pvc.local' },
+
+    // Eastern Region
+    { code: 'DVLA-EST-01', name: 'KOFORIDUA', regionCode: 'REG-EASTERN', headName: 'Kwaku Addo', headEmail: 'head.koforidua@pvc.local' },
+    { code: 'DVLA-EST-02', name: 'NKAWKAW', regionCode: 'REG-EASTERN', headName: 'Afia Mansa', headEmail: 'head.nkawkaw@pvc.local' },
+    { code: 'DVLA-EST-03', name: 'AKIM ODA', regionCode: 'REG-EASTERN', headName: 'Yaw Asare', headEmail: 'head.akimoda@pvc.local' },
+    { code: 'DVLA-EST-04', name: 'AKWATIA', regionCode: 'REG-EASTERN', headName: 'Ebenezer Boateng', headEmail: 'head.akwatia@pvc.local' },
+    { code: 'DVLA-EST-05', name: 'ASUOGYAMAN OFFICE', regionCode: 'REG-EASTERN', headName: 'Gifty Ofori', headEmail: 'head.asuogyaman@pvc.local' },
+    { code: 'DVLA-EST-06', name: 'ASAMANKESE', regionCode: 'REG-EASTERN', headName: 'Seth Danquah', headEmail: 'head.asamankese@pvc.local' },
+    { code: 'DVLA-EST-07', name: 'NSAWAM', regionCode: 'REG-EASTERN', headName: 'Paulina Baah', headEmail: 'head.nsawam@pvc.local' },
+
+    // Central Region
+    { code: 'DVLA-CNT-01', name: 'CAPE-COAST', regionCode: 'REG-CENTRAL', headName: 'Kojo Mills', headEmail: 'head.capecoast@pvc.local' },
+    { code: 'DVLA-CNT-02', name: 'WINNEBA', regionCode: 'REG-CENTRAL', headName: 'Araba Koomson', headEmail: 'head.winneba@pvc.local' },
+    { code: 'DVLA-CNT-03', name: 'DUNKWA-ON-OFFIN', regionCode: 'REG-CENTRAL', headName: 'Kwesi Arthur', headEmail: 'head.dunkwa@pvc.local' },
+    { code: 'DVLA-CNT-04', name: 'TWIFO PRASO', regionCode: 'REG-CENTRAL', headName: 'Esi Atta', headEmail: 'head.twifopraso@pvc.local' },
+    { code: 'DVLA-CNT-05', name: 'KASOA', regionCode: 'REG-CENTRAL', headName: 'Kobina Ghartey', headEmail: 'head.kasoa@pvc.local' },
+
+    // Western Region
+    { code: 'DVLA-WST-01', name: 'TAKORADI', regionCode: 'REG-WESTERN', headName: 'Ebo Quansah', headEmail: 'head.takoradi@pvc.local' },
+    { code: 'DVLA-WST-02', name: 'TARKWA', regionCode: 'REG-WESTERN', headName: 'Ama Serwaa', headEmail: 'head.tarkwa@pvc.local' },
+    { code: 'DVLA-WST-03', name: 'AXIM', regionCode: 'REG-WESTERN', headName: 'Francis Cudjoe', headEmail: 'head.axim@pvc.local' },
+
+    // Western North Region
+    { code: 'DVLA-WNO-01', name: 'SEFWI WIAWSO', regionCode: 'REG-WESTERNNORTH', headName: 'Nana Gyasi', headEmail: 'head.sefwiawso@pvc.local' },
+
+    // Volta Region
+    { code: 'DVLA-VLT-01', name: 'HO', regionCode: 'REG-VOLTA', headName: 'Fafali Agbeko', headEmail: 'head.ho@pvc.local' },
+    { code: 'DVLA-VLT-02', name: 'HOHOE', regionCode: 'REG-VOLTA', headName: 'Kwami Gbeho', headEmail: 'head.hohoe@pvc.local' },
+    { code: 'DVLA-VLT-03', name: 'AKATSI', regionCode: 'REG-VOLTA', headName: 'Dzidzor Ahiable', headEmail: 'head.akatsi@pvc.local' },
+    { code: 'DVLA-VLT-04', name: 'DENU', regionCode: 'REG-VOLTA', headName: 'Mawuli Dzokoto', headEmail: 'head.denu@pvc.local' },
+    { code: 'DVLA-VLT-05', name: 'NORTH DAYI', regionCode: 'REG-VOLTA', headName: 'Senyo Mensah', headEmail: 'head.northdayi@pvc.local' },
+
+    // Oti Region
+    { code: 'DVLA-OTI-01', name: 'BUEM-JASIKAN', regionCode: 'REG-OTI', headName: 'Ketan Krakani', headEmail: 'head.buemjasikan@pvc.local' },
+
+    // Northern Region
+    { code: 'DVLA-NTH-01', name: 'TAMALE', regionCode: 'REG-NORTHERN', headName: 'Ibrahim Alhassan', headEmail: 'head.tamale@pvc.local' },
+    { code: 'DVLA-NTH-02', name: 'YENDI OFFICE', regionCode: 'REG-NORTHERN', headName: 'Yakubu Andani', headEmail: 'head.yendi@pvc.local' },
+
+    // North East Region
+    { code: 'DVLA-NER-01', name: 'NALERIGU OFFICE', regionCode: 'REG-NORTHEAST', headName: 'Mahamadu Bawumia', headEmail: 'head.nalerigu@pvc.local' },
+
+    // Savannah Region
+    { code: 'DVLA-SAV-01', name: 'BOLE', regionCode: 'REG-SAVANNAH', headName: 'Jigba Mahama', headEmail: 'head.bole@pvc.local' },
+    { code: 'DVLA-SAV-02', name: 'SALAGA OFFICE', regionCode: 'REG-SAVANNAH', headName: 'Seidu Mahama', headEmail: 'head.salaga@pvc.local' },
+
+    // Upper East Region
+    { code: 'DVLA-UEA-01', name: 'BOLGATANGA', regionCode: 'REG-UPPEREAST', headName: 'Azonko Atia', headEmail: 'head.bolgatanga@pvc.local' },
+    { code: 'DVLA-UEA-02', name: 'NAVRONGO OFFICE', regionCode: 'REG-UPPEREAST', headName: 'Apambire Ayine', headEmail: 'head.navrongo@pvc.local' },
+
+    // Upper West Region
+    { code: 'DVLA-UWE-01', name: 'WA', regionCode: 'REG-UPPERWEST', headName: 'Dery Kuanyir', headEmail: 'head.wa@pvc.local' },
+    { code: 'DVLA-UWE-02', name: 'TUMU OFFICE', regionCode: 'REG-UPPERWEST', headName: 'Bayor Kanton', headEmail: 'head.tumu@pvc.local' },
+
+    // Bono Region
+    { code: 'DVLA-BON-01', name: 'SUNYANI', regionCode: 'REG-BONO', headName: 'Kwasi Busia', headEmail: 'head.sunyani@pvc.local' },
+    { code: 'DVLA-BON-02', name: 'DORMAA', regionCode: 'REG-BONO', headName: 'Agyemang Badu', headEmail: 'head.dormaa@pvc.local' },
+    { code: 'DVLA-BON-03', name: 'WENCHI', regionCode: 'REG-BONO', headName: 'Kofi Abrefa', headEmail: 'head.wenchi@pvc.local' },
+
+    // Bono East Region
+    { code: 'DVLA-BOE-01', name: 'TECHIMAN', regionCode: 'REG-BONOEAST', headName: 'Adwoa Fosuah', headEmail: 'head.techiman@pvc.local' },
+    { code: 'DVLA-BOE-02', name: 'KINTAMPO', regionCode: 'REG-BONOEAST', headName: 'Kwame Baafi', headEmail: 'head.kintampo@pvc.local' },
+    { code: 'DVLA-BOE-03', name: 'NKORANZA OFFICE', regionCode: 'REG-BONOEAST', headName: 'Ohene Djan', headEmail: 'head.nkoranza@pvc.local' },
+    { code: 'DVLA-BOE-04', name: 'ATEBUBU', regionCode: 'REG-BONOEAST', headName: 'Ameyaw Akumfi', headEmail: 'head.atebubu@pvc.local' },
+
+    // Ahafo Region
+    { code: 'DVLA-AHF-01', name: 'GOASO', regionCode: 'REG-AHAFO', headName: 'Kofi Tuah', headEmail: 'head.goaso@pvc.local' },
+    { code: 'DVLA-AHF-02', name: 'BECHEM', regionCode: 'REG-AHAFO', headName: 'Akua Pokua', headEmail: 'head.bechem@pvc.local' },
   ];
 
   let branchCount = 0;
