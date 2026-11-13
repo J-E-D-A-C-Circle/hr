@@ -84,7 +84,12 @@ echo "🔄 Forcing fresh pod rollout..."
 $KUBECTL rollout restart deployment/hr-validation-app -n hr-validation 2>/dev/null || true
 
 echo "⏳ Waiting for HR Validation app rollout to complete..."
-$KUBECTL rollout status deployment/hr-validation-app -n hr-validation --timeout=300s
+if ! $KUBECTL rollout status deployment/hr-validation-app -n hr-validation --timeout=300s; then
+    echo "⚠️ Rollout timed out or failed. Displaying recent pod logs:"
+    $KUBECTL logs deployment/hr-validation-app -n hr-validation --tail=50 || true
+    $KUBECTL describe pod -n hr-validation -l app=hr-validation-app | grep -A 15 "Events:" || true
+    exit 1
+fi
 
 echo "============================================================"
 echo "✅ HR Validation Platform successfully deployed to Kubernetes!"
