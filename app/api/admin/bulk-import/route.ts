@@ -59,35 +59,33 @@ export async function POST(request: Request) {
       const headEmail = r.head_email.trim().toLowerCase();
 
       const regionCode = `REG-${regionName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
-      let reg = await db.query.regions.findFirst({ where: eq(regions.code, regionCode) });
-      if (!reg) {
-        const regId = crypto.randomUUID();
-        const newReg = { id: regId, name: regionName, code: regionCode };
-        await db.insert(regions).values(newReg);
-        reg = newReg as any;
+      const existingReg = await db.query.regions.findFirst({ where: eq(regions.code, regionCode) });
+      let regId = existingReg?.id;
+      if (!regId) {
+        regId = crypto.randomUUID();
+        await db.insert(regions).values({ id: regId, name: regionName, code: regionCode });
       }
 
-      let branch = await db.query.branches.findFirst({ where: eq(branches.name, branchName) });
-      if (branch) {
+      const existingBranch = await db.query.branches.findFirst({ where: eq(branches.name, branchName) });
+      let branchId: string;
+      if (existingBranch) {
+        branchId = existingBranch.id;
         await db.update(branches)
-          .set({ code: branchCode, regionId: reg!.id, headName, headEmail, updatedAt: new Date().toISOString() })
-          .where(eq(branches.id, branch.id));
-        branch = (await db.query.branches.findFirst({ where: eq(branches.id, branch.id) }))!;
+          .set({ code: branchCode, regionId: regId, headName, headEmail, updatedAt: new Date().toISOString() })
+          .where(eq(branches.id, existingBranch.id));
       } else {
-        const branchId = crypto.randomUUID();
-        const newBranch = { id: branchId, code: branchCode, name: branchName, regionId: reg!.id, headName, headEmail, active: true };
-        await db.insert(branches).values(newBranch);
-        branch = newBranch as any;
+        branchId = crypto.randomUUID();
+        await db.insert(branches).values({ id: branchId, code: branchCode, name: branchName, regionId: regId, headName, headEmail, active: true });
       }
       importedBranches++;
 
       const passHash = r.initial_password ? await hashPassword(r.initial_password.trim()) : defaultPasswordHash;
 
-      let usr = await db.query.users.findFirst({ where: eq(users.email, headEmail) });
-      if (usr) {
+      const existingUser = await db.query.users.findFirst({ where: eq(users.email, headEmail) });
+      if (existingUser) {
         await db.update(users)
-          .set({ name: headName, branchId: branch!.id, role: 'STATION_MANAGER', updatedAt: new Date().toISOString() })
-          .where(eq(users.id, usr.id));
+          .set({ name: headName, branchId: branchId, role: 'STATION_MANAGER', updatedAt: new Date().toISOString() })
+          .where(eq(users.id, existingUser.id));
       } else {
         await db.insert(users)
           .values({
@@ -96,7 +94,7 @@ export async function POST(request: Request) {
             email: headEmail,
             passwordHash: passHash,
             role: 'STATION_MANAGER',
-            branchId: branch!.id,
+            branchId: branchId,
           });
       }
       importedUsers++;

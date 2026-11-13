@@ -64,47 +64,41 @@ async function main() {
 
   const regionMap: Record<string, string> = {};
   for (const rData of regionsData) {
-    let reg = (await db.select().from(regions).where(eq(regions.code, rData.code)))[0];
-    if (!reg) {
+    const existingReg = (await db.select().from(regions).where(eq(regions.code, rData.code)))[0];
+    if (existingReg) {
+      regionMap[rData.code] = existingReg.id;
+    } else {
       const regId = crypto.randomUUID();
-      const newReg = { id: regId, ...rData };
-      await db.insert(regions).values(newReg);
-      reg = newReg;
+      await db.insert(regions).values({ id: regId, ...rData });
+      regionMap[rData.code] = regId;
     }
-    regionMap[rData.code] = reg.id;
   }
 
   // 5. Admin Account & Finance Officer Account
   const accraRegId = regionMap['REG-ACCRA'];
 
-  let adminUser = (await db.select().from(users).where(eq(users.email, 'admin@pvc.local')))[0];
-  if (!adminUser) {
-    const adminId = crypto.randomUUID();
-    const newAdmin = {
-      id: adminId,
+  const existingAdmin = (await db.select().from(users).where(eq(users.email, 'admin@pvc.local')))[0];
+  if (!existingAdmin) {
+    await db.insert(users).values({
+      id: crypto.randomUUID(),
       name: 'HR Administration Head',
       email: 'admin@pvc.local',
       passwordHash,
       role: Role.HR_ADMIN,
       regionId: accraRegId,
-    };
-    await db.insert(users).values(newAdmin);
-    adminUser = newAdmin as any;
+    });
   }
 
-  let financeUser = (await db.select().from(users).where(eq(users.email, 'finance@pvc.local')))[0];
-  if (!financeUser) {
-    const financeId = crypto.randomUUID();
-    const newFinance = {
-      id: financeId,
+  const existingFinance = (await db.select().from(users).where(eq(users.email, 'finance@pvc.local')))[0];
+  if (!existingFinance) {
+    await db.insert(users).values({
+      id: crypto.randomUUID(),
       name: 'Finance Audit Officer',
       email: 'finance@pvc.local',
       passwordHash,
       role: Role.FINANCE_OFFICER,
       regionId: accraRegId,
-    };
-    await db.insert(users).values(newFinance);
-    financeUser = newFinance as any;
+    });
   }
 
   // 6. DVLA Ghana Official Station List (53 Stations)
@@ -139,10 +133,11 @@ async function main() {
   for (const st of dvlaStationsList) {
     const regId = regionMap[st.regionCode] || accraRegId;
 
-    let branch = (await db.select().from(branches).where(eq(branches.name, st.name)))[0];
-    if (!branch) {
-      const branchId = crypto.randomUUID();
-      const newBranch = {
+    const existingBranch = (await db.select().from(branches).where(eq(branches.name, st.name)))[0];
+    let branchId = existingBranch?.id;
+    if (!branchId) {
+      branchId = crypto.randomUUID();
+      await db.insert(branches).values({
         id: branchId,
         code: st.code,
         name: st.name,
@@ -150,23 +145,20 @@ async function main() {
         headName: st.headName,
         headEmail: st.headEmail,
         active: true,
-      };
-      await db.insert(branches).values(newBranch);
-      branch = newBranch as any;
+      });
     }
 
-    let user = (await db.select().from(users).where(eq(users.email, st.headEmail)))[0];
-    if (!user) {
-      await db.insert(users)
-        .values({
-          id: crypto.randomUUID(),
-          name: st.headName,
-          email: st.headEmail,
-          passwordHash,
-          role: Role.STATION_MANAGER,
-          branchId: branch.id,
-          regionId: regId,
-        });
+    const existingUser = (await db.select().from(users).where(eq(users.email, st.headEmail)))[0];
+    if (!existingUser) {
+      await db.insert(users).values({
+        id: crypto.randomUUID(),
+        name: st.headName,
+        email: st.headEmail,
+        passwordHash,
+        role: Role.STATION_MANAGER,
+        branchId: branchId,
+        regionId: regId,
+      });
     }
     branchCount++;
   }

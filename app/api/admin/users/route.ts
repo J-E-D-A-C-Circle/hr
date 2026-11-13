@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, email, and role are required' }, { status: 400 });
     }
 
-    let user;
+    let user: any;
     if (id) {
       const updateData: any = {
         name,

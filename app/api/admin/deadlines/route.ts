@@ -13,9 +13,8 @@ export async function GET() {
 
     let config = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
     if (!config) {
-      const newConfig = { id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3, updatedAt: new Date().toISOString() };
-      await db.insert(deadlineConfigs).values(newConfig);
-      config = newConfig as any;
+      await db.insert(deadlineConfigs).values({ id: 'default', cutoffDayOfMonth: 21, reminderDaysBefore: 3 });
+      config = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
     }
 
     return NextResponse.json({ config });
@@ -51,12 +50,10 @@ export async function POST(request: Request) {
       await db.update(deadlineConfigs)
         .set({ cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder, updatedAt: new Date().toISOString() })
         .where(eq(deadlineConfigs.id, 'default'));
-      config = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
     } else {
-      const newConfig = { id: 'default', cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder, updatedAt: new Date().toISOString() };
-      await db.insert(deadlineConfigs).values(newConfig);
-      config = newConfig as any;
+      await db.insert(deadlineConfigs).values({ id: 'default', cutoffDayOfMonth: cutoff, reminderDaysBefore: reminder });
     }
+    config = (await db.select().from(deadlineConfigs).where(eq(deadlineConfigs.id, 'default')))[0];
 
     await logAuditAction({
       actorId: session.id,
