@@ -17,6 +17,15 @@ spec:
       labels:
         app: hr-validation-app
     spec:
+      tolerations:
+        - key: "node.kubernetes.io/disk-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/memory-pressure"
+          operator: "Exists"
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
       containers:
         - name: hr-validation
           image: hr-validation-app:latest
@@ -49,14 +58,9 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 20
           volumeMounts:
-            - name: db-storage
-              mountPath: /app/prisma
             - name: uploads-storage
               mountPath: /app/uploads
       volumes:
-        - name: db-storage
-          persistentVolumeClaim:
-            claimName: hr-validation-db-pvc
         - name: uploads-storage
           persistentVolumeClaim:
             claimName: hr-validation-uploads-pvc

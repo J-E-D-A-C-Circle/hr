@@ -1,16 +1,14 @@
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: hr-validation-db-pvc
+  name: hr-mysql-pvc
   namespace: hr-validation
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
-
+      storage: 10Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

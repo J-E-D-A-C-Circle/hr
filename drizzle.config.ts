@@ -3,8 +3,8 @@ import { defineConfig } from 'drizzle-kit';
 export default defineConfig({
   schema: './lib/db/schema.ts',
   out: './drizzle',
-  dialect: 'sqlite',
+  dialect: 'mysql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'file:./dev.db',
+    url: process.env.DATABASE_URL || 'mysql://hr_user:hr_password@127.0.0.1:3306/hr_validation_db',
   },
 });

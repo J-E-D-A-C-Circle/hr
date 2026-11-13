@@ -6,4 +6,8 @@ metadata:
 data:
   NODE_ENV: "production"
   PORT: "3000"
-  DATABASE_URL: "file:/app/prisma/dev.db"
+  DB_HOST: "hr-mysql-service"
+  DB_PORT: "3306"
+  DB_USER: "hr_user"
+  DB_NAME: "hr_validation_db"
+  DATABASE_URL: "mysql://hr_user:hr_password@hr-mysql-service:3306/hr_validation_db"

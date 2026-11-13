@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # HR Validation System - Ubuntu Kubernetes Deployment Helper Script
-# Modeled after DVLA NSS Portal Kubernetes deploy script
+# Full stack: Next.js Platform + Dedicated MySQL 8.0 + phpMyAdmin
 # ==============================================================================
 
 set -e
@@ -71,11 +71,16 @@ $KUBECTL apply -f k8s/namespace.yaml
 $KUBECTL apply -f k8s/configmap.yaml
 $KUBECTL apply -f k8s/secret.yaml
 $KUBECTL apply -f k8s/pv-pvc.yaml
+$KUBECTL apply -f k8s/mysql-deployment.yaml
+$KUBECTL apply -f k8s/phpmyadmin-deployment.yaml
 $KUBECTL apply -f k8s/deployment.yaml
 $KUBECTL apply -f k8s/service.yaml
 
-echo "🔄 Pointing deployment to current image tag ($BUILD_TAG)..."
+echo "🔄 Pointing app deployment to current image tag ($BUILD_TAG)..."
 $KUBECTL set image deployment/hr-validation-app hr-validation=hr-validation-app:$BUILD_TAG -n hr-validation 2>/dev/null || true
+
+echo "⏳ Waiting for MySQL database initialization..."
+$KUBECTL rollout status deployment/hr-mysql-app -n hr-validation --timeout=300s || echo "⚠️ MySQL rollout taking longer than usual, proceeding to app rollout..."
 
 echo "🔄 Forcing fresh pod rollout..."
 $KUBECTL rollout restart deployment/hr-validation-app -n hr-validation 2>/dev/null || true
@@ -88,4 +93,6 @@ echo "✅ HR Validation Platform successfully deployed to Kubernetes!"
 echo "============================================================"
 echo "Access points:"
 echo "  - Web Portal: http://<YOUR_UBUNTU_SERVER_IP>:8080"
+echo "  - phpMyAdmin: http://<YOUR_UBUNTU_SERVER_IP>:30881"
+echo "  - MySQL NodePort: <YOUR_UBUNTU_SERVER_IP>:30306"
 echo "============================================================"

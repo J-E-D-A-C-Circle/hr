@@ -1,4 +1,11 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import {
+  mysqlTable,
+  varchar,
+  text,
+  int,
+  boolean,
+  index,
+} from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
@@ -7,29 +14,29 @@ function generateId(): string {
 }
 
 // 1. Regions
-export const regions = sqliteTable('Region', {
-  id: text('id').primaryKey().$defaultFn(() => generateId()),
-  name: text('name').notNull().unique(),
-  code: text('code').notNull().unique(),
-  createdAt: text('createdAt').$defaultFn(() => new Date().toISOString()),
-  updatedAt: text('updatedAt').$defaultFn(() => new Date().toISOString()),
+export const regions = mysqlTable('Region', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => generateId()),
+  name: varchar('name', { length: 255 }).notNull().unique(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  createdAt: varchar('createdAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
+  updatedAt: varchar('updatedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
 });
 
 // 2. Branches
-export const branches = sqliteTable(
+export const branches = mysqlTable(
   'Branch',
   {
-    id: text('id').primaryKey().$defaultFn(() => generateId()),
-    name: text('name').notNull().unique(),
-    code: text('code'),
-    regionId: text('regionId')
+    id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => generateId()),
+    name: varchar('name', { length: 255 }).notNull().unique(),
+    code: varchar('code', { length: 50 }),
+    regionId: varchar('regionId', { length: 36 })
       .notNull()
       .references(() => regions.id, { onDelete: 'cascade' }),
-    headName: text('headName'),
-    headEmail: text('headEmail'),
-    active: integer('active', { mode: 'boolean' }).notNull().default(true),
-    createdAt: text('createdAt').$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updatedAt').$defaultFn(() => new Date().toISOString()),
+    headName: varchar('headName', { length: 255 }),
+    headEmail: varchar('headEmail', { length: 255 }),
+    active: boolean('active').notNull().default(true),
+    createdAt: varchar('createdAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
+    updatedAt: varchar('updatedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
   },
   (table) => ({
     regionIdx: index('branch_region_idx').on(table.regionId),
@@ -38,19 +45,19 @@ export const branches = sqliteTable(
 );
 
 // 3. Users
-export const users = sqliteTable(
+export const users = mysqlTable(
   'User',
   {
-    id: text('id').primaryKey().$defaultFn(() => generateId()),
-    name: text('name').notNull(),
-    email: text('email').notNull().unique(),
-    passwordHash: text('passwordHash').notNull(),
-    role: text('role').notNull().default('STATION_MANAGER'),
-    branchId: text('branchId').references(() => branches.id, { onDelete: 'set null' }),
-    regionId: text('regionId').references(() => regions.id, { onDelete: 'set null' }),
-    active: integer('active', { mode: 'boolean' }).notNull().default(true),
-    createdAt: text('createdAt').$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updatedAt').$defaultFn(() => new Date().toISOString()),
+    id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => generateId()),
+    name: varchar('name', { length: 255 }).notNull(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    passwordHash: varchar('passwordHash', { length: 255 }).notNull(),
+    role: varchar('role', { length: 50 }).notNull().default('STATION_MANAGER'),
+    branchId: varchar('branchId', { length: 36 }).references(() => branches.id, { onDelete: 'set null' }),
+    regionId: varchar('regionId', { length: 36 }).references(() => regions.id, { onDelete: 'set null' }),
+    active: boolean('active').notNull().default(true),
+    createdAt: varchar('createdAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
+    updatedAt: varchar('updatedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
   },
   (table) => ({
     branchIdx: index('user_branch_idx').on(table.branchId),
@@ -62,33 +69,33 @@ export const users = sqliteTable(
 );
 
 // 4. Submissions
-export const submissions = sqliteTable(
+export const submissions = mysqlTable(
   'Submission',
   {
-    id: text('id').primaryKey().$defaultFn(() => generateId()),
-    branchId: text('branchId')
+    id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => generateId()),
+    branchId: varchar('branchId', { length: 36 })
       .notNull()
       .references(() => branches.id, { onDelete: 'cascade' }),
-    month: integer('month').notNull(),
-    year: integer('year').notNull(),
-    filePath: text('filePath').notNull(),
-    fileName: text('fileName').notNull(),
-    fileSize: integer('fileSize').notNull(),
+    month: int('month').notNull(),
+    year: int('year').notNull(),
+    filePath: varchar('filePath', { length: 500 }).notNull(),
+    fileName: varchar('fileName', { length: 255 }).notNull(),
+    fileSize: int('fileSize').notNull(),
     note: text('note'),
-    uploadedById: text('uploadedById')
+    uploadedById: varchar('uploadedById', { length: 36 })
       .notNull()
       .references(() => users.id),
-    uploadedAt: text('uploadedAt').$defaultFn(() => new Date().toISOString()),
-    status: text('status').notNull().default('PENDING'),
-    reviewerId: text('reviewerId').references(() => users.id),
+    uploadedAt: varchar('uploadedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
+    status: varchar('status', { length: 50 }).notNull().default('PENDING'),
+    reviewerId: varchar('reviewerId', { length: 36 }).references(() => users.id),
     reviewerNotes: text('reviewerNotes'),
-    reviewedAt: text('reviewedAt'),
-    resubmissionOfId: text('resubmissionOfId'),
-    ocrPassed: integer('ocrPassed', { mode: 'boolean' }).notNull().default(true),
+    reviewedAt: varchar('reviewedAt', { length: 50 }),
+    resubmissionOfId: varchar('resubmissionOfId', { length: 36 }),
+    ocrPassed: boolean('ocrPassed').notNull().default(true),
     ocrText: text('ocrText'),
-    staffType: text('staffType').notNull().default('PERMANENT'),
-    createdAt: text('createdAt').$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updatedAt').$defaultFn(() => new Date().toISOString()),
+    staffType: varchar('staffType', { length: 50 }).notNull().default('PERMANENT'),
+    createdAt: varchar('createdAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
+    updatedAt: varchar('updatedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
   },
   (table) => ({
     branchYearMonthIdx: index('sub_branch_ym_idx').on(table.branchId, table.year, table.month),
@@ -102,15 +109,15 @@ export const submissions = sqliteTable(
 );
 
 // 5. Audit Logs
-export const auditLogs = sqliteTable(
+export const auditLogs = mysqlTable(
   'AuditLog',
   {
-    id: text('id').primaryKey().$defaultFn(() => generateId()),
-    actorId: text('actorId').references(() => users.id, { onDelete: 'set null' }),
-    action: text('action').notNull(),
-    targetType: text('targetType').notNull(),
-    targetId: text('targetId'),
-    timestamp: text('timestamp').$defaultFn(() => new Date().toISOString()),
+    id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => generateId()),
+    actorId: varchar('actorId', { length: 36 }).references(() => users.id, { onDelete: 'set null' }),
+    action: varchar('action', { length: 100 }).notNull(),
+    targetType: varchar('targetType', { length: 100 }).notNull(),
+    targetId: varchar('targetId', { length: 36 }),
+    timestamp: varchar('timestamp', { length: 50 }).$defaultFn(() => new Date().toISOString()),
     metadata: text('metadata'),
   },
   (table) => ({
@@ -121,41 +128,36 @@ export const auditLogs = sqliteTable(
 );
 
 // 6. Deadline Config
-export const deadlineConfigs = sqliteTable('DeadlineConfig', {
-  id: text('id').primaryKey().default('default'),
-  cutoffDayOfMonth: integer('cutoffDayOfMonth').notNull().default(21),
-  reminderDaysBefore: integer('reminderDaysBefore').notNull().default(3),
-  updatedAt: text('updatedAt').$defaultFn(() => new Date().toISOString()),
+export const deadlineConfigs = mysqlTable('DeadlineConfig', {
+  id: varchar('id', { length: 50 }).primaryKey().default('default'),
+  cutoffDayOfMonth: int('cutoffDayOfMonth').notNull().default(21),
+  reminderDaysBefore: int('reminderDaysBefore').notNull().default(3),
+  updatedAt: varchar('updatedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
 });
 
 // 7. Announcements
-export const announcements = sqliteTable('Announcement', {
-  id: text('id').primaryKey().$defaultFn(() => generateId()),
-  title: text('title').notNull(),
+export const announcements = mysqlTable('Announcement', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => generateId()),
+  title: varchar('title', { length: 255 }).notNull(),
   content: text('content').notNull(),
-  priority: text('priority').notNull().default('INFO'),
-  active: integer('active', { mode: 'boolean' }).notNull().default(true),
-  author: text('author').notNull().default('HR Administration'),
-  createdAt: text('createdAt').$defaultFn(() => new Date().toISOString()),
-  updatedAt: text('updatedAt').$defaultFn(() => new Date().toISOString()),
+  priority: varchar('priority', { length: 50 }).notNull().default('INFO'),
+  active: boolean('active').notNull().default(true),
+  author: varchar('author', { length: 255 }).notNull().default('HR Administration'),
+  createdAt: varchar('createdAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
+  updatedAt: varchar('updatedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
 });
 
 // 8. Policy Config
-export const policyConfigs = sqliteTable('PolicyConfig', {
-  id: text('id').primaryKey().default('default'),
-  maxFileSizeMb: integer('maxFileSizeMb').notNull().default(30),
-  requireSignature: integer('requireSignature', { mode: 'boolean' }).notNull().default(true),
-  allowedFormats: text('allowedFormats').notNull().default('PDF'),
-  guidelinesText: text('guidelinesText')
-    .notNull()
-    .default(
-      'All monthly payroll validation documents must be signed by the Station Manager and uploaded in PDF format prior to the 21st monthly cutoff.'
-    ),
-  updatedAt: text('updatedAt').$defaultFn(() => new Date().toISOString()),
+export const policyConfigs = mysqlTable('PolicyConfig', {
+  id: varchar('id', { length: 50 }).primaryKey().default('default'),
+  maxFileSizeMb: int('maxFileSizeMb').notNull().default(30),
+  requireSignature: boolean('requireSignature').notNull().default(true),
+  allowedFormats: varchar('allowedFormats', { length: 100 }).notNull().default('PDF'),
+  guidelinesText: text('guidelinesText'),
+  updatedAt: varchar('updatedAt', { length: 50 }).$defaultFn(() => new Date().toISOString()),
 });
 
-// --- Drizzle Relations ---
-
+// ── RELATIONS ─────────────────────────────────────────────────────────────────
 export const regionsRelations = relations(regions, ({ many }) => ({
   branches: many(branches),
   users: many(users),
@@ -179,12 +181,12 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.regionId],
     references: [regions.id],
   }),
-  submissionsUploaded: many(submissions, { relationName: 'UploadedBy' }),
-  submissionsReviewed: many(submissions, { relationName: 'ReviewedBy' }),
+  submissionsUploaded: many(submissions, { relationName: 'uploadedBy' }),
+  submissionsReviewed: many(submissions, { relationName: 'reviewedBy' }),
   auditLogs: many(auditLogs),
 }));
 
-export const submissionsRelations = relations(submissions, ({ one, many }) => ({
+export const submissionsRelations = relations(submissions, ({ one }) => ({
   branch: one(branches, {
     fields: [submissions.branchId],
     references: [branches.id],
@@ -192,19 +194,13 @@ export const submissionsRelations = relations(submissions, ({ one, many }) => ({
   uploadedBy: one(users, {
     fields: [submissions.uploadedById],
     references: [users.id],
-    relationName: 'UploadedBy',
+    relationName: 'uploadedBy',
   }),
   reviewer: one(users, {
     fields: [submissions.reviewerId],
     references: [users.id],
-    relationName: 'ReviewedBy',
+    relationName: 'reviewedBy',
   }),
-  resubmissionOf: one(submissions, {
-    fields: [submissions.resubmissionOfId],
-    references: [submissions.id],
-    relationName: 'Resubmissions',
-  }),
-  priorSubmissions: many(submissions, { relationName: 'Resubmissions' }),
 }));
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
@@ -213,3 +209,27 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export type Region = typeof regions.$inferSelect;
+export type NewRegion = typeof regions.$inferInsert;
+
+export type Branch = typeof branches.$inferSelect;
+export type NewBranch = typeof branches.$inferInsert;
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+
+export type Submission = typeof submissions.$inferSelect;
+export type NewSubmission = typeof submissions.$inferInsert;
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;
+
+export type DeadlineConfig = typeof deadlineConfigs.$inferSelect;
+export type NewDeadlineConfig = typeof deadlineConfigs.$inferInsert;
+
+export type Announcement = typeof announcements.$inferSelect;
+export type NewAnnouncement = typeof announcements.$inferInsert;
+
+export type PolicyConfig = typeof policyConfigs.$inferSelect;
+export type NewPolicyConfig = typeof policyConfigs.$inferInsert;

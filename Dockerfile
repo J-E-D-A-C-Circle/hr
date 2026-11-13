@@ -4,7 +4,7 @@
 # Step 1: Dependencies Stage
 FROM node:22-slim AS deps
 WORKDIR /app
-RUN apt-get update && apt-get install -y openssl python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl default-mysql-client python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* bun.lock* ./
 RUN npm install --legacy-peer-deps
 
@@ -24,7 +24,7 @@ RUN npm run build
 FROM node:22-slim AS runner
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl default-mysql-client && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
