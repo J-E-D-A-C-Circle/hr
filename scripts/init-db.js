@@ -342,10 +342,13 @@ async function main() {
         const now = new Date().toISOString();
         await conn.query(
           'INSERT IGNORE INTO `Branch` (`id`, `name`, `code`, `regionId`, `headName`, `headEmail`, `active`, `createdAt`, `updatedAt`) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)',
-          [branchId, st.name, st.code, regId, st.headName, st.headEmail, now, now]
+          [branchId, st.name, null, regId, st.headName, st.headEmail, now, now]
         );
       }
       console.log(`✅ Successfully seeded ${dvlaStationsList.length} Official DVLA Stations!`);
+    } else {
+      // Clear auto-seeded DVLA-* station codes on existing databases
+      await conn.query("UPDATE `Branch` SET `code` = NULL WHERE `code` LIKE 'DVLA-%'");
     }
 
     // Check if admin user exists

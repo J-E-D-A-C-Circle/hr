@@ -452,9 +452,11 @@ export default function ReviewPage() {
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-bold text-slate-900">{sub.branch.name}</span>
-                              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                {sub.branch.code}
-                              </span>
+                              {sub.branch.code && (
+                                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  {sub.branch.code}
+                                </span>
+                              )}
                               {/* Staff Category Badge */}
                               <span
                                 className={`px-2 py-0.5 text-[10px] font-medium rounded-md border ${
@@ -548,9 +550,11 @@ export default function ReviewPage() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-lg font-bold text-slate-900">{selectedSub.branch.name}</h2>
-                    <span className="text-xs font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      {selectedSub.branch.code}
-                    </span>
+                    {selectedSub.branch.code && (
+                      <span className="text-xs font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {selectedSub.branch.code}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 mt-1 font-normal">
                     {MONTH_NAMES[selectedSub.month - 1] || selectedSub.month} {selectedSub.year} Cycle • Uploaded by {selectedSub.uploadedBy?.name || selectedSub.uploadedBy?.email || 'Station Manager'}

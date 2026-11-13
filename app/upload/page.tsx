@@ -269,8 +269,9 @@ export default function PublicValidationFormPage() {
     }
 
     const pdfBlob = doc.output('blob');
-    const branchCode = branches.find((b) => b.id === selectedBranchId)?.code || 'STATION';
-    const compiledFileName = `Validation_${branchCode}_${year}_${month}_Compiled.pdf`;
+    const selectedBranch = branches.find((b) => b.id === selectedBranchId);
+    const branchLabel = (selectedBranch?.code || selectedBranch?.name || 'STATION').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const compiledFileName = `Validation_${branchLabel}_${year}_${month}_Compiled.pdf`;
 
     return new File([pdfBlob], compiledFileName, { type: 'application/pdf' });
   };
@@ -542,7 +543,7 @@ export default function PublicValidationFormPage() {
                 <SelectContent>
                   {branches.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
-                      {b.name}{b.code ? ` (${b.code})` : ''}
+                      {b.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -917,7 +918,7 @@ export default function PublicValidationFormPage() {
                   <SelectContent>
                     {branches.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
-                        {b.name} ({b.code})
+                        {b.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

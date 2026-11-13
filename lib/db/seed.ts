@@ -213,7 +213,7 @@ async function main() {
       branchId = crypto.randomUUID();
       await db.insert(branches).values({
         id: branchId,
-        code: st.code,
+        code: null,
         name: st.name,
         regionId: regId,
         headName: st.headName,

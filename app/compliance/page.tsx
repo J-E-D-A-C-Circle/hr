@@ -440,7 +440,7 @@ export default function CompliancePage() {
                     {/* Station Info (Sticky Left) */}
                     <td className="p-3.5 sticky left-0 bg-white border-r border-slate-200 z-10 font-medium">
                       <div className="text-slate-900 font-black">{b.name}</div>
-                      <div className="text-[10px] text-indigo-700 font-mono font-bold">{b.code}</div>
+                      {b.code && <div className="text-[10px] text-indigo-700 font-mono font-bold">{b.code}</div>}
                     </td>
 
                     {/* Region */}
