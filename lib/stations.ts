@@ -72,6 +72,7 @@ export const OFFICIAL_STATIONS = [
   "DOME",
   "AMRAHIA",
   "KWABENYA",
+  "ACHEAM 4 PVTS, ACHIMOTA",
 ] as const;
 
 export type OfficialStation = (typeof OFFICIAL_STATIONS)[number];
