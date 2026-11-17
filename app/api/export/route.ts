@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
 import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook, buildGraPayeWorkbook } from "@/lib/excel";
 import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
-import { normalizeStation } from "@/lib/stations";
+import { normalizeStation, expandStationFilter } from "@/lib/stations";
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,6 +34,13 @@ export async function GET(request: NextRequest) {
 
     // Annotate and filter
     const normalizedDepartmentFilter = department ? normalizeStation(department) : "";
+    let allowedStations: Set<string> | null = null;
+    if (normalizedDepartmentFilter) {
+      const stationRows = await prisma.station.findMany({
+        select: { name: true, parent_station: true },
+      });
+      allowedStations = expandStationFilter(normalizedDepartmentFilter, stationRows);
+    }
 
     const annotated = staffList.map((item: any) => {
       const currentContract = item.contracts.find((c: any) => c.is_current) || item.contracts[0] || null;
@@ -61,9 +68,9 @@ export async function GET(request: NextRequest) {
     const isPeriodAdditionExport = reportYearNum !== null && !isNaN(reportYearNum);
 
     const filtered = annotated.filter((item: any) => {
-      // Station filter (canonicalized, while preserving sub-unit label in item.department)
-      if (normalizedDepartmentFilter) {
-        if ((item.canonicalStation || "").toUpperCase() !== normalizedDepartmentFilter) {
+      // Station filter (canonicalized, including child PVTS under a parent station)
+      if (allowedStations) {
+        if (!allowedStations.has((item.canonicalStation || "").toUpperCase())) {
           return false;
         }
       }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { expandStationFilter, normalizeStation, type StationHierarchyItem } from "@/lib/stations";
 import SidebarLayout from "@/components/SidebarLayout";
 import AddStaffModal from "@/components/AddStaffModal";
 import StatusBadge from "@/components/StatusBadge";
@@ -66,6 +67,7 @@ export default function StaffListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [stationHierarchy, setStationHierarchy] = useState<StationHierarchyItem[]>([]);
   const [approvalTab, setApprovalTab] = useState<"all" | "approved" | "pending" | "rejected">("all");
   const [sortBy, setSortBy] = useState<"name" | "endDate" | "days" | "id">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -150,6 +152,14 @@ export default function StaffListPage() {
 
   useEffect(() => {
     fetchStaff();
+    fetch("/api/admin/cms/stations")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success && Array.isArray(d.stations)) {
+          setStationHierarchy(d.stations);
+        }
+      })
+      .catch(() => {});
     fetch("/api/auth/check")
       .then((r) => r.json())
       .then((d) => {
@@ -215,15 +225,25 @@ export default function StaffListPage() {
     }
   };
 
-  // Unique canonical stations for filter dropdown
+  // Unique canonical stations for filter dropdown (includes parent stations that have child PVTS)
   const departments = useMemo(() => {
     const set = new Set<string>();
+    const parentByChild = new Map<string, string>();
+    for (const st of stationHierarchy) {
+      if (st.parent_station) {
+        parentByChild.set(normalizeStation(st.name), normalizeStation(st.parent_station));
+      }
+    }
     staffList.forEach((s) => {
       const station = s.canonicalStation || s.department;
-      if (station) set.add(station);
+      if (station) {
+        set.add(station);
+        const parent = parentByChild.get(normalizeStation(station));
+        if (parent) set.add(parent);
+      }
     });
     return Array.from(set).sort();
-  }, [staffList]);
+  }, [staffList, stationHierarchy]);
 
   // Duplicate employee detection logic
   const duplicateStaffIds = useMemo(() => {
@@ -328,9 +348,11 @@ export default function StaffListPage() {
             return false;
           }
         }
-        // Department / canonical station filter
+        // Department / canonical station filter (includes child PVTS under a parent station)
         if (departmentFilter !== "all") {
-          if ((item.canonicalStation || item.department) !== departmentFilter) {
+          const allowed = expandStationFilter(departmentFilter, stationHierarchy);
+          const itemStation = normalizeStation(item.canonicalStation || item.department);
+          if (!allowed.has(itemStation)) {
             return false;
           }
         }
@@ -377,7 +399,7 @@ export default function StaffListPage() {
         const codeNumB = parseInt(String(b.staff_code || b.id).replace(/\D/g, ""), 10) || b.id || 0;
         return codeNumB - codeNumA;
       });
-  }, [staffList, search, statusFilter, departmentFilter, sortBy, sortOrder]);
+  }, [staffList, search, statusFilter, departmentFilter, sortBy, sortOrder, stationHierarchy]);
 
   // Pagination State (25 items per page)
   const PAGE_SIZE = 25;

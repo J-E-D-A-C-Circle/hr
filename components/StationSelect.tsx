@@ -5,25 +5,35 @@ import { ChevronDown, MapPin, X, Check } from "lucide-react";
 import { OFFICIAL_STATIONS, normalizeStation } from "@/lib/stations";
 
 let cachedStations: string[] | null = null;
-let pendingFetch: Promise<string[]> | null = null;
+let cachedParents: Record<string, string | null> = {};
+let pendingFetch: Promise<{ names: string[]; parents: Record<string, string | null> }> | null = null;
 
-async function loadStationsFromDb(force = false): Promise<string[]> {
-  if (!force && cachedStations) return cachedStations;
+async function loadStationsFromDb(
+  force = false
+): Promise<{ names: string[]; parents: Record<string, string | null> }> {
+  if (!force && cachedStations) return { names: cachedStations, parents: cachedParents };
   if (!force && pendingFetch) return pendingFetch;
 
   pendingFetch = fetch("/api/admin/cms/stations")
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
       if (data?.success && Array.isArray(data.stations) && data.stations.length > 0) {
-        const names = data.stations
-          .filter((s: { is_active?: boolean; name?: string }) => s.is_active !== false && s.name)
-          .map((s: { name: string }) => String(s.name).trim().toUpperCase());
+        const parents: Record<string, string | null> = {};
+        const names: string[] = [];
+        for (const s of data.stations as { is_active?: boolean; name?: string; parent_station?: string | null }[]) {
+          if (s.is_active !== false && s.name) {
+            const cleanName = String(s.name).trim().toUpperCase();
+            names.push(cleanName);
+            parents[cleanName] = s.parent_station ? String(s.parent_station).trim().toUpperCase() : null;
+          }
+        }
         cachedStations = Array.from(new Set(names));
-        return cachedStations;
+        cachedParents = parents;
+        return { names: cachedStations, parents: cachedParents };
       }
-      return [...OFFICIAL_STATIONS];
+      return { names: [...OFFICIAL_STATIONS], parents: {} };
     })
-    .catch(() => [...OFFICIAL_STATIONS])
+    .catch(() => ({ names: [...OFFICIAL_STATIONS], parents: {} }))
     .finally(() => {
       pendingFetch = null;
     });
@@ -38,6 +48,7 @@ interface StationSelectProps {
   placeholder?: string;
   allowAll?: boolean;
   allLabel?: string;
+  excludeStation?: string;
   disabled?: boolean;
   id?: string;
   className?: string;
@@ -50,6 +61,7 @@ export default function StationSelect({
   placeholder = "Type or select a station...",
   allowAll = false,
   allLabel = "All Stations",
+  excludeStation,
   disabled = false,
   id,
   className = "",
@@ -58,6 +70,7 @@ export default function StationSelect({
   const [query, setQuery] = useState(value);
   const [highlightIndex, setHighlightIndex] = useState(0);
   const [stationList, setStationList] = useState<string[]>(() => cachedStations ?? [...OFFICIAL_STATIONS]);
+  const [parentMap, setParentMap] = useState<Record<string, string | null>>(() => cachedParents);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -66,12 +79,18 @@ export default function StationSelect({
 
   useEffect(() => {
     let active = true;
-    loadStationsFromDb().then((list) => {
-      if (active) setStationList(list);
+    loadStationsFromDb().then(({ names, parents }) => {
+      if (active) {
+        setStationList(names);
+        setParentMap(parents);
+      }
     });
     const handleRefresh = () => {
-      loadStationsFromDb(true).then((list) => {
-        if (active) setStationList(list);
+      loadStationsFromDb(true).then(({ names, parents }) => {
+        if (active) {
+          setStationList(names);
+          setParentMap(parents);
+        }
       });
     };
     window.addEventListener("stations-updated", handleRefresh);
@@ -114,22 +133,25 @@ export default function StationSelect({
 
   const filteredStations = useMemo(() => {
     const q = query.trim().toUpperCase();
+    const excluded = excludeStation ? excludeStation.trim().toUpperCase() : "";
+    const available = excluded ? stationList.filter((st) => st !== excluded) : stationList;
     // If input exactly matches the currently selected value and dropdown was just opened via chevron,
     // show all stations so user can easily switch.
     if (!q || (open && q === value.toUpperCase())) {
-      return stationList;
+      return available;
     }
     const prefixMatches: string[] = [];
     const substringMatches: string[] = [];
-    for (const st of stationList) {
+    for (const st of available) {
+      const parent = parentMap[st] || "";
       if (st.startsWith(q)) {
         prefixMatches.push(st);
-      } else if (st.includes(q)) {
+      } else if (st.includes(q) || (parent && parent.includes(q))) {
         substringMatches.push(st);
       }
     }
     return [...prefixMatches, ...substringMatches];
-  }, [query, open, value, stationList]);
+  }, [query, open, value, stationList, parentMap, excludeStation]);
 
   const options = useMemo(() => {
     if (allowAll) {
@@ -300,9 +322,16 @@ export default function StationSelect({
                       : "hover:bg-slate-200/70 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <span className={isAllOption ? "italic text-slate-500 dark:text-slate-400" : ""}>
-                    {label}
-                  </span>
+                  <div className="min-w-0">
+                    <span className={isAllOption ? "italic text-slate-500 dark:text-slate-400" : "block truncate"}>
+                      {label}
+                    </span>
+                    {!isAllOption && parentMap[station] && (
+                      <span className="block text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        Under: {parentMap[station]}
+                      </span>
+                    )}
+                  </div>
                   {isSelected && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
                 </li>
               );

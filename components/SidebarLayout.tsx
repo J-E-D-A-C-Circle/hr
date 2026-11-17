@@ -24,6 +24,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
+  Database,
 } from "lucide-react";
 
 interface SidebarLayoutProps {
@@ -185,6 +186,12 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       label: "Monthly Export",
       href: "/export",
       icon: Download,
+      badge: null,
+    },
+    {
+      label: "Stations CMS",
+      href: "/stations",
+      icon: Database,
       badge: null,
     },
   ];

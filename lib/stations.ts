@@ -213,3 +213,29 @@ export function isOfficialStation(value: string | null | undefined): boolean {
   if (!value) return false;
   return OFFICIAL_SET.has(value.trim().toUpperCase());
 }
+
+export interface StationHierarchyItem {
+  name: string;
+  parent_station?: string | null;
+}
+
+/**
+ * Expands a selected station filter to include itself plus any child PVTS/sub-stations
+ * whose parent_station matches the selected station.
+ */
+export function expandStationFilter(
+  selectedStation: string,
+  stations: StationHierarchyItem[]
+): Set<string> {
+  const target = normalizeStation(selectedStation);
+  const result = new Set<string>();
+  if (!target) return result;
+  result.add(target);
+  for (const st of stations) {
+    const parent = st.parent_station ? normalizeStation(st.parent_station) : "";
+    if (parent && parent === target) {
+      result.add(normalizeStation(st.name));
+    }
+  }
+  return result;
+}
