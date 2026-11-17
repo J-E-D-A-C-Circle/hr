@@ -2,7 +2,34 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, MapPin, X, Check } from "lucide-react";
-import { OFFICIAL_STATIONS, isOfficialStation, normalizeStation } from "@/lib/stations";
+import { OFFICIAL_STATIONS, normalizeStation } from "@/lib/stations";
+
+let cachedStations: string[] | null = null;
+let pendingFetch: Promise<string[]> | null = null;
+
+async function loadStationsFromDb(force = false): Promise<string[]> {
+  if (!force && cachedStations) return cachedStations;
+  if (!force && pendingFetch) return pendingFetch;
+
+  pendingFetch = fetch("/api/admin/cms/stations")
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      if (data?.success && Array.isArray(data.stations) && data.stations.length > 0) {
+        const names = data.stations
+          .filter((s: { is_active?: boolean; name?: string }) => s.is_active !== false && s.name)
+          .map((s: { name: string }) => String(s.name).trim().toUpperCase());
+        cachedStations = Array.from(new Set(names));
+        return cachedStations;
+      }
+      return [...OFFICIAL_STATIONS];
+    })
+    .catch(() => [...OFFICIAL_STATIONS])
+    .finally(() => {
+      pendingFetch = null;
+    });
+
+  return pendingFetch;
+}
 
 interface StationSelectProps {
   value: string;
@@ -30,9 +57,29 @@ export default function StationSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const [highlightIndex, setHighlightIndex] = useState(0);
+  const [stationList, setStationList] = useState<string[]>(() => cachedStations ?? [...OFFICIAL_STATIONS]);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+
+  const stationSet = useMemo(() => new Set(stationList), [stationList]);
+
+  useEffect(() => {
+    let active = true;
+    loadStationsFromDb().then((list) => {
+      if (active) setStationList(list);
+    });
+    const handleRefresh = () => {
+      loadStationsFromDb(true).then((list) => {
+        if (active) setStationList(list);
+      });
+    };
+    window.addEventListener("stations-updated", handleRefresh);
+    return () => {
+      active = false;
+      window.removeEventListener("stations-updated", handleRefresh);
+    };
+  }, []);
 
   // Sync display text when external value changes
   useEffect(() => {
@@ -47,7 +94,7 @@ export default function StationSelect({
         // Snap back to valid value if user typed a partial string without selecting
         if (!allowAll) {
           const normalized = normalizeStation(query);
-          if (isOfficialStation(normalized)) {
+          if (stationSet.has(normalized)) {
             if (normalized !== value) onChange(normalized);
             setQuery(normalized);
           } else {
@@ -63,18 +110,18 @@ export default function StationSelect({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [query, value, allowAll, onChange]);
+  }, [query, value, allowAll, onChange, stationSet]);
 
   const filteredStations = useMemo(() => {
     const q = query.trim().toUpperCase();
     // If input exactly matches the currently selected value and dropdown was just opened via chevron,
     // show all stations so user can easily switch.
     if (!q || (open && q === value.toUpperCase())) {
-      return [...OFFICIAL_STATIONS];
+      return stationList;
     }
     const prefixMatches: string[] = [];
     const substringMatches: string[] = [];
-    for (const st of OFFICIAL_STATIONS) {
+    for (const st of stationList) {
       if (st.startsWith(q)) {
         prefixMatches.push(st);
       } else if (st.includes(q)) {
@@ -82,7 +129,7 @@ export default function StationSelect({
       }
     }
     return [...prefixMatches, ...substringMatches];
-  }, [query, open, value]);
+  }, [query, open, value, stationList]);
 
   const options = useMemo(() => {
     if (allowAll) {
@@ -168,7 +215,7 @@ export default function StationSelect({
             tabIndex={-1}
             aria-hidden="true"
             required
-            value={isOfficialStation(value) ? value : ""}
+            value={stationSet.has(value.trim().toUpperCase()) ? value : ""}
             onChange={() => {}}
             onInvalid={(e) => {
               (e.target as HTMLInputElement).setCustomValidity(

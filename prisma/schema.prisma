@@ -256,6 +256,16 @@ model BankMaster {
   @@map("bank_masters")
 }
 
+model Station {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("stations")
+}
+
 model InsuranceProvider {
   id             Int      @id @default(autoincrement())
   name           String   @unique
