@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get("format") || "excel";
     const exportType = searchParams.get("export_type") || "payroll"; // "payroll", "ssnit", "computation", "petra", "gra", "standard"
     const validationMonth = searchParams.get("validation_month") || "";
+    const additionsOnly = searchParams.get("additions_only") === "1";
 
     const staffList = await prisma.staff.findMany({
       include: {
@@ -61,11 +62,11 @@ export async function GET(request: NextRequest) {
         )
       : false;
 
-    // Check if month matches added staff creation date (for additions report exports)
+    // Check if month matches added staff creation date (ONLY for Station & Monthly Additions Report exports)
     const monthYearParts = validationMonth ? validationMonth.trim().split(/\s+/) : [];
     const reportMonthName = monthYearParts[0] || "";
     const reportYearNum = monthYearParts[1] ? parseInt(monthYearParts[1], 10) : null;
-    const isPeriodAdditionExport = reportYearNum !== null && !isNaN(reportYearNum);
+    const isPeriodAdditionExport = additionsOnly && reportYearNum !== null && !isNaN(reportYearNum);
 
     const filtered = annotated.filter((item: any) => {
       // Station filter (canonicalized, including child PVTS under a parent station)

@@ -522,7 +522,7 @@ export default function ExportPage() {
           onSelectStationForExport={(st) => setDepartment(st)}
           onDownloadForStation={(st, rYear, rMonth) => {
             const reportMonthStr =
-              rMonth === "all"
+              rYear === "all" && rMonth === "all"
                 ? ""
                 : `${rMonth} ${rYear === "all" ? "" : rYear}`.trim();
             const params = new URLSearchParams({
@@ -530,13 +530,14 @@ export default function ExportPage() {
               department: st,
               export_type: "standard",
               validation_month: reportMonthStr,
+              additions_only: "1",
               format: "excel",
             });
             window.open(`/api/export?${params.toString()}`, "_blank");
           }}
           onDownloadAll={(rYear, rMonth) => {
             const reportMonthStr =
-              rMonth === "all"
+              rYear === "all" && rMonth === "all"
                 ? ""
                 : `${rMonth} ${rYear === "all" ? "" : rYear}`.trim();
             const params = new URLSearchParams({
@@ -544,6 +545,7 @@ export default function ExportPage() {
               department: "",
               export_type: "standard",
               validation_month: reportMonthStr,
+              additions_only: "1",
               format: "excel",
             });
             window.open(`/api/export?${params.toString()}`, "_blank");
