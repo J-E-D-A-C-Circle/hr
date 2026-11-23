@@ -16,9 +16,9 @@ done
 
 echo "✅ Database server is reachable!"
 
-# Run Prisma schema push FIRST to ensure all tables exist (staff, hr_letter_*, retirement_*, etc.)
+# Run Prisma schema push FIRST to ensure all tables exist (staff, hr_letter_*, retirement_*, stations, etc.)
 echo "📦 Syncing database schema with Prisma (all modules)..."
-npx prisma db push --skip-generate || true
+npx prisma db push --skip-generate --accept-data-loss || true
 
 # Check staff table count
 STAFF_COUNT=$(mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME -s -N -e "SELECT COUNT(*) FROM staff;" 2>/dev/null || echo "0")
@@ -44,7 +44,7 @@ fi
 
 # Re-run Prisma db push after restore to catch any new columns / tables from latest schema
 echo "📦 Re-syncing schema post-restore (ensures new hrletters & retirement tables exist)..."
-npx prisma db push --skip-generate || true
+npx prisma db push --skip-generate --accept-data-loss || true
 
 # Check retirement staff table count and auto-seed if empty
 RETIREMENT_COUNT=$(mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME -s -N -e "SELECT COUNT(*) FROM retirement_staff;" 2>/dev/null || echo "0")

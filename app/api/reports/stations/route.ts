@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { normalizeStation } from "@/lib/stations";
+import { prisma, ensureStationsTable } from "@/lib/db";
+import { normalizeStation, expandStationFilter } from "@/lib/stations";
 import { CALENDAR_MONTHS } from "@/lib/status";
 
 function parseMonthIndex(monthParam: string): number | null {
@@ -25,6 +25,18 @@ export async function GET(request: NextRequest) {
       yearParam.toLowerCase() === "all" ? null : parseInt(yearParam, 10) || currentYear;
     const targetMonth = parseMonthIndex(monthParam);
     const targetStation = stationParam ? normalizeStation(stationParam) : "";
+    let allowedStations: Set<string> | null = null;
+    if (targetStation) {
+      try {
+        await ensureStationsTable();
+        const stationRows = await prisma.station.findMany({
+          select: { name: true, parent_station: true },
+        });
+        allowedStations = expandStationFilter(targetStation, stationRows);
+      } catch {
+        allowedStations = new Set([targetStation]);
+      }
+    }
 
     const staffList = await prisma.staff.findMany({
       select: {
@@ -67,7 +79,7 @@ export async function GET(request: NextRequest) {
       const matchesYear = targetYear === null || y === targetYear;
       const matchesMonth = targetMonth === null || m === targetMonth;
       const matchesPeriod = matchesYear && matchesMonth;
-      const matchesStation = !targetStation || canonical === targetStation;
+      const matchesStation = !allowedStations || allowedStations.has(canonical);
 
       if (!stationMap.has(canonical)) {
         stationMap.set(canonical, { station: canonical, totalStaff: 0, addedInPeriod: 0 });
@@ -82,7 +94,7 @@ export async function GET(request: NextRequest) {
         addedInYear += 1;
         if (m && m >= 1 && m <= 12) {
           monthlyCounts[m - 1].totalAdded += 1;
-          if (targetStation && canonical === targetStation) {
+          if (targetStation && matchesStation) {
             monthlyCounts[m - 1].stationAdded += 1;
           }
         }

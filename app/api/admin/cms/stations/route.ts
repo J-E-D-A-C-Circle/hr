@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, ensureStationsTable } from "@/lib/db";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getAdminSession as getTempStaffSession, isManagerOrAdminSession } from "@/lib/auth";
 import { OFFICIAL_STATIONS } from "@/lib/stations";
@@ -20,6 +20,7 @@ function normalizeName(raw: unknown): string {
 
 export async function GET() {
   try {
+    await ensureStationsTable();
     let stations = await prisma.station.findMany({
       orderBy: { name: "asc" },
     });
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     if (!(await hasStationWriteAccess())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    await ensureStationsTable();
 
     const body = await req.json();
     const name = normalizeName(body?.name);
@@ -94,6 +96,7 @@ export async function PATCH(req: NextRequest) {
     if (!(await hasStationWriteAccess())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    await ensureStationsTable();
 
     const body = await req.json();
     const id = Number(body?.id);
@@ -135,6 +138,7 @@ export async function DELETE(req: NextRequest) {
     if (!(await hasStationWriteAccess())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    await ensureStationsTable();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

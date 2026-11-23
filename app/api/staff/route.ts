@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, ensureStationsTable } from "@/lib/db";
 import { calculateEndDate, computeContractStatus, computeDaysRemaining, parseFlexibleDate } from "@/lib/status";
 import { normalizeStation, expandStationFilter } from "@/lib/stations";
 
@@ -66,10 +66,15 @@ export async function GET(request: NextRequest) {
     const normalizedDeptFilter = departmentFilter ? normalizeStation(departmentFilter) : "";
     let allowedStations: Set<string> | null = null;
     if (normalizedDeptFilter) {
-      const stationRows = await prisma.station.findMany({
-        select: { name: true, parent_station: true },
-      });
-      allowedStations = expandStationFilter(normalizedDeptFilter, stationRows);
+      try {
+        await ensureStationsTable();
+        const stationRows = await prisma.station.findMany({
+          select: { name: true, parent_station: true },
+        });
+        allowedStations = expandStationFilter(normalizedDeptFilter, stationRows);
+      } catch {
+        allowedStations = new Set([normalizedDeptFilter]);
+      }
     }
 
     // Filter by computed status and/or normalized station (including child PVTS) if requested

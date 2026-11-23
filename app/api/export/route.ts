@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, ensureStationsTable } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
 import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook, buildGraPayeWorkbook } from "@/lib/excel";
 import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
@@ -37,10 +37,15 @@ export async function GET(request: NextRequest) {
     const normalizedDepartmentFilter = department ? normalizeStation(department) : "";
     let allowedStations: Set<string> | null = null;
     if (normalizedDepartmentFilter) {
-      const stationRows = await prisma.station.findMany({
-        select: { name: true, parent_station: true },
-      });
-      allowedStations = expandStationFilter(normalizedDepartmentFilter, stationRows);
+      try {
+        await ensureStationsTable();
+        const stationRows = await prisma.station.findMany({
+          select: { name: true, parent_station: true },
+        });
+        allowedStations = expandStationFilter(normalizedDepartmentFilter, stationRows);
+      } catch {
+        allowedStations = new Set([normalizedDepartmentFilter]);
+      }
     }
 
     const annotated = staffList.map((item: any) => {
@@ -55,12 +60,19 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    const stationScoped = allowedStations
+      ? annotated.filter((item: any) => allowedStations!.has((item.canonicalStation || "").toUpperCase()))
+      : annotated;
+
     const targetMonth = validationMonth ? validationMonth.trim().toLowerCase() : "";
-    const hasAnyValidationForMonth = targetMonth
-      ? annotated.some((item: any) =>
-          item.validations?.some((v: any) => v.month.trim().toLowerCase() === targetMonth)
-        )
-      : false;
+    const isSupplementary = targetMonth.includes("(supplementary)");
+    const skipValidationCheck = exportType === "standard" || exportType === "expiring" || filter === "expiring";
+    const hasAnyValidationForMonth =
+      targetMonth && !skipValidationCheck
+        ? stationScoped.some((item: any) =>
+            item.validations?.some((v: any) => v.month.trim().toLowerCase() === targetMonth)
+          )
+        : false;
 
     // Check if month matches added staff creation date (ONLY for Station & Monthly Additions Report exports)
     const monthYearParts = validationMonth ? validationMonth.trim().split(/\s+/) : [];
@@ -68,16 +80,10 @@ export async function GET(request: NextRequest) {
     const reportYearNum = monthYearParts[1] ? parseInt(monthYearParts[1], 10) : null;
     const isPeriodAdditionExport = additionsOnly && reportYearNum !== null && !isNaN(reportYearNum);
 
-    const filtered = annotated.filter((item: any) => {
-      // Station filter (canonicalized, including child PVTS under a parent station)
-      if (allowedStations) {
-        if (!allowedStations.has((item.canonicalStation || "").toUpperCase())) {
-          return false;
-        }
-      }
-
+    const filtered = stationScoped.filter((item: any) => {
       // Period addition filter when exporting from Station & Monthly Additions Report
-      if (isPeriodAdditionExport && item.created_at) {
+      if (isPeriodAdditionExport) {
+        if (!item.created_at) return false;
         const d = new Date(item.created_at);
         if (d.getFullYear() !== reportYearNum) {
           return false;
@@ -92,23 +98,23 @@ export async function GET(request: NextRequest) {
             return false;
           }
         }
-      } else if (validationMonth && hasAnyValidationForMonth) {
-        // Month Validation Filter (if validations exist for targetMonth, filter strictly by them)
+      } else if (!skipValidationCheck && validationMonth && (isSupplementary || hasAnyValidationForMonth)) {
+        // Month Validation Filter (strictly required for Supplementary mode, or when validations exist for the selected scope)
         const hasValidation = item.validations?.some(
           (v: any) => v.month.trim().toLowerCase() === targetMonth
         );
         if (!hasValidation) return false;
       }
 
-      // Standard Full Data Directory Export includes ALL employees across all status categories
+      if (exportType === "expiring" || filter === "expiring") {
+        return item.computedStatus === "Expiring Soon" || item.computedStatus === "Expired";
+      }
 
       if (filter === "currently_employed") {
         // Active + Expiring Soon + Expired (All non-terminated active payroll staff)
         return item.computedStatus === "Active" || item.computedStatus === "Expiring Soon" || item.computedStatus === "Expired";
       } else if (filter === "active") {
         return item.computedStatus === "Active" || item.computedStatus === "Expiring Soon";
-      } else if (filter === "expiring") {
-        return item.computedStatus === "Expiring Soon";
       } else if (filter === "expired") {
         return item.computedStatus === "Expired";
       } else if (filter === "terminated") {
@@ -260,10 +266,7 @@ export async function GET(request: NextRequest) {
     const dateStr = new Date().toISOString().split("T")[0];
 
     if (exportType === "expiring" || filter === "expiring") {
-      const expiringList = annotated.filter(
-        (item: any) => item.computedStatus === "Expiring Soon" || item.computedStatus === "Expired"
-      );
-      excelBuffer = await buildExportWorkbook(expiringList, "Expiring & Expired Staff");
+      excelBuffer = await buildExportWorkbook(filtered, "Expiring & Expired Staff");
       filename = `Expiring_and_Expired_Staff_Directory_${dateStr}.xlsx`;
     } else if (exportType === "petra") {
       const mStr = validationMonth || getCurrentMonthYearString();
