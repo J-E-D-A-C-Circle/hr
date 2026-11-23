@@ -25,7 +25,9 @@ import {
   Building,
   CheckCircle2,
   Lock,
-  UserCheck
+  UserCheck,
+  UserPlus,
+  Trash2
 } from 'lucide-react';
 import { getValidAuthToken } from '@/lib/auth-client';
 import { formatDate } from '@/lib/utils';
@@ -95,6 +97,61 @@ export default function ApplicantManagementTab({
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Admin Accounts Management State
+  const [adminAccounts, setAdminAccounts] = useState<
+    { id: number; email: string; full_name: string; must_change_password: number | boolean; created_at: string }[]
+  >([]);
+  const [createAdminOpen, setCreateAdminOpen] = useState(false);
+  const [newAdminForm, setNewAdminForm] = useState({ fullName: '', email: '', password: '' });
+  const [showNewAdminPassword, setShowNewAdminPassword] = useState(true);
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+
+  const fetchAdminAccounts = async () => {
+    try {
+      const token = getValidAuthToken();
+      if (!token) return;
+      const res = await axios.get('/api/admin/admins', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAdminAccounts(res.data?.admins || []);
+    } catch {
+      // Non-fatal
+    }
+  };
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingAdmin(true);
+    try {
+      const token = getValidAuthToken();
+      const res = await axios.post('/api/admin/admins', newAdminForm, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success(res.data?.message || 'Admin account created!');
+      setCreateAdminOpen(false);
+      setNewAdminForm({ fullName: '', email: '', password: '' });
+      fetchAdminAccounts();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to create admin account');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdmin = async (id: number, email: string) => {
+    if (!confirm(`Delete admin account "${email}"?`)) return;
+    try {
+      const token = getValidAuthToken();
+      await axios.delete(`/api/admin/admins?id=${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('Admin account removed.');
+      fetchAdminAccounts();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete admin account');
+    }
+  };
+
   // Fetch applicant accounts from API
   const fetchApplicants = async () => {
     setLoading(true);
@@ -117,6 +174,7 @@ export default function ApplicantManagementTab({
 
   useEffect(() => {
     fetchApplicants();
+    fetchAdminAccounts();
   }, [refreshKey]);
 
   // Filtered applicants
@@ -395,6 +453,17 @@ export default function ApplicantManagementTab({
           <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto">
             <button
               onClick={() => {
+                setNewAdminForm({ fullName: '', email: '', password: '' });
+                setCreateAdminOpen(true);
+              }}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-white text-[#0d5c2e] hover:bg-emerald-50 text-xs font-black shadow-md cursor-pointer transition active:scale-95"
+              title="Create a new Admin account"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Create Admin</span>
+            </button>
+            <button
+              onClick={() => {
                 setBulkMode('all');
                 setBulkNewPassword('DVLA2026!');
                 setBulkResetOpen(true);
@@ -481,6 +550,59 @@ export default function ApplicantManagementTab({
               Pending First Form
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Admin Accounts Panel */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#0d5c2e]" />
+            <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
+              Admin Accounts ({adminAccounts.length})
+            </h3>
+          </div>
+          <button
+            onClick={() => {
+              setNewAdminForm({ fullName: '', email: '', password: '' });
+              setCreateAdminOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d5c2e] hover:bg-[#084221] text-white text-xs font-bold transition cursor-pointer"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Add Admin Account</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {adminAccounts.map((adm) => (
+            <div
+              key={adm.id}
+              className="flex items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">{adm.full_name}</p>
+                <p className="text-[11px] text-slate-500 truncate">{adm.email}</p>
+                <span
+                  className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    adm.must_change_password
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  }`}
+                >
+                  {adm.must_change_password ? 'Password Change Pending' : 'Active'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDeleteAdmin(adm.id, adm.email)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0"
+                title="Delete admin account"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1286,6 +1408,90 @@ export default function ApplicantManagementTab({
                 >
                   {savingEdit && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>Save Profile Changes</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Create Admin Account Modal */}
+      {createAdminOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+            <div className="p-5 bg-gradient-to-r from-[#0d5c2e] to-emerald-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-amber-300" />
+                <h3 className="text-sm font-black tracking-tight">Create Admin Account</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreateAdminOpen(false)}
+                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateAdmin} className="p-5 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newAdminForm.fullName}
+                  onChange={(e) => setNewAdminForm({ ...newAdminForm, fullName: e.target.value })}
+                  placeholder="e.g. Kwame Mensah"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-[#0d5c2e] focus:bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={newAdminForm.email}
+                  onChange={(e) => setNewAdminForm({ ...newAdminForm, email: e.target.value })}
+                  placeholder="e.g. director@dvla.gov.gh"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-[#0d5c2e] focus:bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Temporary Password (min. 6 characters)</label>
+                <div className="relative">
+                  <input
+                    type={showNewAdminPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={newAdminForm.password}
+                    onChange={(e) => setNewAdminForm({ ...newAdminForm, password: e.target.value })}
+                    placeholder="Enter temporary password"
+                    className="w-full px-3.5 pr-10 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-[#0d5c2e] focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewAdminPassword(!showNewAdminPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    {showNewAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-amber-700 font-medium mt-1">
+                  This admin will be forced to change their password on first login.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateAdminOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingAdmin}
+                  className="px-5 py-2 rounded-xl bg-[#0d5c2e] hover:bg-[#084221] text-white text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {creatingAdmin ? 'Creating...' : 'Create Admin Account'}
                 </button>
               </div>
             </form>

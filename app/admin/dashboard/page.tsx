@@ -103,6 +103,11 @@ export default function AdminDashboard() {
   const [isLetterGeneratorOpen, setIsLetterGeneratorOpen] = useState(false);
   const [letterApplication, setLetterApplication] = useState<any>(null);
 
+  // Mandatory first-login password change for admins
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPw, setChangingPw] = useState(false);
+
   const fetchStations = async () => {
     try {
       const token = getValidAuthToken();
@@ -147,9 +152,59 @@ export default function AdminDashboard() {
       return;
     }
     setUser(parsedUser);
+    if (parsedUser.must_change_password) {
+      setMustChangePassword(true);
+    }
+    axios
+      .get('/api/auth/me', { headers: { Authorization: `Bearer ${validToken}` } })
+      .then((res) => {
+        const me = res.data?.user;
+        if (me?.role === 'admin' && Boolean(me.must_change_password)) {
+          setMustChangePassword(true);
+        }
+      })
+      .catch(() => {});
     fetchStations();
     fetchApplications();
   }, [router]);
+
+  const handleForcedPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwForm.newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters long.');
+      return;
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      toast.error('New passwords do not match.');
+      return;
+    }
+    setChangingPw(true);
+    try {
+      const token = getValidAuthToken();
+      const res = await axios.post(
+        '/api/auth/change-password',
+        {
+          currentPassword: pwForm.currentPassword,
+          newPassword: pwForm.newPassword,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.token) {
+        localStorage.setItem('token', res.data.token);
+      }
+      if (res.data?.user) {
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        setUser(res.data.user);
+      }
+      setMustChangePassword(false);
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast.success('Password updated! You now have full access.');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update password');
+    } finally {
+      setChangingPw(false);
+    }
+  };
 
   const handleUpdateStations = async (updatedList: Station[]) => {
     setStations(updatedList);
@@ -1047,6 +1102,76 @@ export default function AdminDashboard() {
           onClose={() => setIsLetterGeneratorOpen(false)}
           application={letterApplication}
         />
+      )}
+
+      {/* Mandatory First-Login Password Change Modal (Admins Only) */}
+      {mustChangePassword && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/75 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+            <div className="p-5 bg-gradient-to-r from-[#0d5c2e] to-emerald-800 text-white">
+              <h3 className="text-base font-black tracking-tight">Change Default Password Required</h3>
+              <p className="text-xs text-emerald-100 mt-1">
+                For security, admin accounts must replace their temporary/default password on first login before accessing the portal.
+              </p>
+            </div>
+            <form onSubmit={handleForcedPasswordChange} className="p-5 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Current / Temporary Password</label>
+                <input
+                  type="password"
+                  required
+                  value={pwForm.currentPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                  placeholder="Enter current password"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#0d5c2e] focus:bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">New Password (min. 8 characters)</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={pwForm.newPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                  placeholder="Enter new strong password"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#0d5c2e] focus:bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={pwForm.confirmPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                  placeholder="Re-enter new password"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#0d5c2e] focus:bg-white"
+                />
+              </div>
+              <div className="pt-2 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearAuthSession();
+                    router.replace('/login');
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Sign Out
+                </button>
+                <button
+                  type="submit"
+                  disabled={changingPw}
+                  className="px-5 py-2.5 rounded-xl bg-[#0d5c2e] hover:bg-[#084221] text-white text-xs font-black shadow-md transition cursor-pointer disabled:opacity-50"
+                >
+                  {changingPw ? 'Updating...' : 'Update Password & Continue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

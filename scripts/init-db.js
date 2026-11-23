@@ -29,6 +29,15 @@ async function initDb() {
     const [tables] = await conn.query(`SHOW TABLES LIKE 'users'`);
 
     if (Array.isArray(tables) && tables.length > 0) {
+      // Ensure must_change_password column exists on existing deployments
+      const [cols] = await conn.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'must_change_password'`,
+        [database]
+      );
+      if (Array.isArray(cols) && cols.length === 0) {
+        await conn.query(`ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 0`);
+        console.log(`✅ Added 'must_change_password' column to users table.`);
+      }
       console.log(`✅ Database '${database}' is already initialized with required tables.`);
       await conn.end();
       return;

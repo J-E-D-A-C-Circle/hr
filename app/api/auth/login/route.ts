@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureMustChangePasswordColumn } from '@/lib/db';
 import { users } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { comparePassword, generateToken, hashPassword } from '@/lib/auth';
@@ -28,6 +28,8 @@ export async function POST(request: Request) {
       );
     }
 
+    await ensureMustChangePasswordColumn();
+
     // Query user by email
     const usersResult = await db
       .select({
@@ -36,6 +38,7 @@ export async function POST(request: Request) {
         password_hash: users.passwordHash,
         role: users.role,
         full_name: users.fullName,
+        must_change_password: users.mustChangePassword,
       })
       .from(users)
       .where(sql`LOWER(${users.email}) = ${cleanEmail}`);
@@ -60,6 +63,7 @@ export async function POST(request: Request) {
           password_hash: users.passwordHash,
           role: users.role,
           full_name: users.fullName,
+          must_change_password: users.mustChangePassword,
         })
         .from(users)
         .where(eq(users.id, insertResult.insertId));
@@ -118,6 +122,7 @@ export async function POST(request: Request) {
         email: user.email,
         role: user.role,
         full_name: user.full_name,
+        must_change_password: Boolean(user.role === 'admin' && user.must_change_password),
       },
     });
   } catch (error: any) {

@@ -29,4 +29,23 @@ export async function query<T = any>(sql: string, params: any[] = []): Promise<T
   }
 }
 
+let mustChangeColumnEnsured = false;
+
+export async function ensureMustChangePasswordColumn(): Promise<void> {
+  if (mustChangeColumnEnsured) return;
+  try {
+    const dbName = process.env.DB_NAME || 'dvla_nss_portal';
+    const cols = await query<any[]>(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'must_change_password'`,
+      [dbName]
+    );
+    if (!Array.isArray(cols) || cols.length === 0) {
+      await query(`ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 0`);
+    }
+    mustChangeColumnEnsured = true;
+  } catch (err) {
+    console.warn('Could not verify must_change_password column:', err);
+  }
+}
+
 export default pool;

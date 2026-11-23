@@ -12,6 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [timeoutNotice, setTimeoutNotice] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -35,6 +36,9 @@ export default function LoginPage() {
       const emailParam = params.get('email');
       if (emailParam) {
         setFormData(prev => ({ ...prev, email: emailParam }));
+      }
+      if (params.get('reason') === 'timeout') {
+        setTimeoutNotice(true);
       }
     }
   }, []);
@@ -149,6 +153,12 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {timeoutNotice && !error && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                <span>Your session expired due to inactivity. Please sign in again.</span>
+              </div>
+            )}
             {error && (
               <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />

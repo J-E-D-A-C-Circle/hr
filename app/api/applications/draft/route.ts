@@ -54,7 +54,21 @@ export async function POST(request: Request) {
       [payload.user_id]
     );
 
-    const nssNumber = data.nss_number || data.nssPin || null;
+    const rawNss = data.nss_number || data.nssPin || null;
+    const nssNumber = rawNss ? String(rawNss).trim().replace(/\s+/g, '').toUpperCase() : null;
+
+    if (nssNumber) {
+      const dupApps = await query<any[]>(
+        `SELECT id, user_id FROM nss_applications WHERE REPLACE(UPPER(TRIM(nss_number)), ' ', '') = ? AND user_id != ? LIMIT 1`,
+        [nssNumber, payload.user_id]
+      );
+      if (dupApps && dupApps.length > 0) {
+        return NextResponse.json(
+          { error: `An application with NSS number ${nssNumber} already exists under another account. Duplicate applications are not permitted.` },
+          { status: 409 }
+        );
+      }
+    }
     const firstName = data.first_name || data.firstName || '';
     const lastName = data.last_name || data.lastName || '';
     const middleName = data.middle_name || data.middleName || null;

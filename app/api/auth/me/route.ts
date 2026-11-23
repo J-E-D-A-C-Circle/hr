@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { query, ensureMustChangePasswordColumn } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
@@ -9,8 +9,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    await ensureMustChangePasswordColumn();
+
     const users = await query<any[]>(
-      'SELECT id, email, role, full_name, created_at FROM users WHERE id = ?',
+      'SELECT id, email, role, full_name, must_change_password, created_at FROM users WHERE id = ?',
       [payload.user_id]
     );
 

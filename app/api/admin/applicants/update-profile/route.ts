@@ -105,9 +105,22 @@ export async function PUT(request: Request) {
     const cleanFirst = firstName !== undefined ? String(firstName).trim() : null;
     const cleanMiddle = middleName !== undefined ? String(middleName).trim() : null;
     const cleanLast = lastName !== undefined ? String(lastName).trim() : null;
-    const cleanNss = nssNumber !== undefined ? String(nssNumber).trim().toUpperCase() : null;
+    const cleanNss = nssNumber !== undefined ? (String(nssNumber).trim().replace(/\s+/g, '').toUpperCase() || null) : null;
     const cleanRegion = region !== undefined ? String(region).trim() : null;
     const cleanDistrict = district !== undefined ? String(district).trim() : null;
+
+    if (cleanNss) {
+      const dupNss = await query<any[]>(
+        `SELECT id, user_id FROM nss_applications WHERE REPLACE(UPPER(TRIM(nss_number)), ' ', '') = ? AND user_id != ? LIMIT 1`,
+        [cleanNss, targetUserId]
+      );
+      if (dupNss && dupNss.length > 0) {
+        return NextResponse.json(
+          { error: `NSS number "${cleanNss}" is already assigned to another applicant account.` },
+          { status: 409 }
+        );
+      }
+    }
 
     if (existingApps.length > 0) {
       const app = existingApps[0];

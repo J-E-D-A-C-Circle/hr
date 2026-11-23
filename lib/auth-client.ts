@@ -3,6 +3,7 @@ export interface ClientUser {
   email: string;
   role: 'applicant' | 'admin';
   full_name: string;
+  must_change_password?: boolean;
 }
 
 export function clearAuthSession(): void {

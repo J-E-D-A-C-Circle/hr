@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
+import SessionTimeoutGuard from "@/components/SessionTimeoutGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -60,6 +61,7 @@ export default function RootLayout({
             },
           }}
         />
+        <SessionTimeoutGuard />
         {children}
       </body>
     </html>

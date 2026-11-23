@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, query } from '@/lib/db';
 import { nssApplications } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sendApplicationReceipt } from '@/lib/email';
@@ -77,7 +77,21 @@ export async function POST(request: Request) {
       }
     }
 
-    const nssNumber = data.nss_number || data.nssPin || null;
+    const rawNss = data.nss_number || data.nssPin || null;
+    const nssNumber = rawNss ? String(rawNss).trim().replace(/\s+/g, '').toUpperCase() : null;
+
+    if (nssNumber) {
+      const dupApps = await query<any[]>(
+        `SELECT id, user_id, email, status FROM nss_applications WHERE REPLACE(UPPER(TRIM(nss_number)), ' ', '') = ? AND user_id != ? LIMIT 1`,
+        [nssNumber, payload.user_id]
+      );
+      if (dupApps && dupApps.length > 0) {
+        return NextResponse.json(
+          { error: `An application with NSS number ${nssNumber} already exists under another account. Duplicate applications are not permitted.` },
+          { status: 409 }
+        );
+      }
+    }
     const middleName = data.middle_name || null;
     const dob = cleanDbDate(data.date_of_birth || data.dateOfBirth) as string;
     const postingRegion = data.posting_region || data.region || null;
