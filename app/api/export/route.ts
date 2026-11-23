@@ -148,6 +148,19 @@ export async function GET(request: NextRequest) {
         sumNetPay += netPay;
       });
 
+      // Extract month name & year from targetMonth or default to current month
+      const cleanMonth = (validationMonth || getCurrentMonthYearString()).replace(/\s*\([^)]*\)/g, "").trim();
+      const monthParts = cleanMonth.split(" ");
+      const mName = monthParts[0] || "August";
+      const mYr = parseInt(monthParts[1] || String(new Date().getFullYear()), 10);
+
+      const monthList = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const mIdx = monthList.indexOf(mName.toLowerCase());
+      const effMIdx = mIdx === -1 ? new Date().getMonth() : mIdx;
+
       const additions = filtered.filter((item: any) => {
         const joining = item.contracts?.[0]?.start_date || item.created_at;
         if (!joining) return false;
@@ -166,19 +179,6 @@ export async function GET(request: NextRequest) {
       const validationOnHold = filtered.filter((item: any) => {
         return item.payment_status === "unpaid" || item.payment_status === "hold";
       }).length;
-
-      // Extract month name & year from targetMonth or default to current month
-      const cleanMonth = (validationMonth || getCurrentMonthYearString()).replace(/\s*\([^)]*\)/g, "").trim();
-      const monthParts = cleanMonth.split(" ");
-      const mName = monthParts[0] || "August";
-      const mYr = parseInt(monthParts[1] || String(new Date().getFullYear()), 10);
-
-      const monthList = [
-        "january", "february", "march", "april", "may", "june",
-        "july", "august", "september", "october", "november", "december"
-      ];
-      const mIdx = monthList.indexOf(mName.toLowerCase());
-      const effMIdx = mIdx === -1 ? new Date().getMonth() : mIdx;
 
       const prevMIdx = effMIdx === 0 ? 11 : effMIdx - 1;
       const prevMYr = effMIdx === 0 ? mYr - 1 : mYr;
