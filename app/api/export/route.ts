@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, ensureStationsTable } from "@/lib/db";
+import { prisma, getStationsHierarchy } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
 import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook, buildGraPayeWorkbook } from "@/lib/excel";
 import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
@@ -37,15 +37,8 @@ export async function GET(request: NextRequest) {
     const normalizedDepartmentFilter = department ? normalizeStation(department) : "";
     let allowedStations: Set<string> | null = null;
     if (normalizedDepartmentFilter) {
-      try {
-        await ensureStationsTable();
-        const stationRows = await prisma.station.findMany({
-          select: { name: true, parent_station: true },
-        });
-        allowedStations = expandStationFilter(normalizedDepartmentFilter, stationRows);
-      } catch {
-        allowedStations = new Set([normalizedDepartmentFilter]);
-      }
+      const stationRows = await getStationsHierarchy();
+      allowedStations = expandStationFilter(normalizedDepartmentFilter, stationRows);
     }
 
     const annotated = staffList.map((item: any) => {

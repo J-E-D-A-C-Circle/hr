@@ -73,9 +73,31 @@ export default function StationSelect({
   const [parentMap, setParentMap] = useState<Record<string, string | null>>(() => cachedParents);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const stationSet = useMemo(() => new Set(stationList), [stationList]);
+  const stationSet = useMemo(() => {
+    const s = new Set<string>(stationList);
+    for (const off of OFFICIAL_STATIONS) {
+      s.add(off);
+    }
+    if (value && value.trim()) {
+      s.add(value.trim().toUpperCase());
+      const norm = normalizeStation(value);
+      if (norm) s.add(norm);
+    }
+    return s;
+  }, [stationList, value]);
+
+  // Always clear any stale HTML5 custom validity message when value changes
+  useEffect(() => {
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.setCustomValidity("");
+    }
+    if (inputRef.current) {
+      inputRef.current.setCustomValidity("");
+    }
+  }, [value, query]);
 
   useEffect(() => {
     let active = true;
@@ -174,6 +196,12 @@ export default function StationSelect({
   }, [highlightIndex, open]);
 
   const selectStation = (station: string) => {
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.setCustomValidity("");
+    }
+    if (inputRef.current) {
+      inputRef.current.setCustomValidity("");
+    }
     onChange(station);
     setQuery(station);
     setOpen(false);
@@ -230,23 +258,16 @@ export default function StationSelect({
           onKeyDown={handleKeyDown}
           className="w-full pl-9 pr-14 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 disabled:opacity-50"
         />
-        {/* Hidden required input ensures native form validation enforces an official selection */}
+        {/* Hidden required input ensures native form validation enforces a non-empty selection without getting stuck */}
         {required && (
           <input
+            ref={hiddenInputRef}
             type="text"
             tabIndex={-1}
             aria-hidden="true"
             required
-            value={stationSet.has(value.trim().toUpperCase()) ? value : ""}
+            value={value && value.trim() ? value.trim() : ""}
             onChange={() => {}}
-            onInvalid={(e) => {
-              (e.target as HTMLInputElement).setCustomValidity(
-                "Please select a valid station from the list."
-              );
-            }}
-            onInput={(e) => {
-              (e.target as HTMLInputElement).setCustomValidity("");
-            }}
             className="sr-only"
           />
         )}

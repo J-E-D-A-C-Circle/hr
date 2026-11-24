@@ -14,7 +14,9 @@ import {
   Loader2,
   Search,
   MapPin,
+  Pencil,
 } from "lucide-react";
+import StationSelect from "@/components/StationSelect";
 
 export default function AdminCMSPage() {
   const [activeTab, setActiveTab] = useState<"STATIONS" | "BANKS" | "INSURANCE" | "CLEARANCE" | "GRADES">("STATIONS");
@@ -30,7 +32,9 @@ export default function AdminCMSPage() {
 
   // Form states
   const [modalOpen, setModalOpen] = useState(false);
-  const [stationForm, setStationForm] = useState({ name: "" });
+  const [stationForm, setStationForm] = useState({ name: "", parent_station: "" });
+  const [editingStation, setEditingStation] = useState<any | null>(null);
+  const [editStationForm, setEditStationForm] = useState({ name: "", parent_station: "", is_active: true });
   const [bankForm, setBankForm] = useState({ bankName: "", branchName: "", code: "" });
   const [insuranceForm, setInsuranceForm] = useState({ name: "", policyType: "TIER_3", defaultPremium: "0" });
   const [clearanceForm, setClearanceForm] = useState({ title: "", description: "", requiredDept: "Audit & Finance", order: "1" });
@@ -102,7 +106,7 @@ export default function AdminCMSPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setModalOpen(false);
-        setStationForm({ name: "" });
+        setStationForm({ name: "", parent_station: "" });
         if (activeTab === "STATIONS") {
           window.dispatchEvent(new Event("stations-updated"));
         }
@@ -112,6 +116,36 @@ export default function AdminCMSPage() {
       }
     } catch {
       alert("Failed to create entry");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStation) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/admin/cms/stations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingStation.id,
+          name: editStationForm.name,
+          parent_station: editStationForm.parent_station || null,
+          is_active: editStationForm.is_active,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEditingStation(null);
+        window.dispatchEvent(new Event("stations-updated"));
+        fetchCMSData();
+      } else {
+        alert(data.error || "Failed to update station");
+      }
+    } catch {
+      alert("Failed to update station");
     } finally {
       setSubmitting(false);
     }
@@ -252,6 +286,7 @@ export default function AdminCMSPage() {
                   <thead className="bg-slate-100 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase text-[10px] font-semibold tracking-wider">
                     <tr>
                       <th className="py-3 px-4">Station Name</th>
+                      <th className="py-3 px-4">Parent Station</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
@@ -260,17 +295,41 @@ export default function AdminCMSPage() {
                     {stations
                       .filter((s) =>
                         !stationSearch.trim() ||
-                        String(s.name || "").toLowerCase().includes(stationSearch.trim().toLowerCase())
+                        String(s.name || "").toLowerCase().includes(stationSearch.trim().toLowerCase()) ||
+                        String(s.parent_station || "").toLowerCase().includes(stationSearch.trim().toLowerCase())
                       )
                       .map((s) => (
                         <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                           <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">{s.name}</td>
                           <td className="py-3 px-4">
+                            {s.parent_station ? (
+                              <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
+                                {s.parent_station}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                               {s.is_active ? "ACTIVE" : "INACTIVE"}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right">
+                          <td className="py-3 px-4 text-right space-x-1">
+                            <button
+                              onClick={() => {
+                                setEditingStation(s);
+                                setEditStationForm({
+                                  name: s.name || "",
+                                  parent_station: s.parent_station || "",
+                                  is_active: Boolean(s.is_active),
+                                });
+                              }}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-500/10 transition cursor-pointer"
+                              title="Edit station / office"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
                             <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition cursor-pointer">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -278,7 +337,7 @@ export default function AdminCMSPage() {
                         </tr>
                       ))}
                     {stations.length === 0 && (
-                      <tr><td colSpan={3} className="py-6 text-center text-slate-400">No stations found. Click "Add New STATION Entry".</td></tr>
+                      <tr><td colSpan={4} className="py-6 text-center text-slate-400">No stations found. Click "Add New STATION Entry".</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -431,20 +490,34 @@ export default function AdminCMSPage() {
 
             <form onSubmit={handleCreate} className="space-y-4">
               {activeTab === "STATIONS" && (
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Station Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={stationForm.name}
-                    onChange={(e) => setStationForm({ name: e.target.value })}
-                    placeholder="e.g. ACHEAM 4 PVTS, ACHIMOTA"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white uppercase"
-                  />
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Saved in uppercase to the database and immediately available in all TempStaff station dropdowns.
-                  </p>
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Station Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={stationForm.name}
+                      onChange={(e) => setStationForm({ ...stationForm, name: e.target.value })}
+                      placeholder="e.g. ACHEAM 4 PVTS, ACHIMOTA"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white uppercase"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      Parent Station (Optional — for PVTS / Sub-stations)
+                    </label>
+                    <StationSelect
+                      value={stationForm.parent_station}
+                      onChange={(st) => setStationForm({ ...stationForm, parent_station: st })}
+                      allowAll
+                      allLabel="None (Standalone / Main Station)"
+                      placeholder="Type to search any station..."
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Saved in uppercase to the database and immediately available in all TempStaff station dropdowns.
+                    </p>
+                  </div>
+                </>
               )}
 
               {activeTab === "BANKS" && (
@@ -567,6 +640,78 @@ export default function AdminCMSPage() {
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
                 >
                   {submitting ? "Saving..." : "Save Master Entry"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingStation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-indigo-600 dark:text-cyan-400" />
+                Edit Station / Office
+              </h3>
+              <button onClick={() => setEditingStation(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateStation} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Station / Office Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editStationForm.name}
+                  onChange={(e) => setEditStationForm({ ...editStationForm, name: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white uppercase"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Parent Station (Optional — for PVTS / Sub-stations)
+                </label>
+                <StationSelect
+                  value={editStationForm.parent_station}
+                  onChange={(st) => setEditStationForm({ ...editStationForm, parent_station: st })}
+                  allowAll
+                  allLabel="None (Standalone / Main Station)"
+                  excludeStation={editingStation.name}
+                  placeholder="Type to search any station..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Status</label>
+                <select
+                  value={editStationForm.is_active ? "true" : "false"}
+                  onChange={(e) => setEditStationForm({ ...editStationForm, is_active: e.target.value === "true" })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white"
+                >
+                  <option value="true">ACTIVE</option>
+                  <option value="false">INACTIVE</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingStation(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium hover:bg-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
+                >
+                  {submitting ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

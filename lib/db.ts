@@ -52,3 +52,15 @@ export async function ensureStationsTable(): Promise<void> {
     console.warn("ensureStationsTable warning:", err);
   }
 }
+
+export async function getStationsHierarchy(): Promise<{ name: string; parent_station: string | null }[]> {
+  try {
+    await ensureStationsTable();
+    const rows = (await prisma.$queryRawUnsafe(
+      `SELECT name, parent_station FROM \`stations\` WHERE is_active = 1`
+    )) as { name: string; parent_station: string | null }[];
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}

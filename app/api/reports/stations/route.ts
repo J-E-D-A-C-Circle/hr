@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, ensureStationsTable } from "@/lib/db";
+import { prisma, getStationsHierarchy } from "@/lib/db";
 import { normalizeStation, expandStationFilter } from "@/lib/stations";
 import { CALENDAR_MONTHS } from "@/lib/status";
 
@@ -27,15 +27,8 @@ export async function GET(request: NextRequest) {
     const targetStation = stationParam ? normalizeStation(stationParam) : "";
     let allowedStations: Set<string> | null = null;
     if (targetStation) {
-      try {
-        await ensureStationsTable();
-        const stationRows = await prisma.station.findMany({
-          select: { name: true, parent_station: true },
-        });
-        allowedStations = expandStationFilter(targetStation, stationRows);
-      } catch {
-        allowedStations = new Set([targetStation]);
-      }
+      const stationRows = await getStationsHierarchy();
+      allowedStations = expandStationFilter(targetStation, stationRows);
     }
 
     const staffList = await prisma.staff.findMany({
