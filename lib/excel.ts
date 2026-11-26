@@ -413,6 +413,18 @@ export const ACH_BANK_LOOKUP: Record<string, { bankCode: string; locationCode: s
   "FIDELITY BANK": { bankCode: "24", locationCode: "240100" },
   "ACCESS": { bankCode: "28", locationCode: "280100" },
   "ACCESS BANK": { bankCode: "28", locationCode: "280100" },
+  "OMNIBSIC": { bankCode: "27", locationCode: "270101" },
+  "BSIC": { bankCode: "27", locationCode: "270101" },
+  "ARB APEX": { bankCode: "07", locationCode: "070101" },
+  "APEX BANK": { bankCode: "07", locationCode: "070101" },
+  "BANK OF GHANA": { bankCode: "01", locationCode: "010101" },
+  "FIRST BANK": { bankCode: "20", locationCode: "200113" },
+  "FBNBANK": { bankCode: "20", locationCode: "200113" },
+  "SG SSB": { bankCode: "09", locationCode: "090115" },
+  "SCB": { bankCode: "02", locationCode: "020101" },
+  "FAB": { bankCode: "17", locationCode: "170114" },
+  "PBL": { bankCode: "18", locationCode: "180109" },
+  "BOA": { bankCode: "21", locationCode: "210601" },
   "FIRST NATIONAL BANK": { bankCode: "33", locationCode: "330102" },
   "FNB": { bankCode: "33", locationCode: "330102" },
   "CBG": { bankCode: "34", locationCode: "340102" },
@@ -421,18 +433,23 @@ export const ACH_BANK_LOOKUP: Record<string, { bankCode: string; locationCode: s
 };
 
 export function getAchBankDetails(bankName: string, bankBranch?: string): { bankCode: string; locationCode: string } {
-  if (!bankName) return { bankCode: "00", locationCode: "000000" };
+  if (!bankName || !String(bankName).trim()) {
+    return { bankCode: "00", locationCode: "000000" };
+  }
 
-  const norm = bankName.toUpperCase().replace(/[^A-Z0-9]/g, " ").trim();
+  const norm = String(bankName).toUpperCase().replace(/[^A-Z0-9]/g, " ").replace(/\s+/g, " ").trim();
+  if (!norm) {
+    return { bankCode: "00", locationCode: "000000" };
+  }
 
   for (const key of Object.keys(ACH_BANK_LOOKUP)) {
     if (norm.includes(key) || key.includes(norm)) {
       const match = ACH_BANK_LOOKUP[key];
       let loc = match.locationCode;
       if (bankBranch) {
-        const digits = bankBranch.replace(/[^0-9]/g, "");
+        const digits = String(bankBranch).replace(/[^0-9]/g, "");
         if (digits.length >= 6) {
-          loc = digits;
+          loc = digits.slice(0, 6);
         }
       }
       return { bankCode: match.bankCode, locationCode: loc };

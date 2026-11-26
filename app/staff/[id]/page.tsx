@@ -195,6 +195,8 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
           salary: editForm.salary,
           start_date: editForm.start_date,
           end_date: editForm.end_date,
+          user_name: currentUserName,
+          user_role: currentUserRole,
         }),
       });
 

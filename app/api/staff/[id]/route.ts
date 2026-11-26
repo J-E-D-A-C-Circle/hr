@@ -113,72 +113,10 @@ export async function PATCH(
 
     const actorName = user_name || "HR Officer";
     const actorRole = user_role || "HR Officer";
-    const roleUpper = actorRole.toUpperCase();
+    const cleanStaffCode =
+      staff_code !== undefined ? (String(staff_code).trim() || null) : undefined;
 
-    const isApprovalAuthority =
-      roleUpper.includes("APPROVAL") ||
-      roleUpper.includes("MANAGER") ||
-      roleUpper.includes("DIRECTOR") ||
-      roleUpper.includes("INSPECTOR") ||
-      roleUpper.includes("ADMIN") ||
-      roleUpper.includes("SUPER");
-
-    // If submitted by an HR Officer (not an approval authority), send for Approval Officer approval
-    if (!isApprovalAuthority) {
-      const editPayload = {
-        requested_by: actorName,
-        requested_role: actorRole,
-        requested_at: new Date().toISOString(),
-        changes: {
-          staff_code,
-          full_name,
-          date_of_birth,
-          gender,
-          email,
-          ssnit_no,
-          nia_number,
-          role,
-          department: department !== undefined ? (department ? normalizeStation(department) : "") : undefined,
-          phone,
-          bank_name,
-          bank_branch,
-          bank_account,
-          salary,
-          start_date,
-          end_date,
-        },
-      };
-
-      const updated = await prisma.staff.update({
-        where: { id: staffId },
-        data: {
-          pending_edits: JSON.stringify(editPayload),
-          approval_status: "PENDING_EDIT_APPROVAL",
-        },
-        include: {
-          contracts: { orderBy: { created_at: "desc" } },
-        },
-      });
-
-      await prisma.auditLog.create({
-        data: {
-          user_name: actorName,
-          user_role: actorRole,
-          action: "SUBMIT_EDIT_FOR_APPROVAL",
-          details: `${actorName} (${actorRole}) submitted an employee edit request for ${previousStaff?.full_name || updated.full_name} awaiting Approval Officer review.`,
-          staff_id: staffId,
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        isPendingApproval: true,
-        message: "Edit request submitted to Approval Officer for review.",
-        data: updated,
-      });
-    }
-
-    // Direct Edit path for Approval Officers, HR Managers & Administrators
+    // Update current contract start_date & end_date if provided
     if (start_date || end_date) {
       const currentContract = await prisma.contract.findFirst({
         where: { staff_id: staffId, is_current: true },
@@ -207,23 +145,29 @@ export async function PATCH(
       }
     }
 
+    const parsedSalary =
+      salary !== undefined && salary !== null && String(salary).trim() !== ""
+        ? parseFloat(String(salary))
+        : previousStaff.salary ?? null;
+
     const updated = await prisma.staff.update({
       where: { id: staffId },
       data: {
-        staff_code: staff_code !== undefined ? staff_code : undefined,
-        full_name: full_name !== undefined ? full_name : undefined,
-        date_of_birth: date_of_birth !== undefined ? parseFlexibleDate(date_of_birth) : undefined,
-        gender: gender !== undefined ? gender : undefined,
-        email: email !== undefined ? email : undefined,
-        ssnit_no: ssnit_no !== undefined ? ssnit_no : undefined,
-        nia_number: nia_number !== undefined ? nia_number : undefined,
-        role: role !== undefined ? role : undefined,
-        department: department !== undefined ? (department ? normalizeStation(department) : null) : undefined,
-        phone: phone !== undefined ? phone : undefined,
-        bank_name: bank_name !== undefined ? bank_name : undefined,
-        bank_branch: bank_branch !== undefined ? bank_branch : undefined,
-        bank_account: bank_account !== undefined ? bank_account : undefined,
-        salary: salary !== undefined ? (salary ? parseFloat(salary) : null) : undefined,
+        staff_code: cleanStaffCode !== undefined ? (cleanStaffCode || previousStaff.staff_code) : undefined,
+        full_name: full_name !== undefined && String(full_name).trim() ? String(full_name).trim() : undefined,
+        date_of_birth: date_of_birth ? parseFlexibleDate(date_of_birth) : previousStaff.date_of_birth,
+        gender: gender ? gender : previousStaff.gender,
+        email: email ? email : previousStaff.email,
+        ssnit_no: ssnit_no ? ssnit_no : previousStaff.ssnit_no,
+        nia_number: nia_number ? nia_number : previousStaff.nia_number,
+        role: role ? role : previousStaff.role,
+        department: department ? normalizeStation(department) : previousStaff.department,
+        phone: phone ? phone : previousStaff.phone,
+        bank_name: bank_name ? bank_name : previousStaff.bank_name,
+        bank_branch: bank_branch ? bank_branch : previousStaff.bank_branch,
+        bank_account: bank_account ? bank_account : previousStaff.bank_account,
+        salary: !isNaN(parsedSalary as number) && parsedSalary !== null ? parsedSalary : previousStaff.salary,
+        approval_status: previousStaff.approval_status === "PENDING_EDIT_APPROVAL" ? "APPROVED" : undefined,
         pending_edits: null,
       },
       include: {

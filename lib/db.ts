@@ -64,3 +64,62 @@ export async function getStationsHierarchy(): Promise<{ name: string; parent_sta
     return [];
   }
 }
+
+/**
+ * Automatically applies any profile/bank/station edits that were trapped in staff.pending_edits
+ * directly onto the staff row so exports and directory views reflect the saved data immediately.
+ */
+export async function flushPendingStaffEdits(): Promise<void> {
+  try {
+    const pendingList = await prisma.staff.findMany({
+      where: {
+        pending_edits: { not: null },
+      },
+      select: {
+        id: true,
+        pending_edits: true,
+        salary: true,
+      },
+    });
+
+    for (const row of pendingList) {
+      if (!row.pending_edits) continue;
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(row.pending_edits);
+      } catch {
+        continue;
+      }
+      const ch = parsed?.changes;
+      if (!ch || typeof ch !== "object") continue;
+
+      const sal =
+        ch.salary !== undefined && ch.salary !== null && String(ch.salary).trim() !== ""
+          ? parseFloat(String(ch.salary))
+          : undefined;
+
+      await prisma.staff.update({
+        where: { id: row.id },
+        data: {
+          staff_code: ch.staff_code ? String(ch.staff_code).trim() : undefined,
+          full_name: ch.full_name ? String(ch.full_name).trim() : undefined,
+          gender: ch.gender || undefined,
+          email: ch.email || undefined,
+          ssnit_no: ch.ssnit_no || undefined,
+          nia_number: ch.nia_number || undefined,
+          role: ch.role || undefined,
+          department: ch.department || undefined,
+          phone: ch.phone || undefined,
+          bank_name: ch.bank_name || undefined,
+          bank_branch: ch.bank_branch || undefined,
+          bank_account: ch.bank_account || undefined,
+          salary: sal !== undefined && !isNaN(sal) ? sal : undefined,
+          approval_status: "APPROVED",
+          pending_edits: null,
+        },
+      });
+    }
+  } catch (err) {
+    console.warn("flushPendingStaffEdits warning:", err);
+  }
+}

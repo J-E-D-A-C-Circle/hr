@@ -32,6 +32,7 @@ export async function GET() {
       if (staff.approval_status === "PENDING_APPROVAL") {
         pendingApprovalCount++;
         pendingApprovalList.push({
+          ...staff,
           id: staff.id,
           staff_code: staff.staff_code || `EMP-${staff.id}`,
           full_name: staff.full_name,
@@ -54,6 +55,7 @@ export async function GET() {
       if (status === "Expiring Soon" && currentContract) {
         const daysRemaining = computeDaysRemaining(currentContract.end_date);
         upcomingExpirations.push({
+          ...staff,
           id: staff.id,
           staff_code: staff.staff_code || `EMP-${staff.id}`,
           full_name: staff.full_name,

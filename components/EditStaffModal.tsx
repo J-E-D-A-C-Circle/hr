@@ -50,33 +50,84 @@ export default function EditStaffModal({ isOpen, onClose, staff, onSuccess }: Ed
 
   useEffect(() => {
     if (isOpen && staff) {
+      let pendingChanges: any = {};
+      if (staff.pending_edits) {
+        try {
+          const parsed = JSON.parse(staff.pending_edits);
+          if (parsed?.changes && typeof parsed.changes === "object") {
+            pendingChanges = parsed.changes;
+          }
+        } catch {}
+      }
       const currentContract = staff.contracts?.find((c: any) => c.is_current) || staff.contracts?.[0] || staff.currentContract;
-      const nameParts = (staff.full_name || "").trim().split(/\s+/);
+      const effectiveFullName = pendingChanges.full_name || staff.full_name || "";
+      const nameParts = effectiveFullName.trim().split(/\s+/);
       const initSurname = nameParts[0] || "";
       const initGiven = nameParts.slice(1).join(" ") || "";
       setSurname(initSurname);
       setFirstMiddleName(initGiven);
 
       setFormData({
-        staff_code: staff.staff_code || "",
-        full_name: staff.full_name || "",
-        date_of_birth: staff.date_of_birth ? formatDateForInput(staff.date_of_birth) : "",
-        gender: staff.gender || "",
-        email: staff.email || "",
-        ssnit_no: staff.ssnit_no || "",
-        nia_number: staff.nia_number || "",
-        role: staff.role || "",
-        department: normalizeStation(staff.department) || "",
-        phone: staff.phone || "",
-        bank_name: staff.bank_name || "",
-        bank_branch: staff.bank_branch || "",
-        bank_account: staff.bank_account || "",
-        salary: staff.salary ? String(staff.salary) : "",
+        staff_code: pendingChanges.staff_code || staff.staff_code || "",
+        full_name: effectiveFullName,
+        date_of_birth: (pendingChanges.date_of_birth || staff.date_of_birth) ? formatDateForInput(pendingChanges.date_of_birth || staff.date_of_birth) : "",
+        gender: pendingChanges.gender || staff.gender || "",
+        email: pendingChanges.email || staff.email || "",
+        ssnit_no: pendingChanges.ssnit_no || staff.ssnit_no || "",
+        nia_number: pendingChanges.nia_number || staff.nia_number || "",
+        role: pendingChanges.role || staff.role || "",
+        department: normalizeStation(pendingChanges.department || staff.department) || "",
+        phone: pendingChanges.phone || staff.phone || "",
+        bank_name: pendingChanges.bank_name || staff.bank_name || "",
+        bank_branch: pendingChanges.bank_branch || staff.bank_branch || "",
+        bank_account: pendingChanges.bank_account || staff.bank_account || "",
+        salary: pendingChanges.salary ? String(pendingChanges.salary) : (staff.salary ? String(staff.salary) : ""),
         start_date: currentContract?.start_date ? formatDateForInput(currentContract.start_date) : "",
         end_date: currentContract?.end_date ? formatDateForInput(currentContract.end_date) : "",
       });
       setError(null);
       setDuplicateCodeError(null);
+
+      // Always fetch full staff record from /api/staff/:id in case parent passed a partial dashboard summary object
+      if (staff.id) {
+        fetch(`/api/staff/${staff.id}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((json) => {
+            if (!json?.success || !json?.data) return;
+            const full = json.data;
+            let fullPending: any = {};
+            if (full.pending_edits) {
+              try {
+                const p = JSON.parse(full.pending_edits);
+                if (p?.changes && typeof p.changes === "object") fullPending = p.changes;
+              } catch {}
+            }
+            const contract = full.contracts?.find((c: any) => c.is_current) || full.contracts?.[0] || full.currentContract;
+            const fullNameStr = fullPending.full_name || full.full_name || "";
+            const parts = fullNameStr.trim().split(/\s+/);
+            setSurname(parts[0] || "");
+            setFirstMiddleName(parts.slice(1).join(" ") || "");
+            setFormData({
+              staff_code: fullPending.staff_code || full.staff_code || "",
+              full_name: fullNameStr,
+              date_of_birth: (fullPending.date_of_birth || full.date_of_birth) ? formatDateForInput(fullPending.date_of_birth || full.date_of_birth) : "",
+              gender: fullPending.gender || full.gender || "",
+              email: fullPending.email || full.email || "",
+              ssnit_no: fullPending.ssnit_no || full.ssnit_no || "",
+              nia_number: fullPending.nia_number || full.nia_number || "",
+              role: fullPending.role || full.role || "",
+              department: normalizeStation(fullPending.department || full.department) || "",
+              phone: fullPending.phone || full.phone || "",
+              bank_name: fullPending.bank_name || full.bank_name || "",
+              bank_branch: fullPending.bank_branch || full.bank_branch || "",
+              bank_account: fullPending.bank_account || full.bank_account || "",
+              salary: fullPending.salary ? String(fullPending.salary) : (full.salary ? String(full.salary) : ""),
+              start_date: contract?.start_date ? formatDateForInput(contract.start_date) : "",
+              end_date: contract?.end_date ? formatDateForInput(contract.end_date) : "",
+            });
+          })
+          .catch(() => {});
+      }
     }
   }, [isOpen, staff]);
 

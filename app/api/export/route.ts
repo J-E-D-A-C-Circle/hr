@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getStationsHierarchy } from "@/lib/db";
+import { prisma, getStationsHierarchy, flushPendingStaffEdits } from "@/lib/db";
 import { computeContractStatus, getCurrentMonthYearString } from "@/lib/status";
 import { buildExportWorkbook, buildPayrollPaymentWorkbook, buildSsnitContributionWorkbook, buildMonthlyComputationWorkbook, buildPetraTier2Workbook, buildGraPayeWorkbook } from "@/lib/excel";
 import { calculateGhanaDeductions, getDeductionRates } from "@/lib/payroll";
@@ -7,6 +7,7 @@ import { normalizeStation, expandStationFilter } from "@/lib/stations";
 
 export async function GET(request: NextRequest) {
   try {
+    await flushPendingStaffEdits();
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get("filter") || "currently_employed"; // default Active + Expiring Soon
     const department = searchParams.get("department") || "";
@@ -37,6 +38,15 @@ export async function GET(request: NextRequest) {
     const normalizedDepartmentFilter = department ? normalizeStation(department) : "";
     let allowedStations: Set<string> | null = null;
     if (normalizedDepartmentFilter) {
+      try {
+        await ensureStationsTable();
+        const stationRows = await prisma.station.findMany({
+          select: { name: true, parent_station: true },
+        });
+        allowedStations = expandStationFilter(normalizedDepartmentFilter, stationRows);
+      } catch {
+        allowedStations = new Set([normalizedDepartmentFilter]);
+      }
       const stationRows = await getStationsHierarchy();
       allowedStations = expandStationFilter(normalizedDepartmentFilter, stationRows);
     }
